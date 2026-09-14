@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Platform themes only: Compose draws everything, and a dependency on the
+         views material library would buy nothing. -->
+    <style name="Theme.TableChips" parent="@android:style/Theme.Material.Light.NoActionBar" />
+</resources>

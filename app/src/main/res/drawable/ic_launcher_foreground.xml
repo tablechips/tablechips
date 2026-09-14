@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive icons crop the outer third: the chip is inset to stay inside the
+     safe zone on round, squircle and squared launchers alike. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_chip"
+    android:inset="25%" />

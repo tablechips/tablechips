@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 9 and later block cleartext http by default, and the whole point of
+  this app is plain http and ws over a hotspot with no certificate authority in
+  sight.
+
+  Cleartext is opened for the loopback address only, which is the path the
+  host's own player interface uses. It is deliberately NOT opened for the whole
+  app: when the app becomes a guest of somebody else's table (phase 4) this file
+  has to grow one narrow entry, and that will be a decision taken on purpose.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+    </domain-config>
+</network-security-config>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English is the base language. Catalan (values-ca) and Spanish (values-es) are
+  not an afterthought: every string added here is added there in the same commit.
+
+  Game names are localized, not translated. The same game is "canari" in
+  Catalan and "julepe" in Spanish and has no English name, so the three keys are
+  independent and each language says what its own players say.
+-->
+<resources>
+    <string name="app_name" translatable="false">TableChips</string>
+
+    <string name="fgs_special_use_justification" translatable="false">
+        Runs the local table server other players in the room connect to over the
+        phone hotspot. The game state lives in this process and must survive the
+        screen turning off; there is no remote server to hand it to.
+    </string>
+
+    <!-- Host screen -->
+    <string name="host_title">Your table</string>
+    <string name="host_start">Open the table</string>
+    <string name="host_stop">Close the table</string>
+    <string name="host_room_code">Table code: %1$s</string>
+    <string name="host_stopped">The table is closed.</string>
+    <string name="host_starting">Opening…</string>
+    <string name="host_addresses_title">Guests connect to</string>
+    <string name="host_no_addresses">No network found. Turn on the hotspot or join a wifi network.</string>
+    <string name="host_hint">Turn on the phone hotspot first, then read out one of these addresses. Guests need no app: any browser will do.</string>
+    <string name="host_copy">Copy address</string>
+    <string name="host_copied">Address copied</string>
+    <string name="host_open_client">Open the table on this phone</string>
+    <string name="host_players_title">At the table</string>
+    <string name="host_players_none">Nobody has joined yet.</string>
+
+    <plurals name="host_player_chips">
+        <item quantity="one">%1$d chip</item>
+        <item quantity="other">%1$d chips</item>
+    </plurals>
+    <string name="host_seat">Seat %1$d</string>
+    <string name="host_watching">Watching</string>
+    <string name="host_error_start">The table could not be opened.</string>
+
+    <!-- Foreground service notification -->
+    <string name="notification_channel_name">Open table</string>
+    <string name="notification_channel_description">Shown while this phone is hosting a table.</string>
+    <string name="notification_title">Table %1$s is open</string>
+    <string name="notification_text">%1$s · tap to return</string>
+    <string name="notification_stop">Close</string>
+</resources>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Host screen -->
+    <string name="host_title">La teua taula</string>
+    <string name="host_start">Obre la taula</string>
+    <string name="host_stop">Tanca la taula</string>
+    <string name="host_room_code">Codi de la taula: %1$s</string>
+    <string name="host_stopped">La taula és tancada.</string>
+    <string name="host_starting">Obrint…</string>
+    <string name="host_addresses_title">Els convidats s\'han de connectar a</string>
+    <string name="host_no_addresses">No s\'ha trobat cap xarxa. Activa la zona wifi o connecta\'t a una xarxa.</string>
+    <string name="host_hint">Activa primer la zona wifi del mòbil i després canta una d\'aquestes adreces. Els convidats no han d\'instal·lar res: amb el navegador n\'hi ha prou.</string>
+    <string name="host_copy">Copia l\'adreça</string>
+    <string name="host_copied">Adreça copiada</string>
+    <string name="host_open_client">Obre la taula en aquest mòbil</string>
+    <string name="host_players_title">A la taula</string>
+    <string name="host_players_none">Encara no hi ha ningú.</string>
+
+    <plurals name="host_player_chips">
+        <item quantity="one">%1$d fitxa</item>
+        <item quantity="many">%1$d de fitxes</item>
+        <item quantity="other">%1$d fitxes</item>
+    </plurals>
+    <string name="host_seat">Lloc %1$d</string>
+    <string name="host_watching">Mirant</string>
+    <string name="host_error_start">No s\'ha pogut obrir la taula.</string>
+
+    <!-- Foreground service notification -->
+    <string name="notification_channel_name">Taula oberta</string>
+    <string name="notification_channel_description">Es mostra mentre aquest mòbil fa d\'amfitrió d\'una taula.</string>
+    <string name="notification_title">La taula %1$s és oberta</string>
+    <string name="notification_text">%1$s · toca per tornar-hi</string>
+    <string name="notification_stop">Tanca</string>
+</resources>

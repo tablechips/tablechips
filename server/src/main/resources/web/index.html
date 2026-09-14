@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TableChips</title>
+<style>
+  :root { color-scheme: light dark; --gap: 12px; }
+  body { font-family: system-ui, sans-serif; margin: 0; padding: var(--gap);
+         max-width: 720px; margin-inline: auto; line-height: 1.4; }
+  h1 { font-size: 1.3rem; margin: 0; }
+  header { display: flex; align-items: baseline; gap: var(--gap); flex-wrap: wrap; }
+  header select { margin-inline-start: auto; }
+  fieldset { border: 1px solid currentColor; border-radius: 8px; margin: var(--gap) 0; }
+  label { display: block; margin-block: 6px; }
+  input, button, select { font: inherit; padding: 6px 8px; }
+  input[type=text], input[type=number] { width: 8rem; }
+  button { cursor: pointer; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { text-align: start; padding: 4px 6px; border-bottom: 1px solid rgba(128,128,128,.4); }
+  td.num, th.num { text-align: end; font-variant-numeric: tabular-nums; }
+  .off { opacity: .45; }
+  .me { font-weight: bold; }
+  #status { padding: 4px 8px; border-radius: 999px; border: 1px solid currentColor; font-size: .85rem; }
+  #log { max-height: 12rem; overflow-y: auto; font-size: .9rem; margin: 0; padding-inline-start: 1.2rem; }
+  .note { font-size: .85rem; opacity: .8; }
+</style>
+</head>
+<body>
+
+<!--
+  Web client served by the host phone. Guests install nothing: this page and a
+  WebSocket to the same address are the whole client.
+
+  At F2 it does what F2 asks for and no more: join, sit down, and show the table
+  every connected device is looking at. Betting and awarding pots arrive with F3.
+
+  No build step, no framework, no remote asset: everything a guest loads comes
+  from the phone in front of them.
+-->
+
+<header>
+  <h1>TableChips</h1>
+  <span id="status" data-i18n="status.connecting"></span>
+  <select id="lang" aria-label="language"></select>
+</header>
+
+<p class="note" data-i18n="app.phase"></p>
+
+<fieldset id="joinBox">
+  <legend data-i18n="join.legend"></legend>
+  <label>
+    <span data-i18n="join.name"></span>
+    <input type="text" id="name" maxlength="24" autocomplete="nickname">
+  </label>
+  <button id="joinBtn" data-i18n="join.action"></button>
+  <button id="forgetBtn" data-i18n="join.forget" class="note"></button>
+</fieldset>
+
+<fieldset id="tableBox" hidden>
+  <legend><span data-i18n="table.legend"></span> <span id="room"></span></legend>
+  <table>
+    <thead>
+      <tr>
+        <th data-i18n="table.seat" class="num"></th>
+        <th data-i18n="table.player"></th>
+        <th data-i18n="table.stack" class="num"></th>
+        <th data-i18n="table.net" class="num"></th>
+      </tr>
+    </thead>
+    <tbody id="seats"></tbody>
+  </table>
+  <p>
+    <span data-i18n="table.pot"></span>: <strong id="pot"></strong>
+  </p>
+  <p id="sitRow">
+    <label>
+      <span data-i18n="sit.buyIn"></span>
+      <input type="number" id="buyIn" min="0" step="1">
+    </label>
+    <button id="sitBtn" data-i18n="sit.action"></button>
+    <button id="leaveBtn" data-i18n="leave.action"></button>
+  </p>
+  <p id="error" class="note"></p>
+</fieldset>
+
+<fieldset id="logBox" hidden>
+  <legend data-i18n="log.legend"></legend>
+  <ul id="log"></ul>
+</fieldset>
+
+<script>
+// ---------------------------------------------------------------- storage
+// Private browsing on iOS throws on localStorage, and losing the id there is
+// expected: the player rejoins and the host gives them their seat back.
+const store = {
+  get(key) { try { return localStorage.getItem("tablechips." + key); } catch (e) { return null; } },
+  set(key, value) { try { localStorage.setItem("tablechips." + key, value); } catch (e) {} },
+  remove(key) { try { localStorage.removeItem("tablechips." + key); } catch (e) {} }
+};
+
+// ---------------------------------------------------------------- i18n
+// Same key structure as the app's strings.xml. Game names and table vocabulary
+// are localized, not translated: what English calls a pot is a "poso" in canari.
+const DICT = {
+  en: {
+    "app.phase": "Connectivity and table probe (phase 2). Betting arrives with the full client.",
+    "status.connecting": "connecting…", "status.online": "connected", "status.offline": "disconnected",
+    "join.legend": "Join the table", "join.name": "Your name", "join.action": "Join",
+    "join.forget": "Forget this device",
+    "table.legend": "Table", "table.seat": "Seat", "table.player": "Player",
+    "table.stack": "Chips", "table.net": "Net", "table.pot": "Pot", "table.free": "free",
+    "sit.buyIn": "Buy-in", "sit.action": "Sit down", "leave.action": "Leave",
+    "log.legend": "Activity",
+    "log.table_opened": "Table {room} opened", "log.config_changed": "Buy-in set to {buyIn}",
+    "log.player_joined": "joined", "log.player_renamed": "now called {name}",
+    "log.player_sat": "sat at seat {seat} with {amount}", "log.player_stood_up": "stood up",
+    "log.player_left": "left the table", "log.rebuy": "bought {amount} more",
+    "log.bet": "bet {amount}", "log.pot_awarded": "took {amount} from the pot",
+    "log.pot_created": "new pot: {pot}", "log.transfer": "passed {amount}",
+    "log.stack_added": "received {amount}", "log.stack_removed": "gave back {amount}",
+    "error.unknown_player": "Unknown player", "error.unknown_pot": "Unknown pot",
+    "error.name_required": "Write a name", "error.name_too_long": "That name is too long",
+    "error.already_seated": "You are already seated", "error.not_seated": "Sit down first",
+    "error.seat_taken": "That seat is taken", "error.seat_out_of_range": "No such seat",
+    "error.table_full": "The table is full", "error.invalid_amount": "Invalid amount",
+    "error.invalid_target": "Invalid player", "error.insufficient_chips": "Not enough chips",
+    "error.pot_too_small": "The pot does not hold that much", "error.not_host": "Only the host may do that",
+    "error.invalid_config": "Invalid setting", "error.nothing_to_undo": "Nothing to undo",
+    "error.bad_message": "The server did not understand that",
+    "error.unsupported_version": "This client is too old for this table",
+    "error.not_joined": "Join the table first", "error.wrong_room": "That code is from another table"
+  },
+  ca: {
+    "app.phase": "Prova de connexió i de taula (fase 2). Les apostes arriben amb el client complet.",
+    "status.connecting": "connectant…", "status.online": "connectat", "status.offline": "desconnectat",
+    "join.legend": "Entra a la taula", "join.name": "El teu nom", "join.action": "Entra",
+    "join.forget": "Oblida aquest dispositiu",
+    "table.legend": "Taula", "table.seat": "Lloc", "table.player": "Jugador",
+    "table.stack": "Fitxes", "table.net": "Balanç", "table.pot": "Pot", "table.free": "lliure",
+    "sit.buyIn": "Compra", "sit.action": "Seu-hi", "leave.action": "Marxa",
+    "log.legend": "Registre",
+    "log.table_opened": "S'ha obert la taula {room}", "log.config_changed": "Compra fixada a {buyIn}",
+    "log.player_joined": "ha entrat", "log.player_renamed": "ara es diu {name}",
+    "log.player_sat": "s'ha assegut al lloc {seat} amb {amount}", "log.player_stood_up": "s'ha aixecat",
+    "log.player_left": "ha deixat la taula", "log.rebuy": "ha comprat {amount} més",
+    "log.bet": "ha apostat {amount}", "log.pot_awarded": "s'ha endut {amount} del pot",
+    "log.pot_created": "pot nou: {pot}", "log.transfer": "ha passat {amount}",
+    "log.stack_added": "ha rebut {amount}", "log.stack_removed": "ha tornat {amount}",
+    "error.unknown_player": "Jugador desconegut", "error.unknown_pot": "Pot desconegut",
+    "error.name_required": "Escriu un nom", "error.name_too_long": "El nom és massa llarg",
+    "error.already_seated": "Ja estàs assegut", "error.not_seated": "Primer has de seure",
+    "error.seat_taken": "Aquest lloc és ocupat", "error.seat_out_of_range": "Aquest lloc no existeix",
+    "error.table_full": "La taula és plena", "error.invalid_amount": "Import no vàlid",
+    "error.invalid_target": "Jugador no vàlid", "error.insufficient_chips": "No tens prou fitxes",
+    "error.pot_too_small": "El pot no té tant", "error.not_host": "Això només ho pot fer l'amfitrió",
+    "error.invalid_config": "Configuració no vàlida", "error.nothing_to_undo": "No hi ha res per desfer",
+    "error.bad_message": "El servidor no ho ha entès",
+    "error.unsupported_version": "Aquest client és massa antic per a aquesta taula",
+    "error.not_joined": "Primer has d'entrar a la taula", "error.wrong_room": "Aquest codi és d'una altra taula"
+  },
+  es: {
+    "app.phase": "Prueba de conexión y de mesa (fase 2). Las apuestas llegan con el cliente completo.",
+    "status.connecting": "conectando…", "status.online": "conectado", "status.offline": "desconectado",
+    "join.legend": "Entra en la mesa", "join.name": "Tu nombre", "join.action": "Entrar",
+    "join.forget": "Olvidar este dispositivo",
+    "table.legend": "Mesa", "table.seat": "Puesto", "table.player": "Jugador",
+    "table.stack": "Fichas", "table.net": "Balance", "table.pot": "Bote", "table.free": "libre",
+    "sit.buyIn": "Compra", "sit.action": "Sentarse", "leave.action": "Salir",
+    "log.legend": "Registro",
+    "log.table_opened": "Se ha abierto la mesa {room}", "log.config_changed": "Compra fijada en {buyIn}",
+    "log.player_joined": "ha entrado", "log.player_renamed": "ahora se llama {name}",
+    "log.player_sat": "se ha sentado en el puesto {seat} con {amount}", "log.player_stood_up": "se ha levantado",
+    "log.player_left": "ha dejado la mesa", "log.rebuy": "ha comprado {amount} más",
+    "log.bet": "ha apostado {amount}", "log.pot_awarded": "se ha llevado {amount} del bote",
+    "log.pot_created": "bote nuevo: {pot}", "log.transfer": "ha pasado {amount}",
+    "log.stack_added": "ha recibido {amount}", "log.stack_removed": "ha devuelto {amount}",
+    "error.unknown_player": "Jugador desconocido", "error.unknown_pot": "Bote desconocido",
+    "error.name_required": "Escribe un nombre", "error.name_too_long": "El nombre es demasiado largo",
+    "error.already_seated": "Ya estás sentado", "error.not_seated": "Primero siéntate",
+    "error.seat_taken": "Ese puesto está ocupado", "error.seat_out_of_range": "Ese puesto no existe",
+    "error.table_full": "La mesa está llena", "error.invalid_amount": "Importe no válido",
+    "error.invalid_target": "Jugador no válido", "error.insufficient_chips": "No tienes fichas suficientes",
+    "error.pot_too_small": "El bote no tiene tanto", "error.not_host": "Eso solo lo puede hacer el anfitrión",
+    "error.invalid_config": "Configuración no válida", "error.nothing_to_undo": "No hay nada que deshacer",
+    "error.bad_message": "El servidor no lo ha entendido",
+    "error.unsupported_version": "Este cliente es demasiado antiguo para esta mesa",
+    "error.not_joined": "Primero entra en la mesa", "error.wrong_room": "Ese código es de otra mesa"
+  }
+};
+
+const LANGS = Object.keys(DICT);
+let lang = pickLanguage();
+
+function pickLanguage() {
+  const stored = store.get("lang");
+  if (stored && DICT[stored]) return stored;
+  for (const tag of (navigator.languages || [navigator.language || "en"])) {
+    const base = String(tag).toLowerCase().split("-")[0];
+    if (DICT[base]) return base;
+  }
+  return "en";
+}
+
+function t(key, args) {
+  let text = (DICT[lang] && DICT[lang][key]) || DICT.en[key] || key;
+  if (args) for (const [name, value] of Object.entries(args)) text = text.split("{" + name + "}").join(value);
+  return text;
+}
+
+function applyLanguage() {
+  document.documentElement.lang = lang;
+  for (const node of document.querySelectorAll("[data-i18n]")) node.textContent = t(node.dataset.i18n);
+  render();
+}
+
+// ---------------------------------------------------------------- protocol
+const V = 1;
+let socket = null;
+let state = null;
+let me = null;
+let lastError = "";
+
+function roomFromUrl() {
+  return new URLSearchParams(location.search).get("room");
+}
+
+function connect() {
+  const scheme = location.protocol === "https:" ? "wss:" : "ws:";
+  socket = new WebSocket(scheme + "//" + location.host + "/ws");
+  socket.onopen = () => {
+    setStatus("status.online");
+    const name = store.get("name");
+    if (name) join(name);
+  };
+  socket.onclose = () => { setStatus("status.offline"); scheduleReconnect(); };
+  socket.onerror = () => setStatus("status.offline");
+  socket.onmessage = (event) => {
+    const message = JSON.parse(event.data);
+    if (message.type === "state") {
+      state = message.state;
+      me = message.you;
+      store.set("playerId", me);
+      lastError = "";
+      render();
+    } else if (message.type === "error") {
+      lastError = t("error." + message.code);
+      render();
+    }
+  };
+}
+
+// A game lasts hours and screens turn off: reconnecting is not a luxury.
+let reconnectDelay = 500;
+function scheduleReconnect() {
+  setTimeout(() => {
+    reconnectDelay = Math.min(reconnectDelay * 2, 5000);
+    connect();
+  }, reconnectDelay);
+}
+
+function send(message) {
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify(Object.assign({ v: V }, message)));
+  }
+}
+
+function join(name) {
+  store.set("name", name);
+  send({ type: "join", name: name, playerId: store.get("playerId"), room: roomFromUrl() });
+}
+
+// ---------------------------------------------------------------- rendering
+function setStatus(key) {
+  const node = document.getElementById("status");
+  node.dataset.i18n = key;
+  node.textContent = t(key);
+}
+
+function render() {
+  const joined = state && me && state.players.some((p) => p.id === me);
+  document.getElementById("joinBox").hidden = !!joined;
+  document.getElementById("tableBox").hidden = !state;
+  document.getElementById("logBox").hidden = !state;
+  if (!state) return;
+
+  document.getElementById("room").textContent = state.roomCode;
+  document.getElementById("pot").textContent = state.pots.reduce((sum, pot) => sum + pot.amount, 0);
+  document.getElementById("error").textContent = lastError;
+
+  const mine = state.players.find((p) => p.id === me);
+  document.getElementById("sitBtn").hidden = !joined || (mine && mine.seat !== null);
+  document.getElementById("leaveBtn").hidden = !joined;
+  document.getElementById("sitRow").hidden = !joined;
+  const buyIn = document.getElementById("buyIn");
+  if (!buyIn.value) buyIn.value = state.config.defaultBuyIn;
+
+  const rows = [];
+  for (let seat = 0; seat < state.config.seatCount; seat++) {
+    const player = state.players.find((p) => p.seat === seat);
+    const row = document.createElement("tr");
+    if (player && !player.connected) row.className = "off";
+    if (player && player.id === me) row.className += " me";
+    row.innerHTML = "<td class='num'></td><td></td><td class='num'></td><td class='num'></td>";
+    row.children[0].textContent = seat + 1;
+    row.children[1].textContent = player ? player.name : t("table.free");
+    row.children[2].textContent = player ? player.stack : "";
+    row.children[3].textContent = player ? (player.stack - player.boughtIn) : "";
+    rows.push(row);
+  }
+  const body = document.getElementById("seats");
+  body.replaceChildren(...rows);
+
+  const log = document.getElementById("log");
+  log.replaceChildren(...state.log.slice(-40).reverse().map((entry) => {
+    const item = document.createElement("li");
+    const actor = entry.actor && state.players.find((p) => p.id === entry.actor);
+    item.textContent = (actor ? actor.name + " " : "") + t(entry.key, entry.args);
+    return item;
+  }));
+}
+
+// ---------------------------------------------------------------- wiring
+const selector = document.getElementById("lang");
+selector.replaceChildren(...LANGS.map((code) => {
+  const option = document.createElement("option");
+  option.value = code;
+  option.textContent = code.toUpperCase();
+  option.selected = code === lang;
+  return option;
+}));
+selector.onchange = () => { lang = selector.value; store.set("lang", lang); applyLanguage(); };
+
+document.getElementById("name").value = store.get("name") || "";
+document.getElementById("joinBtn").onclick = () => {
+  const name = document.getElementById("name").value.trim();
+  if (name) join(name);
+};
+document.getElementById("sitBtn").onclick = () => {
+  const value = document.getElementById("buyIn").value;
+  send({ type: "sit", buyIn: value === "" ? null : Number(value) });
+};
+document.getElementById("leaveBtn").onclick = () => {
+  send({ type: "leave" });
+  store.remove("playerId");
+  state = null;
+  me = null;
+  render();
+};
+document.getElementById("forgetBtn").onclick = () => {
+  store.remove("playerId");
+  store.remove("name");
+  location.reload();
+};
+
+applyLanguage();
+connect();
+</script>
+</body>
+</html>

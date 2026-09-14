@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Host screen -->
+    <string name="host_title">Tu mesa</string>
+    <string name="host_start">Abrir la mesa</string>
+    <string name="host_stop">Cerrar la mesa</string>
+    <string name="host_room_code">Código de la mesa: %1$s</string>
+    <string name="host_stopped">La mesa está cerrada.</string>
+    <string name="host_starting">Abriendo…</string>
+    <string name="host_addresses_title">Los invitados deben conectarse a</string>
+    <string name="host_no_addresses">No se ha encontrado ninguna red. Activa la zona wifi o conéctate a una red.</string>
+    <string name="host_hint">Activa primero la zona wifi del móvil y luego canta una de estas direcciones. Los invitados no tienen que instalar nada: basta con el navegador.</string>
+    <string name="host_copy">Copiar la dirección</string>
+    <string name="host_copied">Dirección copiada</string>
+    <string name="host_open_client">Abrir la mesa en este móvil</string>
+    <string name="host_players_title">En la mesa</string>
+    <string name="host_players_none">Todavía no hay nadie.</string>
+
+    <plurals name="host_player_chips">
+        <item quantity="one">%1$d ficha</item>
+        <item quantity="many">%1$d de fichas</item>
+        <item quantity="other">%1$d fichas</item>
+    </plurals>
+    <string name="host_seat">Puesto %1$d</string>
+    <string name="host_watching">Mirando</string>
+    <string name="host_error_start">No se ha podido abrir la mesa.</string>
+
+    <!-- Foreground service notification -->
+    <string name="notification_channel_name">Mesa abierta</string>
+    <string name="notification_channel_description">Se muestra mientras este móvil hace de anfitrión de una mesa.</string>
+    <string name="notification_title">La mesa %1$s está abierta</string>
+    <string name="notification_text">%1$s · toca para volver</string>
+    <string name="notification_stop">Cerrar</string>
+</resources>
