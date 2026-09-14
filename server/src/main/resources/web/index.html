@@ -5,89 +5,215 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>TableChips</title>
 <style>
-  :root { color-scheme: light dark; --gap: 12px; }
-  body { font-family: system-ui, sans-serif; margin: 0; padding: var(--gap);
-         max-width: 720px; margin-inline: auto; line-height: 1.4; }
-  h1 { font-size: 1.3rem; margin: 0; }
-  header { display: flex; align-items: baseline; gap: var(--gap); flex-wrap: wrap; }
-  header select { margin-inline-start: auto; }
-  fieldset { border: 1px solid currentColor; border-radius: 8px; margin: var(--gap) 0; }
-  label { display: block; margin-block: 6px; }
-  input, button, select { font: inherit; padding: 6px 8px; }
-  input[type=text], input[type=number] { width: 8rem; }
+  :root {
+    color-scheme: light dark;
+    --bg: #f5f5f2;
+    --card: #ffffff;
+    --fg: #16171a;
+    --muted: #6a6d75;
+    --line: #dcdcd6;
+    --accent: #0b6e4f;
+    --accent-fg: #ffffff;
+    --danger: #a3311f;
+    --gap: 12px;
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121316;
+      --card: #1c1e22;
+      --fg: #e9e9ea;
+      --muted: #9a9da5;
+      --line: #2e3138;
+      --accent: #2f9e74;
+      --accent-fg: #06130e;
+      --danger: #e0725f;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  /* Class selectors below set `display`, which would otherwise beat the user
+     agent rule for [hidden] and leave hidden sections on screen. */
+  [hidden] { display: none !important; }
+  body {
+    margin: 0 auto;
+    padding: var(--gap);
+    padding-bottom: 32px;
+    max-width: 640px;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.4;
+    background: var(--bg);
+    color: var(--fg);
+  }
+  h1 { font-size: 1.1rem; margin: 0; }
+  h2 { font-size: .8rem; margin: 0 0 6px; text-transform: uppercase;
+       letter-spacing: .06em; color: var(--muted); }
+
+  header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: var(--gap); }
+  #room { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .9rem; }
+  #status { margin-inline-start: auto; font-size: .8rem; color: var(--muted);
+            display: inline-flex; align-items: center; gap: 5px; }
+  #status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  #status.on::before { background: var(--accent); }
+  #status.off::before { background: var(--danger); }
+
+  .card { background: var(--card); border: 1px solid var(--line);
+          border-radius: var(--radius); padding: var(--gap); margin-bottom: var(--gap); }
+
+  .pot { text-align: center; }
+  .pot .amount { font-size: 2.6rem; font-weight: 700; line-height: 1.1;
+                 font-variant-numeric: tabular-nums; }
+  .pot .label { color: var(--muted); font-size: .85rem; }
+  .mine { display: flex; justify-content: space-between; align-items: baseline;
+          border-top: 1px solid var(--line); margin-top: var(--gap); padding-top: var(--gap); }
+  .mine .amount { font-size: 1.6rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .row > .grow { flex: 1 1 6rem; }
+
+  input, select, button {
+    font: inherit; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--card); color: var(--fg); padding: 10px 12px; min-height: 44px;
+  }
+  input[type=number] { width: 100%; font-variant-numeric: tabular-nums; }
   button { cursor: pointer; }
+  button:active { transform: translateY(1px); }
+  button[disabled] { opacity: .45; cursor: default; }
+  button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+  button.quick { padding: 8px 10px; min-height: 40px; color: var(--muted); }
+  button.seatpick { border: 0; background: none; color: var(--muted);
+                    padding: 6px 0; min-height: 36px; text-align: start; width: 100%; }
+  button.seatpick:hover { color: var(--accent); }
+  button.player { flex: 1 1 6rem; }
+  .danger { color: var(--danger); }
+
   table { border-collapse: collapse; width: 100%; }
-  th, td { text-align: start; padding: 4px 6px; border-bottom: 1px solid rgba(128,128,128,.4); }
-  td.num, th.num { text-align: end; font-variant-numeric: tabular-nums; }
-  .off { opacity: .45; }
-  .me { font-weight: bold; }
-  #status { padding: 4px 8px; border-radius: 999px; border: 1px solid currentColor; font-size: .85rem; }
-  #log { max-height: 12rem; overflow-y: auto; font-size: .9rem; margin: 0; padding-inline-start: 1.2rem; }
-  .note { font-size: .85rem; opacity: .8; }
+  td { padding: 7px 4px; border-bottom: 1px solid var(--line); vertical-align: baseline; }
+  tr:last-child td { border-bottom: 0; }
+  td.seat { width: 2.2rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  td.chips { text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.net { text-align: end; width: 4rem; color: var(--muted); font-size: .85rem;
+           font-variant-numeric: tabular-nums; }
+  tr.gone { opacity: .45; }
+  tr.you td { font-weight: 700; }
+  .tag { font-size: .7rem; border: 1px solid var(--line); border-radius: 999px;
+         padding: 1px 7px; color: var(--muted); margin-inline-start: 6px; white-space: nowrap; }
+  .free { color: var(--muted); }
+
+  #error { color: var(--danger); min-height: 1.4em; margin: 4px 0 0; font-size: .9rem; }
+  #log { margin: 0; padding-inline-start: 1.1rem; max-height: 14rem; overflow-y: auto;
+         font-size: .9rem; color: var(--fg); }
+  #log li { margin-bottom: 2px; }
+  #log .when { color: var(--muted); font-variant-numeric: tabular-nums; }
+  details summary { cursor: pointer; color: var(--muted); font-size: .9rem; padding: 6px 0; }
+  .hint { color: var(--muted); font-size: .85rem; margin: 6px 0 0; }
 </style>
 </head>
 <body>
 
 <!--
-  Web client served by the host phone. Guests install nothing: this page and a
-  WebSocket to the same address are the whole client.
+  The web client the host phone serves. Guests install nothing: this page and a
+  WebSocket back to the same address are the whole client.
 
-  At F2 it does what F2 asks for and no more: join, sit down, and show the table
-  every connected device is looking at. Betting and awarding pots arrive with F3.
-
-  No build step, no framework, no remote asset: everything a guest loads comes
-  from the phone in front of them.
+  One file, no framework, no build step, and nothing loaded from outside the
+  phone in front of you: the hotspot has no internet and never will.
 -->
 
 <header>
   <h1>TableChips</h1>
-  <span id="status" data-i18n="status.connecting"></span>
+  <span id="room"></span>
+  <span id="status"></span>
   <select id="lang" aria-label="language"></select>
 </header>
 
-<p class="note" data-i18n="app.phase"></p>
+<p id="error" role="status" aria-live="polite"></p>
 
-<fieldset id="joinBox">
-  <legend data-i18n="join.legend"></legend>
-  <label>
-    <span data-i18n="join.name"></span>
-    <input type="text" id="name" maxlength="24" autocomplete="nickname">
-  </label>
-  <button id="joinBtn" data-i18n="join.action"></button>
-  <button id="forgetBtn" data-i18n="join.forget" class="note"></button>
-</fieldset>
+<section class="card" id="joinBox">
+  <h2 data-i18n="join.legend"></h2>
+  <div class="row">
+    <input type="text" id="name" class="grow" maxlength="24" autocomplete="nickname"
+           enterkeyhint="go" data-i18n-placeholder="join.name">
+    <button id="joinBtn" class="primary" data-i18n="join.action"></button>
+  </div>
+  <p class="hint"><button id="forgetBtn" data-i18n="join.forget"></button></p>
+</section>
 
-<fieldset id="tableBox" hidden>
-  <legend><span data-i18n="table.legend"></span> <span id="room"></span></legend>
-  <table>
-    <thead>
-      <tr>
-        <th data-i18n="table.seat" class="num"></th>
-        <th data-i18n="table.player"></th>
-        <th data-i18n="table.stack" class="num"></th>
-        <th data-i18n="table.net" class="num"></th>
-      </tr>
-    </thead>
-    <tbody id="seats"></tbody>
-  </table>
-  <p>
-    <span data-i18n="table.pot"></span>: <strong id="pot"></strong>
-  </p>
-  <p id="sitRow">
-    <label>
-      <span data-i18n="sit.buyIn"></span>
-      <input type="number" id="buyIn" min="0" step="1">
-    </label>
-    <button id="sitBtn" data-i18n="sit.action"></button>
-    <button id="leaveBtn" data-i18n="leave.action"></button>
-  </p>
-  <p id="error" class="note"></p>
-</fieldset>
+<section class="card pot" id="potBox" hidden>
+  <div class="amount" id="potAmount">0</div>
+  <div class="label" id="potLabel"></div>
+  <div id="potBreakdown" class="hint"></div>
+  <div class="mine" id="mineBox">
+    <span data-i18n="me.chips"></span>
+    <span class="amount" id="myChips">0</span>
+  </div>
+</section>
 
-<fieldset id="logBox" hidden>
-  <legend data-i18n="log.legend"></legend>
+<section class="card" id="betBox" hidden>
+  <h2 data-i18n="bet.legend"></h2>
+  <div class="row">
+    <input type="number" id="betAmount" class="grow" min="1" step="1" inputmode="numeric"
+           enterkeyhint="send" data-i18n-placeholder="bet.amount">
+    <select id="betPot" hidden aria-label="pot"></select>
+    <button id="betBtn" class="primary" data-i18n="bet.action"></button>
+  </div>
+  <div class="row" id="quickRow"></div>
+</section>
+
+<section class="card" id="tableBox" hidden>
+  <h2 data-i18n="table.legend"></h2>
+  <table><tbody id="seats"></tbody></table>
+  <p class="hint" id="sitHint" hidden data-i18n="sit.hint"></p>
+  <div class="row" id="sitRow" hidden>
+    <input type="number" id="buyIn" class="grow" min="0" step="1" inputmode="numeric"
+           data-i18n-placeholder="sit.buyIn">
+    <button id="sitBtn" class="primary" data-i18n="sit.action"></button>
+  </div>
+</section>
+
+<section class="card" id="hostBox" hidden>
+  <h2 data-i18n="host.legend"></h2>
+  <p class="hint" data-i18n="host.award_to"></p>
+  <div class="row" id="awardRow"></div>
+  <div class="row">
+    <input type="number" id="awardAmount" class="grow" min="1" step="1" inputmode="numeric"
+           data-i18n-placeholder="host.award_amount">
+    <button id="undoBtn" data-i18n="host.undo"></button>
+  </div>
+  <details id="hostMore">
+    <summary data-i18n="host.more"></summary>
+    <div class="row">
+      <select id="adjustPlayer" class="grow" aria-label="player"></select>
+      <input type="number" id="adjustAmount" min="1" step="1" inputmode="numeric"
+             data-i18n-placeholder="host.adjust_amount">
+      <button id="adjustAdd" data-i18n="host.adjust_add"></button>
+      <button id="adjustRemove" data-i18n="host.adjust_remove"></button>
+    </div>
+    <div class="row">
+      <input type="number" id="newBuyIn" class="grow" min="0" step="1" inputmode="numeric"
+             data-i18n-placeholder="host.buy_in">
+      <button id="buyInBtn" data-i18n="host.apply"></button>
+    </div>
+    <div class="row">
+      <input type="text" id="newPotName" class="grow" maxlength="24"
+             data-i18n-placeholder="host.pot_name">
+      <button id="newPotBtn" data-i18n="host.new_pot"></button>
+    </div>
+  </details>
+</section>
+
+<section class="card" id="meBox" hidden>
+  <div class="row">
+    <button id="rebuyBtn" data-i18n="rebuy.action"></button>
+    <button id="standBtn" data-i18n="stand.action"></button>
+    <button id="leaveBtn" class="danger" data-i18n="leave.action"></button>
+  </div>
+</section>
+
+<section class="card" id="logBox" hidden>
+  <h2 data-i18n="log.legend"></h2>
   <ul id="log"></ul>
-</fieldset>
+</section>
 
 <script>
 // ---------------------------------------------------------------- storage
@@ -100,23 +226,40 @@ const store = {
 };
 
 // ---------------------------------------------------------------- i18n
-// Same key structure as the app's strings.xml. Game names and table vocabulary
-// are localized, not translated: what English calls a pot is a "poso" in canari.
+// Same key structure as the app's strings.xml.
+//
+// Table vocabulary lives per mode, under `modes`, because the same concept
+// changes name with the game: what a casino calls the pot is the "poso" at
+// canari, and standing up is "anar-se'n a dalt". A mode looks up its own word
+// first and falls back to the global key, so a new mode only has to name what
+// it says differently.
 const DICT = {
   en: {
-    "app.phase": "Connectivity and table probe (phase 2). Betting arrives with the full client.",
-    "status.connecting": "connecting…", "status.online": "connected", "status.offline": "disconnected",
+    "status.connecting": "connecting", "status.online": "connected", "status.offline": "offline",
     "join.legend": "Join the table", "join.name": "Your name", "join.action": "Join",
     "join.forget": "Forget this device",
-    "table.legend": "Table", "table.seat": "Seat", "table.player": "Player",
-    "table.stack": "Chips", "table.net": "Net", "table.pot": "Pot", "table.free": "free",
-    "sit.buyIn": "Buy-in", "sit.action": "Sit down", "leave.action": "Leave",
+    "table.legend": "Table", "table.free": "free",
+    "table.free_seats.one": "{n} free seat", "table.free_seats.other": "{n} free seats",
+    "tag.host": "host", "tag.you": "you", "tag.gone": "away", "tag.watching": "watching",
+    "sit.buyIn": "Buy-in", "sit.action": "Sit down",
+    "sit.hint": "Tap a free seat to sit there.",
+    "me.chips": "Your chips",
+    "bet.legend": "Bet", "bet.amount": "Amount", "bet.action": "Bet", "bet.all": "all",
+    "rebuy.action": "Buy more", "rebuy.prompt": "How many chips?",
+    "stand.action": "Stand up", "leave.action": "Leave",
+    "leave.confirm": "Leave the table and take your chips out of the game?",
+    "host.legend": "Host", "host.award_to": "Give the pot to",
+    "host.award_amount": "Part of the pot (optional)",
+    "host.undo": "Undo", "host.more": "More",
+    "host.adjust_amount": "Chips", "host.adjust_add": "Give", "host.adjust_remove": "Take",
+    "host.buy_in": "Default buy-in", "host.apply": "Apply",
+    "host.pot_name": "New pot name", "host.new_pot": "New pot",
     "log.legend": "Activity",
     "log.table_opened": "Table {room} opened", "log.config_changed": "Buy-in set to {buyIn}",
-    "log.player_joined": "joined", "log.player_renamed": "now called {name}",
+    "log.player_joined": "joined", "log.player_renamed": "is now called {name}",
     "log.player_sat": "sat at seat {seat} with {amount}", "log.player_stood_up": "stood up",
     "log.player_left": "left the table", "log.rebuy": "bought {amount} more",
-    "log.bet": "bet {amount}", "log.pot_awarded": "took {amount} from the pot",
+    "log.bet": "bet {amount} into {pot}", "log.pot_awarded": "took {amount} from {pot}",
     "log.pot_created": "new pot: {pot}", "log.transfer": "passed {amount}",
     "log.stack_added": "received {amount}", "log.stack_removed": "gave back {amount}",
     "error.unknown_player": "Unknown player", "error.unknown_pot": "Unknown pot",
@@ -125,26 +268,43 @@ const DICT = {
     "error.seat_taken": "That seat is taken", "error.seat_out_of_range": "No such seat",
     "error.table_full": "The table is full", "error.invalid_amount": "Invalid amount",
     "error.invalid_target": "Invalid player", "error.insufficient_chips": "Not enough chips",
-    "error.pot_too_small": "The pot does not hold that much", "error.not_host": "Only the host may do that",
+    "error.pot_too_small": "The pot does not hold that much",
+    "error.not_host": "Only the host may do that",
     "error.invalid_config": "Invalid setting", "error.nothing_to_undo": "Nothing to undo",
     "error.bad_message": "The server did not understand that",
-    "error.unsupported_version": "This client is too old for this table",
-    "error.not_joined": "Join the table first", "error.wrong_room": "That code is from another table"
+    "error.unsupported_version": "This page is too old for this table, reload it",
+    "error.not_joined": "Join the table first", "error.wrong_room": "That code is from another table",
+    "error.kicked": "The host closed your seat",
+    modes: {
+      manual: { "pot": "Pot", "pot.main": "main pot" }
+    }
   },
   ca: {
-    "app.phase": "Prova de connexió i de taula (fase 2). Les apostes arriben amb el client complet.",
-    "status.connecting": "connectant…", "status.online": "connectat", "status.offline": "desconnectat",
+    "status.connecting": "connectant", "status.online": "connectat", "status.offline": "sense connexió",
     "join.legend": "Entra a la taula", "join.name": "El teu nom", "join.action": "Entra",
     "join.forget": "Oblida aquest dispositiu",
-    "table.legend": "Taula", "table.seat": "Lloc", "table.player": "Jugador",
-    "table.stack": "Fitxes", "table.net": "Balanç", "table.pot": "Pot", "table.free": "lliure",
-    "sit.buyIn": "Compra", "sit.action": "Seu-hi", "leave.action": "Marxa",
+    "table.legend": "Taula", "table.free": "lliure",
+    "table.free_seats.one": "{n} lloc lliure", "table.free_seats.other": "{n} llocs lliures",
+    "tag.host": "amfitrió", "tag.you": "tu", "tag.gone": "fora", "tag.watching": "mira",
+    "sit.buyIn": "Compra", "sit.action": "Seu-hi",
+    "sit.hint": "Toca un lloc lliure per a seure-hi.",
+    "me.chips": "Les teues fitxes",
+    "bet.legend": "Aposta", "bet.amount": "Import", "bet.action": "Aposta", "bet.all": "tot",
+    "rebuy.action": "Compra més", "rebuy.prompt": "Quantes fitxes?",
+    "stand.action": "Aixeca't", "leave.action": "Marxa",
+    "leave.confirm": "Vols deixar la taula i traure les teues fitxes del joc?",
+    "host.legend": "Amfitrió", "host.award_to": "Dona el pot a",
+    "host.award_amount": "Part del pot (opcional)",
+    "host.undo": "Desfés", "host.more": "Més",
+    "host.adjust_amount": "Fitxes", "host.adjust_add": "Dona", "host.adjust_remove": "Lleva",
+    "host.buy_in": "Compra per defecte", "host.apply": "Aplica",
+    "host.pot_name": "Nom del pot nou", "host.new_pot": "Pot nou",
     "log.legend": "Registre",
     "log.table_opened": "S'ha obert la taula {room}", "log.config_changed": "Compra fixada a {buyIn}",
     "log.player_joined": "ha entrat", "log.player_renamed": "ara es diu {name}",
     "log.player_sat": "s'ha assegut al lloc {seat} amb {amount}", "log.player_stood_up": "s'ha aixecat",
     "log.player_left": "ha deixat la taula", "log.rebuy": "ha comprat {amount} més",
-    "log.bet": "ha apostat {amount}", "log.pot_awarded": "s'ha endut {amount} del pot",
+    "log.bet": "ha apostat {amount} al {pot}", "log.pot_awarded": "s'ha endut {amount} del {pot}",
     "log.pot_created": "pot nou: {pot}", "log.transfer": "ha passat {amount}",
     "log.stack_added": "ha rebut {amount}", "log.stack_removed": "ha tornat {amount}",
     "error.unknown_player": "Jugador desconegut", "error.unknown_pot": "Pot desconegut",
@@ -153,26 +313,44 @@ const DICT = {
     "error.seat_taken": "Aquest lloc és ocupat", "error.seat_out_of_range": "Aquest lloc no existeix",
     "error.table_full": "La taula és plena", "error.invalid_amount": "Import no vàlid",
     "error.invalid_target": "Jugador no vàlid", "error.insufficient_chips": "No tens prou fitxes",
-    "error.pot_too_small": "El pot no té tant", "error.not_host": "Això només ho pot fer l'amfitrió",
+    "error.pot_too_small": "El pot no té tant",
+    "error.not_host": "Això només ho pot fer l'amfitrió",
     "error.invalid_config": "Configuració no vàlida", "error.nothing_to_undo": "No hi ha res per desfer",
     "error.bad_message": "El servidor no ho ha entès",
-    "error.unsupported_version": "Aquest client és massa antic per a aquesta taula",
-    "error.not_joined": "Primer has d'entrar a la taula", "error.wrong_room": "Aquest codi és d'una altra taula"
+    "error.unsupported_version": "Aquesta pàgina és massa antiga per a la taula, torna-la a carregar",
+    "error.not_joined": "Primer has d'entrar a la taula", "error.wrong_room": "Aquest codi és d'una altra taula",
+    "error.kicked": "L'amfitrió t'ha llevat el lloc",
+    modes: {
+      manual: { "pot": "Pot", "pot.main": "pot" }
+    }
   },
   es: {
-    "app.phase": "Prueba de conexión y de mesa (fase 2). Las apuestas llegan con el cliente completo.",
-    "status.connecting": "conectando…", "status.online": "conectado", "status.offline": "desconectado",
+    "status.connecting": "conectando", "status.online": "conectado", "status.offline": "sin conexión",
     "join.legend": "Entra en la mesa", "join.name": "Tu nombre", "join.action": "Entrar",
     "join.forget": "Olvidar este dispositivo",
-    "table.legend": "Mesa", "table.seat": "Puesto", "table.player": "Jugador",
-    "table.stack": "Fichas", "table.net": "Balance", "table.pot": "Bote", "table.free": "libre",
-    "sit.buyIn": "Compra", "sit.action": "Sentarse", "leave.action": "Salir",
+    "table.legend": "Mesa", "table.free": "libre",
+    "table.free_seats.one": "{n} puesto libre", "table.free_seats.other": "{n} puestos libres",
+    "tag.host": "anfitrión", "tag.you": "tú", "tag.gone": "fuera", "tag.watching": "mira",
+    "sit.buyIn": "Compra", "sit.action": "Sentarse",
+    "sit.hint": "Toca un puesto libre para sentarte.",
+    "me.chips": "Tus fichas",
+    "bet.legend": "Apuesta", "bet.amount": "Importe", "bet.action": "Apostar", "bet.all": "todo",
+    "rebuy.action": "Comprar más", "rebuy.prompt": "¿Cuántas fichas?",
+    "stand.action": "Levantarse", "leave.action": "Salir",
+    "leave.confirm": "¿Quieres dejar la mesa y sacar tus fichas del juego?",
+    "host.legend": "Anfitrión", "host.award_to": "Dale el bote a",
+    "host.award_amount": "Parte del bote (opcional)",
+    "host.undo": "Deshacer", "host.more": "Más",
+    "host.adjust_amount": "Fichas", "host.adjust_add": "Dar", "host.adjust_remove": "Quitar",
+    "host.buy_in": "Compra por defecto", "host.apply": "Aplicar",
+    "host.pot_name": "Nombre del bote nuevo", "host.new_pot": "Bote nuevo",
     "log.legend": "Registro",
     "log.table_opened": "Se ha abierto la mesa {room}", "log.config_changed": "Compra fijada en {buyIn}",
     "log.player_joined": "ha entrado", "log.player_renamed": "ahora se llama {name}",
-    "log.player_sat": "se ha sentado en el puesto {seat} con {amount}", "log.player_stood_up": "se ha levantado",
+    "log.player_sat": "se ha sentado en el puesto {seat} con {amount}",
+    "log.player_stood_up": "se ha levantado",
     "log.player_left": "ha dejado la mesa", "log.rebuy": "ha comprado {amount} más",
-    "log.bet": "ha apostado {amount}", "log.pot_awarded": "se ha llevado {amount} del bote",
+    "log.bet": "ha apostado {amount} al {pot}", "log.pot_awarded": "se ha llevado {amount} del {pot}",
     "log.pot_created": "bote nuevo: {pot}", "log.transfer": "ha pasado {amount}",
     "log.stack_added": "ha recibido {amount}", "log.stack_removed": "ha devuelto {amount}",
     "error.unknown_player": "Jugador desconocido", "error.unknown_pot": "Bote desconocido",
@@ -181,16 +359,22 @@ const DICT = {
     "error.seat_taken": "Ese puesto está ocupado", "error.seat_out_of_range": "Ese puesto no existe",
     "error.table_full": "La mesa está llena", "error.invalid_amount": "Importe no válido",
     "error.invalid_target": "Jugador no válido", "error.insufficient_chips": "No tienes fichas suficientes",
-    "error.pot_too_small": "El bote no tiene tanto", "error.not_host": "Eso solo lo puede hacer el anfitrión",
+    "error.pot_too_small": "El bote no tiene tanto",
+    "error.not_host": "Eso solo lo puede hacer el anfitrión",
     "error.invalid_config": "Configuración no válida", "error.nothing_to_undo": "No hay nada que deshacer",
     "error.bad_message": "El servidor no lo ha entendido",
-    "error.unsupported_version": "Este cliente es demasiado antiguo para esta mesa",
-    "error.not_joined": "Primero entra en la mesa", "error.wrong_room": "Ese código es de otra mesa"
+    "error.unsupported_version": "Esta página es demasiado antigua para la mesa, recárgala",
+    "error.not_joined": "Primero entra en la mesa", "error.wrong_room": "Ese código es de otra mesa",
+    "error.kicked": "El anfitrión te ha quitado el puesto",
+    modes: {
+      manual: { "pot": "Bote", "pot.main": "bote" }
+    }
   }
 };
 
 const LANGS = Object.keys(DICT);
 let lang = pickLanguage();
+let mode = "manual";
 
 function pickLanguage() {
   const stored = store.get("lang");
@@ -202,15 +386,47 @@ function pickLanguage() {
   return "en";
 }
 
+function lookUp(dictionary, key) {
+  if (!dictionary) return undefined;
+  const perMode = dictionary.modes && dictionary.modes[mode];
+  if (perMode && perMode[key] !== undefined) return perMode[key];
+  return dictionary[key];
+}
+
 function t(key, args) {
-  let text = (DICT[lang] && DICT[lang][key]) || DICT.en[key] || key;
-  if (args) for (const [name, value] of Object.entries(args)) text = text.split("{" + name + "}").join(value);
+  let text = lookUp(DICT[lang], key);
+  if (text === undefined) text = lookUp(DICT.en, key);
+  if (text === undefined) text = key;
+  if (args) {
+    for (const [name, value] of Object.entries(args)) {
+      text = text.split("{" + name + "}").join(value);
+    }
+  }
   return text;
+}
+
+/** Picks the plural form the reader's language actually uses. */
+function plural(key, count, args) {
+  const form = new Intl.PluralRules(lang).select(count);
+  const withForm = key + "." + form;
+  const text = lookUp(DICT[lang], withForm) === undefined ? key + ".other" : withForm;
+  return t(text, args);
+}
+
+/** Numbers go through the reader's locale: thousands separators differ. */
+function fmt(value) {
+  return Number(value).toLocaleString(lang);
 }
 
 function applyLanguage() {
   document.documentElement.lang = lang;
-  for (const node of document.querySelectorAll("[data-i18n]")) node.textContent = t(node.dataset.i18n);
+  for (const node of document.querySelectorAll("[data-i18n]")) {
+    node.textContent = t(node.dataset.i18n);
+  }
+  for (const node of document.querySelectorAll("[data-i18n-placeholder]")) {
+    node.placeholder = t(node.dataset.i18nPlaceholder);
+    node.setAttribute("aria-label", node.placeholder);
+  }
   render();
 }
 
@@ -220,34 +436,46 @@ let socket = null;
 let state = null;
 let me = null;
 let lastError = "";
+let undoDepth = 0;
+let closedByHost = false;
 
 function roomFromUrl() {
   return new URLSearchParams(location.search).get("room");
 }
 
 function connect() {
+  if (closedByHost) return;
+  setStatus("status.connecting", "");
   const scheme = location.protocol === "https:" ? "wss:" : "ws:";
   socket = new WebSocket(scheme + "//" + location.host + "/ws");
   socket.onopen = () => {
-    setStatus("status.online");
+    setStatus("status.online", "on");
+    reconnectDelay = 500;
     const name = store.get("name");
     if (name) join(name);
   };
-  socket.onclose = () => { setStatus("status.offline"); scheduleReconnect(); };
-  socket.onerror = () => setStatus("status.offline");
-  socket.onmessage = (event) => {
-    const message = JSON.parse(event.data);
-    if (message.type === "state") {
-      state = message.state;
-      me = message.you;
-      store.set("playerId", me);
-      lastError = "";
-      render();
-    } else if (message.type === "error") {
-      lastError = t("error." + message.code);
-      render();
-    }
-  };
+  socket.onclose = () => { setStatus("status.offline", "off"); scheduleReconnect(); };
+  socket.onerror = () => setStatus("status.offline", "off");
+  socket.onmessage = (event) => receive(JSON.parse(event.data));
+}
+
+function receive(message) {
+  if (message.type === "state") {
+    state = message.state;
+    me = message.you;
+    undoDepth = message.undoDepth;
+    mode = (state.config && state.config.mode) || "manual";
+    store.set("playerId", me);
+    lastError = "";
+    render();
+  } else if (message.type === "error") {
+    showError(t("error." + message.code));
+  } else if (message.type === "kicked") {
+    // Nothing to reconnect to: rejoining would just be thrown out again.
+    closedByHost = true;
+    store.remove("playerId");
+    showError(t("error.kicked"));
+  }
 }
 
 // A game lasts hours and screens turn off: reconnecting is not a luxury.
@@ -270,77 +498,356 @@ function join(name) {
   send({ type: "join", name: name, playerId: store.get("playerId"), room: roomFromUrl() });
 }
 
-// ---------------------------------------------------------------- rendering
-function setStatus(key) {
+const act = (action) => send({ type: "action", action: action });
+const hostCommand = (command) => send({ type: "hostCommand", command: command });
+
+// ---------------------------------------------------------------- helpers
+function player(id) {
+  return state && state.players.find((p) => p.id === id);
+}
+
+function mine() {
+  return me ? player(me) : undefined;
+}
+
+function iAmHost() {
+  const player = mine();
+  return !!player && player.isHost;
+}
+
+function seatedPlayers() {
+  return state ? state.players.filter((p) => p.seat !== null)
+    .sort((a, b) => a.seat - b.seat) : [];
+}
+
+function potName(pot) {
+  if (pot.name) return pot.name;
+  return pot.id === "main" ? t("pot.main") : pot.id;
+}
+
+function chosenPot() {
+  const picker = document.getElementById("betPot");
+  if (!state) return "main";
+  if (picker.value && state.pots.some((p) => p.id === picker.value)) return picker.value;
+  return state.pots[0].id;
+}
+
+/** Reads a positive whole number out of an input, or null if there is none. */
+function amountFrom(id, { clear = true } = {}) {
+  const field = document.getElementById(id);
+  const value = Math.floor(Number(field.value));
+  if (!field.value || !Number.isFinite(value) || value <= 0) return null;
+  if (clear) field.value = "";
+  return value;
+}
+
+function showError(text) {
+  lastError = text;
+  const node = document.getElementById("error");
+  node.textContent = text;
+  // The message is about what just failed; it must not outlive the moment.
+  clearTimeout(showError.timer);
+  showError.timer = setTimeout(() => {
+    if (lastError === text) { lastError = ""; node.textContent = ""; }
+  }, 6000);
+}
+
+function setStatus(key, className) {
   const node = document.getElementById("status");
   node.dataset.i18n = key;
   node.textContent = t(key);
+  node.className = className;
 }
 
+/** Rebuilds a select without losing what the user had chosen. */
+function fillSelect(select, options) {
+  const previous = select.value;
+  select.replaceChildren(...options.map(({ value, label }) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    return option;
+  }));
+  if (options.some((option) => option.value === previous)) select.value = previous;
+}
+
+// ---------------------------------------------------------------- rendering
 function render() {
-  const joined = state && me && state.players.some((p) => p.id === me);
-  document.getElementById("joinBox").hidden = !!joined;
-  document.getElementById("tableBox").hidden = !state;
-  document.getElementById("logBox").hidden = !state;
+  const joined = !!mine();
+  const seated = joined && mine().seat !== null;
+
+  show("joinBox", !joined);
+  show("potBox", joined);
+  show("betBox", seated);
+  show("tableBox", joined);
+  show("hostBox", joined && iAmHost());
+  show("meBox", joined);
+  show("logBox", joined);
   if (!state) return;
 
   document.getElementById("room").textContent = state.roomCode;
-  document.getElementById("pot").textContent = state.pots.reduce((sum, pot) => sum + pot.amount, 0);
-  document.getElementById("error").textContent = lastError;
+  renderPot();
+  renderSeats();
+  renderMe(seated);
+  if (iAmHost()) renderHost();
+  renderLog();
+}
 
-  const mine = state.players.find((p) => p.id === me);
-  document.getElementById("sitBtn").hidden = !joined || (mine && mine.seat !== null);
-  document.getElementById("leaveBtn").hidden = !joined;
-  document.getElementById("sitRow").hidden = !joined;
-  const buyIn = document.getElementById("buyIn");
-  if (!buyIn.value) buyIn.value = state.config.defaultBuyIn;
+function show(id, visible) {
+  document.getElementById(id).hidden = !visible;
+}
 
+function renderPot() {
+  const total = state.pots.reduce((sum, pot) => sum + pot.amount, 0);
+  document.getElementById("potAmount").textContent = fmt(total);
+  document.getElementById("potLabel").textContent = t("pot");
+
+  // With a single pot the breakdown says nothing; with several it is the point.
+  const several = state.pots.length > 1;
+  document.getElementById("potBreakdown").textContent = several
+    ? state.pots.map((pot) => potName(pot) + " " + fmt(pot.amount)).join(" · ")
+    : "";
+
+  const picker = document.getElementById("betPot");
+  picker.hidden = !several;
+  fillSelect(picker, state.pots.map((pot) => ({ value: pot.id, label: potName(pot) })));
+
+  const player = mine();
+  document.getElementById("myChips").textContent = player ? fmt(player.stack) : "0";
+  show("mineBox", !!player && player.seat !== null);
+}
+
+function renderSeats() {
+  const iAmSeated = mine() && mine().seat !== null;
   const rows = [];
+  let free = 0;
   for (let seat = 0; seat < state.config.seatCount; seat++) {
     const player = state.players.find((p) => p.seat === seat);
-    const row = document.createElement("tr");
-    if (player && !player.connected) row.className = "off";
-    if (player && player.id === me) row.className += " me";
-    row.innerHTML = "<td class='num'></td><td></td><td class='num'></td><td class='num'></td>";
-    row.children[0].textContent = seat + 1;
-    row.children[1].textContent = player ? player.name : t("table.free");
-    row.children[2].textContent = player ? player.stack : "";
-    row.children[3].textContent = player ? (player.stack - player.boughtIn) : "";
-    rows.push(row);
+    if (player) {
+      rows.push(seatedRow(seat, player));
+    } else if (iAmSeated) {
+      free++;
+    } else {
+      rows.push(freeRow(seat));
+    }
   }
-  const body = document.getElementById("seats");
-  body.replaceChildren(...rows);
+  if (free > 0) rows.push(freeSeatsRow(free));
+  // Whoever is at the table without a seat still belongs on screen.
+  state.players.filter((p) => p.seat === null).forEach((p) => rows.push(watchingRow(p)));
+  document.getElementById("seats").replaceChildren(...rows);
 
-  const log = document.getElementById("log");
-  log.replaceChildren(...state.log.slice(-40).reverse().map((entry) => {
+  const freeSeats = state.config.seatCount - state.players.filter((p) => p.seat !== null).length;
+  show("sitRow", !iAmSeated);
+  show("sitHint", !iAmSeated && freeSeats > 0);
+  const buyIn = document.getElementById("buyIn");
+  if (!buyIn.value) buyIn.value = state.config.defaultBuyIn;
+}
+
+function row(className) {
+  const element = document.createElement("tr");
+  if (className) element.className = className;
+  element.innerHTML = "<td class='seat'></td><td class='who'></td>" +
+    "<td class='chips'></td><td class='net'></td>";
+  return element;
+}
+
+function seatedRow(seat, player) {
+  const element = row([player.connected ? "" : "gone", player.id === me ? "you" : ""].join(" ").trim());
+  element.children[0].textContent = seat + 1;
+  element.children[1].append(player.name);
+  if (player.isHost) element.children[1].append(tag("tag.host"));
+  if (player.id === me) element.children[1].append(tag("tag.you"));
+  if (!player.connected) element.children[1].append(tag("tag.gone"));
+  element.children[2].textContent = fmt(player.stack);
+  const net = player.stack - player.boughtIn;
+  element.children[3].textContent = (net > 0 ? "+" : "") + fmt(net);
+  return element;
+}
+
+function freeRow(seat) {
+  const element = row();
+  element.children[0].textContent = seat + 1;
+  const iAmSeated = mine() && mine().seat !== null;
+  if (mine() && !iAmSeated) {
+    const button = document.createElement("button");
+    button.className = "seatpick";
+    button.textContent = t("table.free");
+    button.onclick = () => sit(seat);
+    element.children[1].append(button);
+  } else {
+    element.children[1].innerHTML = "<span class='free'></span>";
+    element.children[1].firstChild.textContent = t("table.free");
+  }
+  return element;
+}
+
+function freeSeatsRow(free) {
+  const element = row();
+  element.children[3].remove();
+  element.children[2].remove();
+  const cell = element.children[1];
+  cell.className = "free";
+  cell.colSpan = 3;
+  cell.textContent = plural("table.free_seats", free, { n: fmt(free) });
+  return element;
+}
+
+function watchingRow(player) {
+  const element = row(player.connected ? "" : "gone");
+  element.children[1].append(player.name);
+  if (player.isHost) element.children[1].append(tag("tag.host"));
+  if (player.id === me) element.children[1].append(tag("tag.you"));
+  element.children[1].append(tag("tag.watching"));
+  return element;
+}
+
+function tag(key) {
+  const element = document.createElement("span");
+  element.className = "tag";
+  element.textContent = t(key);
+  return element;
+}
+
+function renderMe(seated) {
+  show("rebuyBtn", seated);
+  show("standBtn", seated);
+  // Typing the amount is always available; these only fill the field in, which
+  // is the difference between an accelerator and the only way to bet.
+  const add = (value) => {
+    const button = document.createElement("button");
+    button.className = "quick";
+    button.textContent = "+" + value;
+    button.onclick = () => {
+      const field = document.getElementById("betAmount");
+      field.value = (Math.floor(Number(field.value)) || 0) + value;
+    };
+    return button;
+  };
+  const all = document.createElement("button");
+  all.className = "quick";
+  all.textContent = t("bet.all");
+  all.onclick = () => {
+    const player = mine();
+    if (player) document.getElementById("betAmount").value = player.stack;
+  };
+  const clear = document.createElement("button");
+  clear.className = "quick";
+  clear.textContent = "C";
+  clear.onclick = () => { document.getElementById("betAmount").value = ""; };
+  document.getElementById("quickRow")
+    .replaceChildren(add(1), add(5), add(25), add(100), all, clear);
+}
+
+function renderHost() {
+  const buttons = seatedPlayers().map((player) => {
+    const button = document.createElement("button");
+    button.className = "player";
+    button.textContent = player.name;
+    button.onclick = () => {
+      hostCommand({
+        type: "award_pot",
+        to: player.id,
+        pot: chosenPot(),
+        amount: amountFrom("awardAmount")
+      });
+    };
+    return button;
+  });
+  document.getElementById("awardRow").replaceChildren(...buttons);
+
+  document.getElementById("undoBtn").disabled = undoDepth <= 0;
+
+  fillSelect(
+    document.getElementById("adjustPlayer"),
+    state.players.map((player) => ({ value: player.id, label: player.name }))
+  );
+  const buyIn = document.getElementById("newBuyIn");
+  if (!buyIn.value) buyIn.value = state.config.defaultBuyIn;
+}
+
+function renderLog() {
+  const entries = state.log.slice(-60).reverse().map((entry) => {
     const item = document.createElement("li");
-    const actor = entry.actor && state.players.find((p) => p.id === entry.actor);
-    item.textContent = (actor ? actor.name + " " : "") + t(entry.key, entry.args);
+    const who = entry.actor && player(entry.actor);
+    const when = new Date(entry.at).toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit" });
+    const stamp = document.createElement("span");
+    stamp.className = "when";
+    stamp.textContent = when + " ";
+    item.append(stamp, (who ? who.name + " " : "") + t(entry.key, logArgs(entry.args)));
     return item;
-  }));
+  });
+  document.getElementById("log").replaceChildren(...entries);
+}
+
+/** The server sends raw values; the names and the number formats are ours. */
+function logArgs(args) {
+  const out = {};
+  for (const [name, value] of Object.entries(args || {})) {
+    if (name === "pot") {
+      const pot = state.pots.find((p) => p.id === value);
+      out[name] = pot ? potName(pot) : value;
+    } else if (name === "amount" || name === "buyIn") {
+      out[name] = fmt(value);
+    } else {
+      out[name] = value;
+    }
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------- actions
+function sit(seat) {
+  const field = document.getElementById("buyIn");
+  const value = Math.floor(Number(field.value));
+  send({
+    type: "sit",
+    seat: seat === undefined ? null : seat,
+    buyIn: field.value === "" || !Number.isFinite(value) ? null : value
+  });
+}
+
+function bet() {
+  const amount = amountFrom("betAmount");
+  if (amount === null) { showError(t("error.invalid_amount")); return; }
+  act({ type: "bet", amount: amount, pot: chosenPot() });
 }
 
 // ---------------------------------------------------------------- wiring
 const selector = document.getElementById("lang");
-selector.replaceChildren(...LANGS.map((code) => {
-  const option = document.createElement("option");
-  option.value = code;
-  option.textContent = code.toUpperCase();
-  option.selected = code === lang;
-  return option;
-}));
+fillSelect(selector, LANGS.map((code) => ({ value: code, label: code.toUpperCase() })));
+selector.value = lang;
 selector.onchange = () => { lang = selector.value; store.set("lang", lang); applyLanguage(); };
 
-document.getElementById("name").value = store.get("name") || "";
-document.getElementById("joinBtn").onclick = () => {
-  const name = document.getElementById("name").value.trim();
-  if (name) join(name);
+const onEnter = (id, action) => {
+  document.getElementById(id).addEventListener("keydown", (event) => {
+    if (event.key === "Enter") { event.preventDefault(); action(); }
+  });
 };
-document.getElementById("sitBtn").onclick = () => {
-  const value = document.getElementById("buyIn").value;
-  send({ type: "sit", buyIn: value === "" ? null : Number(value) });
+
+const nameField = document.getElementById("name");
+nameField.value = store.get("name") || "";
+const doJoin = () => {
+  const name = nameField.value.trim();
+  if (name) join(name); else showError(t("error.name_required"));
 };
+document.getElementById("joinBtn").onclick = doJoin;
+onEnter("name", doJoin);
+
+document.getElementById("sitBtn").onclick = () => sit(undefined);
+document.getElementById("betBtn").onclick = bet;
+onEnter("betAmount", bet);
+
+document.getElementById("rebuyBtn").onclick = () => {
+  const suggestion = state ? state.config.defaultBuyIn : 100;
+  const answer = prompt(t("rebuy.prompt"), suggestion);
+  if (answer === null) return;
+  const amount = Math.floor(Number(answer));
+  if (!Number.isFinite(amount) || amount <= 0) { showError(t("error.invalid_amount")); return; }
+  act({ type: "rebuy", amount: amount });
+};
+document.getElementById("standBtn").onclick = () => act({ type: "stand_up" });
 document.getElementById("leaveBtn").onclick = () => {
+  if (!confirm(t("leave.confirm"))) return;
   send({ type: "leave" });
   store.remove("playerId");
   state = null;
@@ -351,6 +858,33 @@ document.getElementById("forgetBtn").onclick = () => {
   store.remove("playerId");
   store.remove("name");
   location.reload();
+};
+
+document.getElementById("undoBtn").onclick = () => hostCommand({ type: "undo" });
+document.getElementById("adjustAdd").onclick = () => adjust(1);
+document.getElementById("adjustRemove").onclick = () => adjust(-1);
+function adjust(sign) {
+  const amount = amountFrom("adjustAmount");
+  if (amount === null) { showError(t("error.invalid_amount")); return; }
+  hostCommand({
+    type: "adjust_stack",
+    player: document.getElementById("adjustPlayer").value,
+    delta: sign * amount
+  });
+}
+document.getElementById("buyInBtn").onclick = () => {
+  const field = document.getElementById("newBuyIn");
+  const value = Math.floor(Number(field.value));
+  if (!Number.isFinite(value) || value < 0) { showError(t("error.invalid_amount")); return; }
+  hostCommand({
+    type: "set_config",
+    config: { mode: state.config.mode, seatCount: state.config.seatCount, defaultBuyIn: value }
+  });
+};
+document.getElementById("newPotBtn").onclick = () => {
+  const field = document.getElementById("newPotName");
+  hostCommand({ type: "create_pot", name: field.value.trim() || null });
+  field.value = "";
 };
 
 applyLanguage();

@@ -73,6 +73,11 @@ framework, no build step, and nothing loaded from outside the phone. It is
 served from the classpath, so the same jar works on a desktop JVM and inside the
 APK.
 
+Its dictionary carries the table vocabulary **per mode**, not only globally,
+because the same concept changes name with the game: what a casino calls the pot
+is the "poso" at canari. A mode looks up its own word first and falls back to the
+global key, so a new mode only has to name what it says differently.
+
 ## Building
 
 Needs JDK 17 or newer and an Android SDK for `:app`.
@@ -100,7 +105,9 @@ Phases, as laid out in the plan:
       echo, every detected address on screen.
 - [x] **F2 — Ledger and protocol.** The ledger in `:core` with JVM tests,
       authoritative state, `join`, `sit`, full-state broadcast.
-- [ ] **F3 — Web client.** Manual mode playable end to end, in three languages.
+- [x] **F3 — Web client.** Manual mode playable end to end, in three languages:
+      betting with a typed amount, extra pots, the host awarding pots whole or
+      in parts, host corrections, and undo.
 - [ ] **F4 — App client.** Compose UI, QR scanning, host plays over localhost.
 - [ ] **F5 — Link bridge.** QR, `/join` page, intent URI, custom scheme.
 - [ ] **F6 — Robustness.** Reconnection, seat recovery, persistence, kicking.
@@ -114,6 +121,9 @@ off by a test suite:
   socket works from a page served in the clear. The `web/` resource is packaged
   in the APK; that it is *served* from inside the APK is part of this check.
 - **F2** — two browser tabs see the same table.
+- **F3** — three people play a hand of 7½ with browsers only, at least one of
+  them from an iPhone. Everything below that bar is covered by the JVM tests and
+  by a scripted three-player hand in a real browser; the iPhone is not.
 
 ## Decisions worth not reopening
 
