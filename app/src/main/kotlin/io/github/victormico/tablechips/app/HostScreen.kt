@@ -11,8 +11,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
@@ -47,7 +48,13 @@ fun HostScreen(
     val context = LocalContext.current
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            // The app draws edge to edge, so the content has to keep itself out
+            // from under the status bar, the camera cutout and the gesture bar.
+            .safeDrawingPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(stringResource(R.string.host_title), style = MaterialTheme.typography.headlineSmall)
@@ -126,8 +133,10 @@ private fun PlayerList(table: TableState?) {
         Text(stringResource(R.string.host_players_none))
         return
     }
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        items(players, key = { it.id.value }) { player ->
+    // Ten players at most: a plain column, which also keeps this composable
+    // usable inside the scrolling screen above.
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        players.forEach { player ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
