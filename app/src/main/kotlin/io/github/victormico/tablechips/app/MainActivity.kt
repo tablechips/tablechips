@@ -6,13 +6,14 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.core.content.ContextCompat
+import androidx.compose.ui.graphics.toArgb
 import androidx.core.net.toUri
+import io.github.victormico.tablechips.app.ui.Refugi
 
 class MainActivity : ComponentActivity() {
 
@@ -20,21 +21,21 @@ class MainActivity : ComponentActivity() {
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Android 15 and later force this anyway; asking for it explicitly makes
-        // older versions behave the same and fixes the system bar icon contrast.
-        enableEdgeToEdge()
+        // The product is dark only, so the system bars are told so explicitly
+        // instead of being left to follow the phone's theme.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(Refugi.bg.toArgb()),
+            navigationBarStyle = SystemBarStyle.dark(Refugi.bg.toArgb()),
+        )
         super.onCreate(savedInstanceState)
         requestNotificationPermission()
         setContent {
-            MaterialTheme {
-                Surface {
-                    HostScreen(
-                        onStart = { HostService.start(this) },
-                        onStop = { HostService.stop(this) },
-                        onOpenClient = { url -> openInBrowser(url) },
-                    )
-                }
-            }
+            HostScreen(
+                onStart = { HostService.start(this) },
+                onStop = { HostService.stop(this) },
+                onOpenClient = { url -> openInBrowser(url) },
+                onShare = { url -> share(url) },
+            )
         }
     }
 
@@ -58,5 +59,14 @@ class MainActivity : ComponentActivity() {
 
     private fun openInBrowser(url: String) {
         startActivity(Intent(Intent.ACTION_VIEW, url.toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+
+    /** Sending the address by whatever the guest already has open beats typing it. */
+    private fun share(url: String) {
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, getString(R.string.host_share_text, url))
+        }
+        startActivity(Intent.createChooser(send, getString(R.string.host_share)))
     }
 }

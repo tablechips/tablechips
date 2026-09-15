@@ -17,28 +17,26 @@
     </string>
 
     <!-- Host screen -->
-    <string name="host_title">Your table</string>
-    <string name="host_start">Open the table</string>
     <string name="host_stop">Close the table</string>
     <string name="host_room_code">Table code: %1$s</string>
-    <string name="host_stopped">The table is closed.</string>
     <string name="host_starting">Opening…</string>
-    <string name="host_addresses_title">Guests connect to</string>
     <string name="host_no_addresses">No network found. Turn on the hotspot or join a wifi network.</string>
-    <string name="host_hint">Turn on the phone hotspot first, then read out one of these addresses. Guests need no app: any browser will do.</string>
     <string name="host_copy">Copy address</string>
-    <string name="host_copied">Address copied</string>
     <string name="host_open_client">Open the table on this phone</string>
-    <string name="host_players_title">At the table</string>
     <string name="host_players_none">Nobody has joined yet.</string>
 
-    <plurals name="host_player_chips">
-        <item quantity="one">%1$d chip</item>
-        <item quantity="other">%1$d chips</item>
-    </plurals>
-    <string name="host_seat">Seat %1$d</string>
     <string name="host_watching">Watching</string>
     <string name="host_error_start">The table could not be opened.</string>
+
+    <string name="home_tagline">Chips for in-person games. No internet, no accounts.</string>
+    <string name="home_create">Create a table</string>
+    <string name="home_create_sub">This phone acts as the server</string>
+    <string name="host_role">Host</string>
+    <string name="host_scan_hint">Type the address into any browser. Nothing to install.</string>
+    <string name="host_share">Share</string>
+    <string name="host_share_text">Join my TableChips table: %1$s</string>
+    <string name="host_wifi">Connect to this phone\'s hotspot first. No internet needed.</string>
+    <string name="host_connected">Connected</string>
 
     <!-- Foreground service notification -->
     <string name="notification_channel_name">Open table</string>

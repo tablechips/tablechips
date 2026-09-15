@@ -64,10 +64,12 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
 
+    // No component library on purpose: the design system is drawn from
+    // foundation primitives, so Material never enters the build.
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.graphics)
+    implementation(libs.compose.foundation)
     implementation(libs.compose.ui.tooling.preview)
-    implementation(libs.compose.material3)
     debugImplementation(libs.compose.ui.tooling)
 }

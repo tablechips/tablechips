@@ -1,0 +1,22 @@
+TableChips
+Copyright (C) 2026 the TableChips authors
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License version 3, as published by the Free
+Software Foundation. See LICENSE.
+
+------------------------------------------------------------------------------
+Third-party assets
+------------------------------------------------------------------------------
+
+Instrument Sans
+  Copyright 2022 The Instrument Sans Project Authors
+  SIL Open Font License 1.1 — third_party/fonts/OFL-InstrumentSans.txt
+  Shipped as res/font/instrument_sans.ttf in the app and embedded, latin subset,
+  in the web client served by the host.
+
+IBM Plex Mono
+  Copyright 2017 IBM Corp.
+  SIL Open Font License 1.1 — third_party/fonts/OFL-IBMPlexMono.txt
+  Shipped as res/font/plex_mono_medium.ttf and res/font/plex_mono_semibold.ttf
+  in the app and embedded, latin subset, in the web client served by the host.

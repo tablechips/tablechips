@@ -97,7 +97,7 @@ class HostService : Service() {
         )
         val address = status.addresses.firstOrNull()?.url(status.port) ?: ""
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_chip)
+            .setSmallIcon(R.drawable.ic_mark)
             .setContentTitle(getString(R.string.notification_title, status.roomCode ?: ""))
             .setContentText(getString(R.string.notification_text, address))
             .setContentIntent(open)

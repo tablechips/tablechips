@@ -1,0 +1,19 @@
+<!--
+  The mark: a brass ring with a diamond set in it. Two shapes, nothing under
+  1.5 px, so it survives at 24 dp. Geometry from the design tokens: on a 48
+  canvas the ring is 26 across with a 4 stroke, and the diamond is a 9 square
+  turned 45°.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:pathData="M13,24 a11,11 0 1,0 22,0 a11,11 0 1,0 -22,0"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="4" />
+    <path
+        android:pathData="M24,17.64 L30.36,24 L24,30.36 L17.64,24 Z"
+        android:fillColor="#FFFFFF" />
+</vector>

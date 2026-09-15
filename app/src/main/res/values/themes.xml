@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Platform themes only: Compose draws everything, and a dependency on the
-         views material library would buy nothing. -->
-    <style name="Theme.TableChips" parent="@android:style/Theme.Material.Light.NoActionBar" />
+    <!--
+      Platform theme only: Compose draws everything, and the product is dark
+      only, so there is no values-night variant to keep in step.
+    -->
+    <style name="Theme.TableChips" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
 </resources>

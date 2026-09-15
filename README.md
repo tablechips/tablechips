@@ -68,6 +68,14 @@ is the whole reason WebRTC was ruled out.
 The rules engine is deliberately free of Android so it can be tested with
 `./gradlew :core:test` in a second, with no emulator anywhere.
 
+The app and the web client share one visual identity, **Refugi** — warm smoke
+black, dark wood, a single matt brass accent — specified in
+[docs/design-refugi.md](docs/design-refugi.md). It is dark only, on purpose: a
+light mode has not been designed and guessing one would break it. Neither side
+uses a component library; both draw the same handful of shapes from
+primitives, and both bundle their fonts, because a hotspot has no internet to
+fetch one from.
+
 The web client is a single file, `server/src/main/resources/web/index.html`: no
 framework, no build step, and nothing loaded from outside the phone. It is
 served from the classpath, so the same jar works on a desktop JVM and inside the
@@ -144,6 +152,7 @@ changed tomorrow.
 
 ## Licence
 
-GPLv3. See [LICENSE](LICENSE). For a consumer app this is what stops the work
+GPLv3. See [LICENSE](LICENSE). Third-party assets and their licences are listed
+in [NOTICE](NOTICE); the fonts and their OFL texts live in `third_party/fonts/`. For a consumer app this is what stops the work
 coming back as a proprietary fork, which is exactly what this corner of the
 world has too much of already.

@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#0B6E4F</color>
+    <!-- Refugi: the icon sits on the surface colour, the window on the background. -->
+    <color name="ic_launcher_background">#1F1A16</color>
+    <color name="window_background">#14110E</color>
 </resources>

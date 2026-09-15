@@ -1,29 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Host screen -->
-    <string name="host_title">La teua taula</string>
-    <string name="host_start">Obre la taula</string>
     <string name="host_stop">Tanca la taula</string>
     <string name="host_room_code">Codi de la taula: %1$s</string>
-    <string name="host_stopped">La taula és tancada.</string>
     <string name="host_starting">Obrint…</string>
-    <string name="host_addresses_title">Els convidats s\'han de connectar a</string>
     <string name="host_no_addresses">No s\'ha trobat cap xarxa. Activa la zona wifi o connecta\'t a una xarxa.</string>
-    <string name="host_hint">Activa primer la zona wifi del mòbil i després canta una d\'aquestes adreces. Els convidats no han d\'instal·lar res: amb el navegador n\'hi ha prou.</string>
     <string name="host_copy">Copia l\'adreça</string>
-    <string name="host_copied">Adreça copiada</string>
     <string name="host_open_client">Obre la taula en aquest mòbil</string>
-    <string name="host_players_title">A la taula</string>
     <string name="host_players_none">Encara no hi ha ningú.</string>
 
-    <plurals name="host_player_chips">
-        <item quantity="one">%1$d fitxa</item>
-        <item quantity="many">%1$d de fitxes</item>
-        <item quantity="other">%1$d fitxes</item>
-    </plurals>
-    <string name="host_seat">Lloc %1$d</string>
     <string name="host_watching">Mirant</string>
     <string name="host_error_start">No s\'ha pogut obrir la taula.</string>
+
+    <string name="home_tagline">Fitxes per a partides presencials. Sense internet, sense comptes.</string>
+    <string name="home_create">Crear una taula</string>
+    <string name="home_create_sub">Aquest mòbil fa de servidor</string>
+    <string name="host_role">Amfitrió</string>
+    <string name="host_scan_hint">Escriviu l\'adreça al navegador. No cal instal·lar res.</string>
+    <string name="host_share">Compartir</string>
+    <string name="host_share_text">Entra a la meua taula de TableChips: %1$s</string>
+    <string name="host_wifi">Connecteu-vos primer a la zona wifi d\'aquest mòbil. No cal internet.</string>
+    <string name="host_connected">Connectats</string>
 
     <!-- Foreground service notification -->
     <string name="notification_channel_name">Taula oberta</string>
