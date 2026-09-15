@@ -177,10 +177,21 @@ button[disabled] { opacity: .4; cursor: default; }
 .rest .v { font-family: var(--mono); font-weight: 600; font-size: 17px; line-height: 1;
            font-variant-numeric: tabular-nums; }
 .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+/*
+  A browser eats a third of the screen with its own chrome, so the phone this
+  was drawn for is not the phone this runs on. The card carrying the figure
+  never scrolls away: the keypad gives up its height first, down to the 48 px
+  floor, and only then does anything scroll — with the figure stuck to the top,
+  because typing an amount you cannot see is worse than no keypad at all.
+*/
+.pane > .amountCard, .pane > .quickBlock { flex: none; }
+.pane > .amountCard { position: sticky; top: -1px; z-index: 2; }
+.grid3.pad { flex: 1 1 auto; min-height: 0; grid-auto-rows: 1fr; }
 .quick { height: 52px; border-radius: 11px; font-size: 14px; padding: 0 6px; }
 .quick.n { font-family: var(--mono); font-size: 16px; }
 .quick.all { color: var(--warn); }
-.key { height: 62px; border-radius: 12px; border-color: var(--line);
+.key { height: 100%; min-height: 0; max-height: 62px; border-radius: 12px; border-color: var(--line);
        font-family: var(--mono); font-weight: 500; font-size: 26px;
        display: flex; align-items: center; justify-content: center; }
 .key.small { font-size: 20px; }
@@ -259,6 +270,37 @@ button[disabled] { opacity: .4; cursor: default; }
 .menuCard .langRow { display: flex; align-items: center; justify-content: space-between;
                      padding: 6px 12px 8px; }
 .menuCard .langRow .cap { padding-inline-end: 10px; }
+
+/*
+  Very short viewport: the shortcuts go, not the keypad. They are an
+  accelerator by definition and typing the amount is the promise, so this is
+  the one thing on the screen that can be dropped without breaking it.
+*/
+@media (max-height: 580px) {
+  .quickBlock { display: none; }
+  #v-amount .scroll { gap: 8px; }
+}
+
+/* Smaller still: the running balance goes too, so the keys keep their size. */
+@media (max-height: 520px) {
+  .rest { display: none; }
+  .amountNum { font-size: 38px; }
+  .caret { height: 30px; }
+}
+
+/*
+  Short viewport: the figure gives up size before it gives up being on screen,
+  and the "+25" row goes before the pot-relative one — those three are the ones
+  that would need mental arithmetic to type.
+*/
+@media (max-height: 720px) {
+  .quick.add { display: none; }
+  .amountCard { padding: 12px 16px; }
+  .amountNum { font-size: 44px; }
+  .caret { height: 36px; }
+  .quick { height: 48px; }
+  .rest { margin-top: 8px; padding-top: 8px; }
+}
 
 #err { color: var(--loss); font-size: 13px; line-height: 1.35; min-height: 1.2em;
        text-wrap: pretty; }
@@ -345,7 +387,7 @@ button[disabled] { opacity: .4; cursor: default; }
       <div class="s" id="amountSub"></div>
     </div>
   </div>
-  <div class="scroll" style="gap:14px">
+  <div class="scroll pane">
     <div class="card amountCard">
       <div class="cap" data-i18n="amount.label"></div>
       <div class="amountRow"><span class="amountNum" id="amountValue">0</span><span class="caret"></span></div>
@@ -354,12 +396,11 @@ button[disabled] { opacity: .4; cursor: default; }
         <span class="v" id="restValue"></span>
       </div>
     </div>
-    <div>
+    <div class="quickBlock">
       <div class="cap" style="margin-bottom:9px" data-i18n="amount.quick"></div>
       <div class="grid3" id="quick"></div>
     </div>
-    <div style="flex:1;min-height:6px"></div>
-    <div class="grid3" id="keypad"></div>
+    <div class="grid3 pad" id="keypad"></div>
   </div>
   <div class="actions">
     <div class="row">
@@ -1101,7 +1142,8 @@ function openRebuy() {
 function askBuyIn(seat) {
   openAmount({
     title: t("sit.title"),
-    sub: t("sit.sub", seat === null ? "—" : fmt(seat + 1), fmt(state.config.defaultBuyIn)),
+    sub: ["sit.sub", num(seat === null ? "\u2014" : fmt(seat + 1)),
+          num(fmt(state.config.defaultBuyIn))],
     confirm: t("sit.confirm"), initial: state.config.defaultBuyIn, allowZero: true,
     rest: (value) => ({ label: t("amount.resulting"), value: value }),
     run: (value) => send({ type: "sit", seat: seat, buyIn: value })
@@ -1113,7 +1155,8 @@ function renderAmount() {
   const value = amountValue();
   document.getElementById("amountTitle").textContent = flow.title;
   const sub = document.getElementById("amountSub");
-  if (flow.sub) fill(sub, ...flow.sub); else sub.replaceChildren();
+  if (Array.isArray(flow.sub)) fill(sub, ...flow.sub);
+  else sub.replaceChildren(flow.sub || "");
   document.getElementById("amountValue").textContent = fmt(value);
 
   const rest = flow.rest ? flow.rest(value) : null;
@@ -1133,12 +1176,12 @@ function renderAmount() {
 
 function renderQuick() {
   const add = (amount) => {
-    const button = el("button", "quick n", "+" + fmt(amount));
+    const button = el("button", "quick n add", "+" + fmt(amount));
     button.onclick = () => setAmount(amountValue() + amount);
     return button;
   };
   const set = (label, amount, className) => {
-    const button = el("button", "quick" + (className ? " " + className : ""), label);
+    const button = el("button", "quick rel" + (className ? " " + className : ""), label);
     button.onclick = () => setAmount(amount);
     return button;
   };
