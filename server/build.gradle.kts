@@ -23,12 +23,15 @@ dependencies {
     implementation(libs.ktor.server.cio)
     implementation(libs.ktor.server.websockets)
 
+    // The app is a client of this same protocol, so the client side of the
+    // socket ships with it rather than being written twice.
+    api(libs.ktor.client.core)
+    api(libs.ktor.client.cio)
+    api(libs.ktor.client.websockets)
+
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.ktor.client.core)
-    testImplementation(libs.ktor.client.cio)
-    testImplementation(libs.ktor.client.websockets)
 }
 
 tasks.test {

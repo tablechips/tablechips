@@ -1,5 +1,12 @@
 package io.github.victormico.tablechips.app.ui
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -123,20 +130,37 @@ fun SecondaryButton(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     danger: Boolean = false,
+    warn: Boolean = false,
+    borderless: Boolean = false,
     height: Dp = 60.dp,
     style: TextStyle = Type.secondary,
 ) {
     ClickableSurface(
         onClick = onClick,
         modifier = modifier.height(height),
-        fill = Refugi.surface,
-        pressedFill = Refugi.surfaceHigh,
-        border = if (danger) Refugi.lineDanger else Refugi.lineStrong,
+        // Neither warn nor loss ever fills a button: they are text and border,
+        // so the primary action differs in shape and not merely in hue.
+        fill = if (borderless) Refugi.bg else if (warn) Refugi.surfaceHigh else Refugi.surface,
+        pressedFill = if (warn) Refugi.surface else Refugi.surfaceHigh,
+        border = when {
+            borderless -> null
+            danger -> Refugi.lineDanger
+            warn -> Refugi.warn
+            else -> Refugi.lineStrong
+        },
         contentAlignment = if (subtitle == null) Alignment.Center else Alignment.CenterStart,
         padding = if (subtitle == null) 12.dp else 18.dp,
     ) {
         if (subtitle == null) {
-            TcText(label, style, color = if (danger) Refugi.loss else Refugi.text)
+            TcText(
+                label, style,
+                color = when {
+                    danger -> Refugi.loss
+                    warn -> Refugi.warn
+                    borderless -> Refugi.text2
+                    else -> Refugi.text
+                },
+            )
         } else {
             Column {
                 TcText(label, Type.primary, color = Refugi.text)
@@ -205,4 +229,141 @@ fun StatusDot(color: Color, modifier: Modifier = Modifier) {
 @Composable
 fun RowScope.Spacer() {
     Box(Modifier.weight(1f))
+}
+
+/**
+ * The frame every screen shares: a fixed header, content that scrolls, and the
+ * actions pinned to the bottom where a thumb reaches them. The bands never
+ * move with the content.
+ */
+@Composable
+fun Frame(
+    header: @Composable () -> Unit,
+    actions: @Composable ColumnScope.() -> Unit,
+    scrolling: Boolean = true,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(Modifier.fillMaxSize()) {
+        header()
+        Divider()
+        val body = Modifier
+            .weight(1f)
+            .fillMaxWidth()
+            .let { if (scrolling) it.verticalScroll(rememberScrollState()) else it }
+            .padding(Refugi.side, 16.dp, Refugi.side, 4.dp)
+        Column(body, verticalArrangement = Arrangement.spacedBy(14.dp), content = content)
+        Divider()
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(Refugi.side, 14.dp, Refugi.side, 20.dp),
+            verticalArrangement = Arrangement.spacedBy(9.dp),
+            content = actions,
+        )
+    }
+}
+
+@Composable
+fun Divider() {
+    Box(Modifier.fillMaxWidth().height(1.dp).background(Refugi.surfaceHigh))
+}
+
+/** Header of a screen you came into from somewhere else. */
+@Composable
+fun BackHeader(title: String, subtitle: (@Composable () -> Unit)?, onBack: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(Refugi.side, 14.dp, Refugi.side, 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        ClickableSurface(
+            onClick = onBack,
+            modifier = Modifier.size(40.dp),
+            fill = Refugi.bg,
+            border = Refugi.line,
+            radius = 10.dp,
+            padding = 0.dp,
+        ) { BackArrow() }
+        Column(Modifier.weight(1f)) {
+            TcText(title, Type.title.copy(fontSize = 15.sp, lineHeight = 18.sp))
+            subtitle?.invoke()
+        }
+    }
+}
+
+@Composable
+private fun BackArrow() {
+    Canvas(Modifier.size(12.dp)) {
+        val stroke = 2.dp.toPx()
+        drawLine(Refugi.text, Offset(size.width, 0f), Offset(0f, size.height / 2), stroke)
+        drawLine(Refugi.text, Offset(0f, size.height / 2), Offset(size.width, size.height), stroke)
+    }
+}
+
+/** The three dots that open the table's menu. */
+@Composable
+fun MenuButton(onClick: () -> Unit) {
+    ClickableSurface(
+        onClick = onClick,
+        modifier = Modifier.size(32.dp),
+        fill = Refugi.bg,
+        border = Refugi.line,
+        radius = 8.dp,
+        padding = 0.dp,
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(2.5.dp)) {
+            repeat(3) { Box(Modifier.size(3.dp).background(Refugi.text2, CircleShape)) }
+        }
+    }
+}
+
+/** A block of advice that stays put: informative, never a passing toast. */
+@Composable
+fun Note(text: String, color: Color = Refugi.warn, border: Color = Refugi.lineAccent) {
+    Row(
+        modifier = Modifier.fillMaxWidth()
+            .background(Refugi.surfaceHigh, RoundedCornerShape(12.dp))
+            .border(BorderStroke(1.dp, border), RoundedCornerShape(12.dp))
+            .padding(13.dp, 13.dp),
+        horizontalArrangement = Arrangement.spacedBy(11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier.size(18.dp).border(BorderStroke(2.dp, color), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) { TcText("!", Type.caption, color = color) }
+        TcText(text, Type.body, color = color)
+    }
+}
+
+/** A row of the table: who, how much, and whether they are still with us. */
+@Composable
+fun PlayerRow(
+    name: String,
+    chips: String,
+    dot: Color,
+    modifier: Modifier = Modifier,
+    strong: Boolean = false,
+    dim: Boolean = false,
+    tags: List<String> = emptyList(),
+) {
+    Card(
+        modifier = modifier.fillMaxWidth().alpha(if (dim) .72f else 1f),
+        radius = 11.dp,
+        padding = 0.dp,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(14.dp, 11.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(11.dp),
+        ) {
+            StatusDot(dot)
+            TcText(
+                name,
+                if (strong) Type.nameStrong else Type.name,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+            )
+            tags.forEach { TcText(it, Type.body, color = Refugi.text2) }
+            if (chips.isNotEmpty()) TcText(chips, Type.chips)
+        }
+    }
 }

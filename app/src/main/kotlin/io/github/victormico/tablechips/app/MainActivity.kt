@@ -29,12 +29,15 @@ class MainActivity : ComponentActivity() {
         )
         super.onCreate(savedInstanceState)
         requestNotificationPermission()
+        val prefs = Prefs(this)
+        Session.attach(prefs)
         setContent {
-            HostScreen(
-                onStart = { HostService.start(this) },
-                onStop = { HostService.stop(this) },
-                onOpenClient = { url -> openInBrowser(url) },
-                onShare = { url -> share(url) },
+            App(
+                prefs = prefs,
+                onStartHost = { HostService.start(this) },
+                onStopHost = { HostService.stop(this) },
+                onShare = { url: String -> share(url) },
+                onOpenInBrowser = { url: String -> openInBrowser(url) },
             )
         }
     }

@@ -62,7 +62,7 @@ is the whole reason WebRTC was ruled out.
 | Module | What it is | Depends on Android? |
 |---|---|---|
 | `:core` | The chip ledger and the rules. Pure Kotlin. | no |
-| `:server` | Protocol, transport and the embedded Ktor server. | no |
+| `:server` | Protocol, transport, the embedded Ktor server, and the client the app plays through. | no |
 | `:app` | Compose UI, foreground service. | yes |
 
 The rules engine is deliberately free of Android so it can be tested with
@@ -91,11 +91,16 @@ global key, so a new mode only has to name what it says differently.
 Needs JDK 17 or newer and an Android SDK for `:app`.
 
 ```sh
-./gradlew build          # everything, tests included
-./gradlew :core:test     # the rules, in a second, no emulator
-./gradlew :server:test   # protocol and a real http/ws server
+./gradlew build                 # everything, tests included
+./gradlew :core:test            # the rules, in a second, no emulator
+./gradlew :server:test          # protocol, a real http/ws server, and the client
+./gradlew :app:testDebugUnitTest # the app's screens, rendered on the JVM
 ./gradlew :app:assembleDebug
 ```
+
+The app's screens are drawn and driven in unit tests through Robolectric, so a
+screen that would crash on first composition fails the build instead. It is not
+a substitute for a phone, but nothing else here can be pointed at the UI.
 
 `:app` is only included when an Android SDK is visible (`ANDROID_HOME`,
 `ANDROID_SDK_ROOT` or `sdk.dir` in `local.properties`). A checkout without one
@@ -116,7 +121,10 @@ Phases, as laid out in the plan:
 - [x] **F3 — Web client.** Manual mode playable end to end, in three languages:
       betting with a typed amount, extra pots, the host awarding pots whole or
       in parts, host corrections, and undo.
-- [ ] **F4 — App client.** Compose UI, QR scanning, host plays over localhost.
+- [x] **F4 — App client.** The app plays: the same protocol, the same screens,
+      and the host connected to its own table over localhost like anybody else.
+      Joining by typing an address; scanning a QR waits for F5, which is where
+      the code that produces one lives.
 - [ ] **F5 — Link bridge.** QR, `/join` page, intent URI, custom scheme.
 - [ ] **F6 — Robustness.** Reconnection, seat recovery, persistence, kicking.
 - [ ] **F7 — Modes.** Blackjack, then poker.
@@ -132,6 +140,9 @@ off by a test suite:
 - **F3** — three people play a hand of 7½ with browsers only, at least one of
   them from an iPhone. Everything below that bar is covered by the JVM tests and
   by a scripted three-player hand in a real browser; the iPhone is not.
+- **F4** — a game of app and browsers together, eight players or more. Eight app
+  clients at one table is a JVM test, and the screens are rendered and driven on
+  the JVM too; the mixed table of real phones is not.
 
 ## Decisions worth not reopening
 

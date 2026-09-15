@@ -1,7 +1,7 @@
 package io.github.victormico.tablechips.server
 
 import io.github.victormico.tablechips.protocol.PROTOCOL_VERSION
-import io.github.victormico.tablechips.protocol.Transport
+import io.github.victormico.tablechips.protocol.WebSocketTransport
 import io.ktor.http.ContentType
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -14,11 +14,9 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.websocket.Frame
-import io.ktor.websocket.WebSocketSession
 import io.ktor.websocket.readText
 import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.webSocket
-import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import java.io.IOException
 import java.net.ServerSocket
 
@@ -116,23 +114,6 @@ fun Application.module(tableHost: TableHost) {
         // desktop JVM and inside the APK.
         staticResources("/", "web") {
             default("index.html")
-        }
-    }
-}
-
-/** Adapts a Ktor WebSocket session to the transport the protocol layer speaks. */
-class WebSocketTransport(private val session: WebSocketSession) : Transport {
-    override suspend fun send(text: String) {
-        session.send(Frame.Text(text))
-    }
-
-    override suspend fun onMessage(handler: suspend (String) -> Unit) {
-        try {
-            for (frame in session.incoming) {
-                if (frame is Frame.Text) handler(frame.readText())
-            }
-        } catch (_: ClosedReceiveChannelException) {
-            // The client hung up. Normal end of a connection.
         }
     }
 }

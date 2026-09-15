@@ -5,6 +5,7 @@ coroutines = "1.11.0"
 serialization = "1.11.0"
 ktor = "3.5.2"
 junit = "4.13.2"
+robolectric = "4.17"
 androidxCore = "1.17.0"
 androidxActivity = "1.12.0"
 androidxLifecycle = "2.10.0"
@@ -37,6 +38,9 @@ compose-ui = { module = "androidx.compose.ui:ui" }
 compose-ui-graphics = { module = "androidx.compose.ui:ui-graphics" }
 compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
 compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
+compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 compose-foundation = { module = "androidx.compose.foundation:foundation" }
 
 [plugins]
