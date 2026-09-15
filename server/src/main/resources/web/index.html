@@ -70,7 +70,8 @@ body {
   padding: 14px var(--side) 12px; border-bottom: 1px solid var(--surfaceHigh);
 }
 .scroll {
-  flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   padding: 16px var(--side) 4px; display: flex; flex-direction: column; gap: 14px;
 }
 .actions {
@@ -102,7 +103,13 @@ body {
 
 .stackCard { padding: 18px 20px 20px; }
 .stackTop { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.stackNum { font-family: var(--mono); font-weight: 600; font-size: 72px; line-height: 1;
+/*
+  A figure is allowed to be enormous, never wider than the phone. The base size
+  is the design's; `--fit` is the factor the page sets when the number has more
+  digits than that size can hold.
+*/
+.stackNum { font-family: var(--mono); font-weight: 600; --figure: 72px;
+            font-size: calc(var(--figure) * var(--fit, 1)); line-height: 1;
             letter-spacing: -.03em; font-variant-numeric: tabular-nums; margin-top: 6px; }
 .bars { display: flex; gap: 4px; margin-top: 14px; }
 .bars > div { flex: 1; height: 10px; border-radius: 3px; background: var(--surfaceHigh);
@@ -111,7 +118,8 @@ body {
 .metrics { display: flex; gap: 12px; }
 .metric { flex: 1; padding: 14px 16px 16px; text-align: start;
           font: inherit; color: inherit; cursor: default; }
-.metric .v { font-family: var(--mono); font-weight: 600; font-size: 34px; line-height: 1;
+.metric .v { font-family: var(--mono); font-weight: 600; --figure: 34px;
+             font-size: calc(var(--figure) * var(--fit, 1)); line-height: 1;
              font-variant-numeric: tabular-nums; margin-top: 7px; }
 button.metric { cursor: pointer; }
 button.metric.sel { background: var(--surfaceHigh); border-color: var(--accent); }
@@ -168,7 +176,8 @@ button[disabled] { opacity: .4; cursor: default; }
 /* ---------------------------------------------------------------- amount */
 .amountCard { border-color: var(--accent); padding: 18px 20px; }
 .amountRow { display: flex; align-items: baseline; gap: 4px; margin-top: 8px; }
-.amountNum { font-family: var(--mono); font-weight: 600; font-size: 64px; line-height: 1;
+.amountNum { font-family: var(--mono); font-weight: 600; --figure: 64px;
+             font-size: calc(var(--figure) * var(--fit, 1)); line-height: 1;
              letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
 .caret { width: 3px; height: 52px; background: var(--accent); align-self: center; flex: none; }
 .rest { display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -202,7 +211,8 @@ button[disabled] { opacity: .4; cursor: default; }
 /* ---------------------------------------------------------------- host + log */
 .award { padding: 16px 18px 18px; }
 .awardTop { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.awardTop .v { font-family: var(--mono); font-weight: 600; font-size: 28px; line-height: 1;
+.awardTop .v { font-family: var(--mono); font-weight: 600; --figure: 28px;
+               font-size: calc(var(--figure) * var(--fit, 1)); line-height: 1;
                color: var(--accent); font-variant-numeric: tabular-nums; }
 .awardBtn { height: 58px; background: var(--surfaceHigh); border-color: var(--lineAccent);
             font-size: 16px; display: flex; align-items: center;
@@ -284,7 +294,7 @@ button[disabled] { opacity: .4; cursor: default; }
 /* Smaller still: the running balance goes too, so the keys keep their size. */
 @media (max-height: 520px) {
   .rest { display: none; }
-  .amountNum { font-size: 38px; }
+  .amountNum { --figure: 38px; }
   .caret { height: 30px; }
 }
 
@@ -296,7 +306,7 @@ button[disabled] { opacity: .4; cursor: default; }
 @media (max-height: 720px) {
   .quick.add { display: none; }
   .amountCard { padding: 12px 16px; }
-  .amountNum { font-size: 44px; }
+  .amountNum { --figure: 44px; }
   .caret { height: 36px; }
   .quick { height: 48px; }
   .rest { margin-top: 8px; padding-top: 8px; }
@@ -747,6 +757,21 @@ function fmt(value) {
   return (n < 0 ? "−" : "") + digits;
 }
 
+/**
+ * Sets a figure and shrinks it to fit. Chips have no ceiling — somebody will
+ * buy in for a hundred million because they can — and the layout has to hold.
+ */
+function figure(node, text) {
+  node.textContent = text;
+  const length = text.length;
+  const fit = length <= 7 ? 1
+    : length <= 9 ? 0.78
+    : length <= 11 ? 0.62
+    : length <= 13 ? 0.5
+    : 0.42;
+  node.style.setProperty("--fit", fit);
+}
+
 function signed(value) {
   const n = Math.round(Number(value) || 0);
   return (n > 0 ? "+" : "") + fmt(n);
@@ -966,7 +991,7 @@ function renderTable() {
   const player = mine();
   document.getElementById("myCard").hidden = !seated();
   if (player) {
-    document.getElementById("myStack").textContent = fmt(player.stack);
+    figure(document.getElementById("myStack"), fmt(player.stack));
     const net = player.stack - player.boughtIn;
     const netNode = document.getElementById("myNet");
     netNode.textContent = net === 0 ? "" : signed(net);
@@ -984,7 +1009,9 @@ function renderPots() {
   const cards = pots.map((pot) => {
     const node = el(pots.length > 1 ? "button" : "div", "card metric");
     node.append(el("div", "cap", pots.length > 1 ? potName(pot) : t("pot")));
-    node.append(el("div", "v", fmt(pot.amount)));
+    const value = el("div", "v");
+    figure(value, fmt(pot.amount));
+    node.append(value);
     if (pots.length > 1) {
       if (pot.id === selectedPot) node.classList.add("sel");
       node.onclick = () => { selectedPot = pot.id; render(); };
@@ -1157,7 +1184,7 @@ function renderAmount() {
   const sub = document.getElementById("amountSub");
   if (Array.isArray(flow.sub)) fill(sub, ...flow.sub);
   else sub.replaceChildren(flow.sub || "");
-  document.getElementById("amountValue").textContent = fmt(value);
+  figure(document.getElementById("amountValue"), fmt(value));
 
   const rest = flow.rest ? flow.rest(value) : null;
   document.getElementById("restLabel").textContent = rest ? rest.label : "";
@@ -1226,7 +1253,7 @@ function renderHost() {
   document.getElementById("awardCap").textContent = pendingSplit === null
     ? t("hostPanel.awardPot")
     : t("hostPanel.awardPart", fmt(pendingSplit));
-  document.getElementById("awardPot").textContent = fmt(pot ? pot.amount : 0);
+  figure(document.getElementById("awardPot"), fmt(pot ? pot.amount : 0));
 
   const amount = pendingSplit === null ? (pot ? pot.amount : 0) : pendingSplit;
   const rows = seatedPlayers().map((who) => {
