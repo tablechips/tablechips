@@ -180,7 +180,7 @@ class ScreensTest {
                 pendingSplit = null,
                 onAward = { player, _ -> awarded = player.name },
                 onSplit = {}, onNewPot = {}, onGive = {}, onTake = {}, onBuyIn = {},
-                onLog = {}, onBack = {},
+                onLog = {}, onClose = {}, onBack = {},
             )
         }
 
@@ -213,8 +213,9 @@ class ScreensTest {
         var created = false
         compose.setContent {
             HomeScreen(
-                starting = false, failed = false, canResume = false,
+                starting = false, failed = false, canResume = false, tableOpen = false,
                 onCreate = { created = true }, onJoin = {}, onResume = {},
+                onReturn = {}, onClose = {},
             )
         }
 
@@ -289,5 +290,52 @@ class ScreensTest {
         compose.waitForIdle()
 
         assertEquals(true, started)
+    }
+
+    /**
+     * The hole somebody fell into: leave your own table and the front door
+     * offered to create another one, which quietly did nothing because one was
+     * already running, and nothing anywhere offered to close it.
+     */
+    @Test
+    fun `with a table already open, home offers to go back to it or close it`() {
+        var returned = false
+        var closed = false
+        compose.setContent {
+            HomeScreen(
+                starting = false, failed = false, canResume = true, tableOpen = true,
+                onCreate = {}, onJoin = {}, onResume = {},
+                onReturn = { returned = true }, onClose = { closed = true },
+            )
+        }
+
+        compose.onNodeWithText("Crear una taula").assertDoesNotExist()
+        compose.onNodeWithText("Tornar a la taula").performClick()
+        compose.onNodeWithText("Tanca la taula").performClick()
+
+        assertEquals(true, returned)
+        assertEquals(true, closed)
+    }
+
+    @Test
+    fun `closing the table is asked about before it happens`() {
+        var confirmed = false
+        var cancelled = false
+        compose.setContent {
+            io.github.victormico.tablechips.app.ui.ConfirmDialog(
+                title = "Tancar la taula?",
+                body = "Es tancarà per a tothom.",
+                confirm = "Tanca la taula",
+                cancel = "Cancel·lar",
+                onConfirm = { confirmed = true },
+                onCancel = { cancelled = true },
+            )
+        }
+
+        compose.onNodeWithText("Cancel·lar").performClick()
+        compose.onNodeWithText("Tanca la taula").performClick()
+
+        assertEquals(true, cancelled)
+        assertEquals(true, confirmed)
     }
 }

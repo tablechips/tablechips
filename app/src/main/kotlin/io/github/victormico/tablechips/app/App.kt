@@ -23,6 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.victormico.tablechips.app.ui.Card
+import io.github.victormico.tablechips.app.ui.ConfirmDialog
 import io.github.victormico.tablechips.app.ui.Refugi
 import io.github.victormico.tablechips.app.ui.SecondaryButton
 import io.github.victormico.tablechips.app.ui.TcText
@@ -101,6 +102,9 @@ private fun appTexts(): AppTexts = AppTexts(
     takeTitle = stringResource(R.string.take_title),
 )
 
+/** A question that has to be answered before something irreversible happens. */
+private enum class Ask { CloseTable, Leave }
+
 private sealed interface Screen {
     data object Home : Screen
     data object Name : Screen
@@ -138,6 +142,7 @@ fun App(
     var typed by remember { mutableStateOf("") }
     var untouched by remember { mutableStateOf(false) }
     var tick by remember { mutableIntStateOf(0) }
+    var asking by remember { mutableStateOf<Ask?>(null) }
 
     // The host is a player at its own table, over localhost, exactly like a
     // guest over the hotspot. One code path, no special case.
@@ -174,6 +179,12 @@ fun App(
         screen = if (state.table != null) Screen.Table else Screen.Home
     }
 
+    fun closeTable() {
+        onStopHost()
+        Session.disconnect()
+        screen = Screen.Home
+    }
+
     Box(
         Modifier.fillMaxSize().background(Refugi.bg)
             .windowInsetsPadding(WindowInsets.safeDrawing),
@@ -183,7 +194,16 @@ fun App(
                 starting = hostStatus.starting,
                 failed = hostStatus.failure != null,
                 canResume = prefs.lastAddress != null,
+                tableOpen = hostStatus.running,
                 onCreate = { if (name.isBlank()) screen = Screen.Name else onStartHost() },
+                onReturn = {
+                    // The table is up; this only takes a seat at it again.
+                    Session.connect(
+                        TableConnection.webSocketUrl("127.0.0.1", hostStatus.port),
+                        name.ifBlank { prefs.name.orEmpty() },
+                    )
+                },
+                onClose = { asking = Ask.CloseTable },
                 onJoin = { screen = Screen.Join },
                 onResume = {
                     prefs.lastAddress?.let { last ->
@@ -384,6 +404,7 @@ fun App(
                     )
                 },
                 onLog = { screen = Screen.Log },
+                onClose = if (hostStatus.running) ({ asking = Ask.CloseTable }) else null,
                 onBack = { screen = Screen.Table },
             )
 
@@ -399,13 +420,37 @@ fun App(
                 onCopy = { },
                 onShare = onShare,
                 onOpenInBrowser = onOpenInBrowser,
-                onStop = {
-                    onStopHost()
-                    Session.disconnect()
-                    screen = Screen.Home
-                },
+                onStop = { asking = Ask.CloseTable },
                 onBack = { screen = Screen.Table },
             )
+        }
+
+        // Leaving your seat and closing the table are different things, and the
+        // difference matters most to the host: the table outlives the seat.
+        when (asking) {
+            Ask.CloseTable -> ConfirmDialog(
+                title = stringResource(R.string.host_close_title),
+                body = stringResource(R.string.host_close_body),
+                confirm = stringResource(R.string.host_stop),
+                cancel = stringResource(R.string.common_cancel),
+                onConfirm = { asking = null; closeTable() },
+                onCancel = { asking = null },
+            )
+
+            Ask.Leave -> ConfirmDialog(
+                title = stringResource(R.string.leave_title),
+                body = stringResource(R.string.leave_body),
+                confirm = stringResource(R.string.action_leave),
+                cancel = stringResource(R.string.common_cancel),
+                onConfirm = {
+                    asking = null
+                    Session.leave()
+                    screen = Screen.Home
+                },
+                onCancel = { asking = null },
+            )
+
+            null -> Unit
         }
 
         if (menuOpen) {
@@ -417,8 +462,7 @@ fun App(
                 onLog = { menuOpen = false; screen = Screen.Log },
                 onLeave = {
                     menuOpen = false
-                    Session.leave()
-                    screen = Screen.Home
+                    asking = Ask.Leave
                 },
                 onClose = { menuOpen = false },
             )

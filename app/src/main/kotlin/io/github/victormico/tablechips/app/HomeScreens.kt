@@ -47,9 +47,13 @@ fun HomeScreen(
     starting: Boolean,
     failed: Boolean,
     canResume: Boolean,
+    /** A table is open on this phone, whether or not its owner is sitting at it. */
+    tableOpen: Boolean,
     onCreate: () -> Unit,
     onJoin: () -> Unit,
     onResume: () -> Unit,
+    onReturn: () -> Unit,
+    onClose: () -> Unit,
 ) {
     Column(Modifier.fillMaxSize()) {
         Column(
@@ -75,13 +79,24 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth().padding(Refugi.side, 0.dp, Refugi.side, 20.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            PrimaryButton(
-                label = stringResource(if (starting) R.string.host_starting else R.string.home_create),
-                subtitle = stringResource(R.string.home_create_sub),
-                enabled = !starting,
-                height = 72.dp,
-                onClick = onCreate,
-            )
+            // A table already running is the thing to act on: offering to
+            // create another one would be a button that does nothing.
+            if (tableOpen) {
+                PrimaryButton(
+                    label = stringResource(R.string.home_return),
+                    subtitle = stringResource(R.string.home_return_sub),
+                    height = 72.dp,
+                    onClick = onReturn,
+                )
+            } else {
+                PrimaryButton(
+                    label = stringResource(if (starting) R.string.host_starting else R.string.home_create),
+                    subtitle = stringResource(R.string.home_create_sub),
+                    enabled = !starting,
+                    height = 72.dp,
+                    onClick = onCreate,
+                )
+            }
             SecondaryButton(
                 label = stringResource(R.string.home_join),
                 subtitle = stringResource(R.string.home_join_sub),
@@ -89,7 +104,16 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = onJoin,
             )
-            if (canResume) {
+            if (tableOpen) {
+                SecondaryButton(
+                    label = stringResource(R.string.host_stop),
+                    onClick = onClose,
+                    modifier = Modifier.fillMaxWidth(),
+                    height = 56.dp,
+                    danger = true,
+                )
+            }
+            if (canResume && !tableOpen) {
                 SecondaryButton(
                     label = stringResource(R.string.home_resume),
                     onClick = onResume,

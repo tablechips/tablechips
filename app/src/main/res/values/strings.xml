@@ -146,6 +146,13 @@
         <item quantity="other">%1$s free seats</item>
     </plurals>
 
+    <string name="home_return">Back to the table</string>
+    <string name="home_return_sub">The table is still open on this phone</string>
+    <string name="host_close_title">Close the table?</string>
+    <string name="host_close_body">It closes for everyone. The chip count goes with it: it is not saved yet.</string>
+    <string name="leave_title">Leave the table?</string>
+    <string name="leave_body">Your chips come out of the game. The table stays open for everybody else.</string>
+
     <!-- Foreground service notification -->
     <string name="notification_channel_name">Open table</string>
     <string name="notification_channel_description">Shown while this phone is hosting a table.</string>

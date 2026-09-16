@@ -47,6 +47,7 @@ fun HostPanelScreen(
     onTake: (Player) -> Unit,
     onBuyIn: () -> Unit,
     onLog: () -> Unit,
+    onClose: (() -> Unit)?,
     onBack: () -> Unit,
 ) {
     val table = state.table ?: return
@@ -75,7 +76,14 @@ fun HostPanelScreen(
         actions = {
             Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                 SecondaryButton(stringResource(R.string.log_short), onLog, Modifier.weight(1f))
-                SecondaryButton(stringResource(R.string.log_back), onBack, Modifier.weight(1f))
+                if (onClose != null) {
+                    SecondaryButton(
+                        stringResource(R.string.host_stop), onClose, Modifier.weight(1f),
+                        danger = true,
+                    )
+                } else {
+                    SecondaryButton(stringResource(R.string.log_back), onBack, Modifier.weight(1f))
+                }
             }
         },
     ) {

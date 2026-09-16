@@ -367,3 +367,36 @@ fun PlayerRow(
         }
     }
 }
+
+/**
+ * A question with two answers, over whatever is underneath. Closing a table or
+ * throwing somebody out is not undoable from the other side of the socket, so
+ * it gets asked first; everything else does not.
+ */
+@Composable
+fun ConfirmDialog(
+    title: String,
+    body: String,
+    confirm: String,
+    cancel: String,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    Box(
+        modifier = Modifier.fillMaxSize()
+            .background(Refugi.bg.copy(alpha = .8f))
+            .padding(Refugi.side),
+        contentAlignment = Alignment.Center,
+    ) {
+        Card(Modifier.fillMaxWidth(), padding = 18.dp) {
+            TcText(title, Type.primary)
+            Box(Modifier.height(8.dp))
+            TcText(body, Type.body, color = Refugi.text2)
+            Box(Modifier.height(18.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                SecondaryButton(cancel, onCancel, Modifier.weight(1f))
+                SecondaryButton(confirm, onConfirm, Modifier.weight(1f), danger = true)
+            }
+        }
+    }
+}

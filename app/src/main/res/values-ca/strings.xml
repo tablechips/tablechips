@@ -131,6 +131,13 @@
         <item quantity="other">%1$s llocs lliures</item>
     </plurals>
 
+    <string name="home_return">Tornar a la taula</string>
+    <string name="home_return_sub">La taula segueix oberta en aquest mòbil</string>
+    <string name="host_close_title">Tancar la taula?</string>
+    <string name="host_close_body">Es tancarà per a tothom. Amb la taula se\'n va el compte de fitxes: encara no es desa.</string>
+    <string name="leave_title">Marxar de la taula?</string>
+    <string name="leave_body">Les teues fitxes surten del joc. La taula continua oberta per als altres.</string>
+
     <!-- Foreground service notification -->
     <string name="notification_channel_name">Taula oberta</string>
     <string name="notification_channel_description">Es mostra mentre aquest mòbil fa d\'amfitrió d\'una taula.</string>

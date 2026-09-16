@@ -131,6 +131,13 @@
         <item quantity="other">%1$s puestos libres</item>
     </plurals>
 
+    <string name="home_return">Volver a la mesa</string>
+    <string name="home_return_sub">La mesa sigue abierta en este móvil</string>
+    <string name="host_close_title">¿Cerrar la mesa?</string>
+    <string name="host_close_body">Se cerrará para todos. Con la mesa se va la cuenta de fichas: todavía no se guarda.</string>
+    <string name="leave_title">¿Salir de la mesa?</string>
+    <string name="leave_body">Tus fichas salen del juego. La mesa sigue abierta para los demás.</string>
+
     <!-- Foreground service notification -->
     <string name="notification_channel_name">Mesa abierta</string>
     <string name="notification_channel_description">Se muestra mientras este móvil hace de anfitrión de una mesa.</string>

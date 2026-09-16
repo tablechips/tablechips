@@ -104,11 +104,15 @@ object Session {
 
     /** Leaves the table for good: the seat is cashed out and the id let go. */
     fun leave() {
+        val leaving = client
         act(io.github.victormico.tablechips.protocol.Leave())
         prefs?.forgetIdentity()
         scope.launch {
+            // Long enough for the farewell to reach the table, and pinned to
+            // this connection: sitting down again in the meantime must not be
+            // torn down by the goodbye of the previous one.
             kotlinx.coroutines.delay(150)
-            disconnect()
+            if (client === leaving) disconnect()
         }
     }
 
