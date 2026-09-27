@@ -46,6 +46,7 @@ fun HostPanelScreen(
     onGive: (Player) -> Unit,
     onTake: (Player) -> Unit,
     onBuyIn: () -> Unit,
+    onSeats: () -> Unit,
     onLog: () -> Unit,
     onClose: (() -> Unit)?,
     onBack: () -> Unit,
@@ -173,6 +174,15 @@ fun HostPanelScreen(
                 }
             }
         }
+
+        Caption(stringResource(R.string.host_panel_seats))
+        SecondaryButton(
+            label = stringResource(R.string.seat_action),
+            onClick = onSeats,
+            modifier = Modifier.fillMaxWidth(),
+            height = 52.dp,
+            style = Type.secondary.copy(fontSize = 15.sp),
+        )
 
         Caption(stringResource(R.string.host_panel_buy_in))
         SecondaryButton(

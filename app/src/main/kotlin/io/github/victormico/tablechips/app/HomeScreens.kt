@@ -51,10 +51,13 @@ fun HomeScreen(
     canResume: Boolean,
     /** A table is open on this phone, whether or not its owner is sitting at it. */
     tableOpen: Boolean,
+    /** A game a previous run left unfinished, waiting to be picked back up. */
+    abandoned: TableState?,
     onCreate: () -> Unit,
     onJoin: () -> Unit,
     onResume: () -> Unit,
     onReturn: () -> Unit,
+    onRecover: () -> Unit,
     onClose: () -> Unit,
 ) {
     Column(Modifier.fillMaxSize()) {
@@ -90,6 +93,21 @@ fun HomeScreen(
                     height = 72.dp,
                     onClick = onReturn,
                 )
+            } else if (abandoned != null) {
+                // A game that was interrupted is the only thing worth offering
+                // first: the chips on that table are somebody's money.
+                PrimaryButton(
+                    label = stringResource(R.string.home_recover),
+                    subtitle = stringResource(
+                        R.string.home_recover_sub,
+                        abandoned.roomCode,
+                        chips(abandoned.players.count { it.seat != null }.toLong()),
+                        chips(abandoned.pots.sumOf { it.amount } + abandoned.players.sumOf { it.stack }),
+                    ),
+                    enabled = !starting,
+                    height = 72.dp,
+                    onClick = onRecover,
+                )
             } else {
                 PrimaryButton(
                     label = stringResource(if (starting) R.string.host_starting else R.string.home_create),
@@ -115,7 +133,17 @@ fun HomeScreen(
                     danger = true,
                 )
             }
-            if (canResume && !tableOpen) {
+            if (abandoned != null && !tableOpen) {
+                SecondaryButton(
+                    label = stringResource(R.string.home_new_table),
+                    onClick = onCreate,
+                    modifier = Modifier.fillMaxWidth(),
+                    height = 56.dp,
+                    style = Type.body.copy(fontSize = 14.sp),
+                    borderless = true,
+                )
+            }
+            if (canResume && !tableOpen && abandoned == null) {
                 SecondaryButton(
                     label = stringResource(R.string.home_resume),
                     onClick = onResume,

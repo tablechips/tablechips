@@ -33,18 +33,24 @@ class HostService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_STOP -> {
-                stopTable()
+                closeTable()
                 return START_NOT_STICKY
             }
         }
         startInForeground()
+        // A null intent is Android restarting this service after killing the
+        // process: there was a game in progress, so pick it up rather than
+        // opening an empty table over it.
+        val resume = intent == null || intent.getBooleanExtra(EXTRA_RESUME, false)
         scope.launch {
-            HostController.start()
+            HostController.start(resume = resume)
             if (HostController.isRunning) {
                 updateNotification()
                 HostController.observeTable()
             } else {
-                stopTable()
+                // Nothing was opened, so there is nothing to close: just go.
+                ServiceCompat.stopForeground(this@HostService, ServiceCompat.STOP_FOREGROUND_REMOVE)
+                stopSelf()
             }
         }
         return START_STICKY
@@ -56,10 +62,17 @@ class HostService : Service() {
         super.onDestroy()
     }
 
-    private fun stopTable() {
-        HostController.stop()
-        ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
-        stopSelf()
+    /**
+     * Ends the game on purpose. The guests are told before the door shuts and
+     * the saved ledger goes with it; being killed by the system is the other
+     * case, and that one leaves the game recoverable.
+     */
+    private fun closeTable() {
+        scope.launch {
+            HostController.close()
+            ServiceCompat.stopForeground(this@HostService, ServiceCompat.STOP_FOREGROUND_REMOVE)
+            stopSelf()
+        }
     }
 
     private fun startInForeground() {
@@ -124,9 +137,12 @@ class HostService : Service() {
         private const val CHANNEL_ID = "table"
         private const val NOTIFICATION_ID = 1
         const val ACTION_STOP = "io.github.victormico.tablechips.STOP"
+        private const val EXTRA_RESUME = "resume"
 
-        fun start(context: Context) {
-            context.startForegroundService(Intent(context, HostService::class.java))
+        fun start(context: Context, resume: Boolean = false) {
+            context.startForegroundService(
+                Intent(context, HostService::class.java).putExtra(EXTRA_RESUME, resume),
+            )
         }
 
         fun stop(context: Context) {

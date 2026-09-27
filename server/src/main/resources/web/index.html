@@ -450,6 +450,10 @@ button[disabled] { opacity: .4; cursor: default; }
       <div class="rows" id="hostRows"></div>
     </div>
     <div class="rows">
+      <div class="cap" id="seatsCap" data-i18n="seats.title"></div>
+      <div class="rows" id="seatRows"></div>
+    </div>
+    <div class="rows">
       <div class="cap" data-i18n="hostPanel.buyIn"></div>
       <button class="secondary" style="height:52px;font-size:15px" id="buyInBtn"></button>
     </div>
@@ -562,6 +566,14 @@ const DICT = {
     "log.bet": "ha apostat %{amount} al %{pot}", "log.pot_awarded": "s'ha endut %{amount} del %{pot}",
     "log.pot_created": "pot nou: %{pot}", "log.transfer": "ha passat %{amount}",
     "log.stack_added": "ha rebut %{amount}", "log.stack_removed": "ha tornat %{amount}",
+    "log.player_kicked": "l'han fet fora de la taula", "log.seat_transferred": "s'ha quedat un lloc",
+    "seats.title": "Llocs", "seats.hand": "Passar", "seats.out": "Fora",
+    "seats.to": "Passa el lloc de %s a", "seats.none": "Tothom qui hi ha ja té lloc.",
+    "seats.offline": "sense connexió", "seats.take": "Queda-te'l",
+    "seats.confirm": "%s es queda el lloc de %s amb les seues fitxes. De la taula no surt res.",
+    "kick.confirm": "Fer fora %s? Les seues fitxes surten del joc i el lloc queda lliure.",
+    "error.table_closed": "L'amfitrió ha tancat la taula",
+    "error.seat_transferred": "El teu lloc ha passat a una altra persona",
     "error.unknown_player": "Jugador desconegut", "error.unknown_pot": "Pot desconegut",
     "error.name_required": "Escriu un nom", "error.name_too_long": "El nom és massa llarg",
     "error.already_seated": "Ja estàs assegut", "error.not_seated": "Primer has de seure",
@@ -624,6 +636,14 @@ const DICT = {
     "log.bet": "ha apostado %{amount} al %{pot}", "log.pot_awarded": "se ha llevado %{amount} del %{pot}",
     "log.pot_created": "bote nuevo: %{pot}", "log.transfer": "ha pasado %{amount}",
     "log.stack_added": "ha recibido %{amount}", "log.stack_removed": "ha devuelto %{amount}",
+    "log.player_kicked": "lo han echado de la mesa", "log.seat_transferred": "se ha quedado un puesto",
+    "seats.title": "Puestos", "seats.hand": "Pasar", "seats.out": "Fuera",
+    "seats.to": "Pasa el puesto de %s a", "seats.none": "Todos los que están ya tienen puesto.",
+    "seats.offline": "sin conexión", "seats.take": "Quédatelo",
+    "seats.confirm": "%s se queda el puesto de %s con sus fichas. De la mesa no sale nada.",
+    "kick.confirm": "¿Echar a %s? Sus fichas salen del juego y el puesto queda libre.",
+    "error.table_closed": "El anfitrión ha cerrado la mesa",
+    "error.seat_transferred": "Tu puesto ha pasado a otra persona",
     "error.unknown_player": "Jugador desconocido", "error.unknown_pot": "Bote desconocido",
     "error.name_required": "Escribe un nombre", "error.name_too_long": "El nombre es demasiado largo",
     "error.already_seated": "Ya estás sentado", "error.not_seated": "Primero siéntate",
@@ -686,6 +706,14 @@ const DICT = {
     "log.bet": "bet %{amount} into %{pot}", "log.pot_awarded": "took %{amount} from %{pot}",
     "log.pot_created": "new pot: %{pot}", "log.transfer": "passed %{amount}",
     "log.stack_added": "received %{amount}", "log.stack_removed": "gave back %{amount}",
+    "log.player_kicked": "was thrown out of the table", "log.seat_transferred": "took over a seat",
+    "seats.title": "Seats", "seats.hand": "Hand over", "seats.out": "Out",
+    "seats.to": "Hand the seat of %s to", "seats.none": "Everybody here has a seat already.",
+    "seats.offline": "not connected", "seats.take": "Take it",
+    "seats.confirm": "%s takes over the seat of %s, with its chips. Nothing leaves the table.",
+    "kick.confirm": "Throw %s out? Their chips are cashed out and the seat is freed.",
+    "error.table_closed": "The host closed the table",
+    "error.seat_transferred": "Your seat went to somebody else",
     "error.unknown_player": "Unknown player", "error.unknown_pot": "Unknown pot",
     "error.name_required": "Write a name", "error.name_too_long": "That name is too long",
     "error.already_seated": "You are already seated", "error.not_seated": "Sit down first",
@@ -849,7 +877,10 @@ function receive(message) {
     // Nothing to reconnect to: rejoining would just be thrown out again.
     closedByHost = true;
     store.remove("playerId");
-    showError(t("error.kicked"));
+    // The reason decides what the screen says: thrown out, seat handed to
+    // somebody else, or the whole table closed. Silence would look like a
+    // network drop, which is the one thing it is not.
+    showError(t("error." + (message.reason || "kicked")));
   }
 }
 
@@ -953,10 +984,10 @@ function fill(node, key, ...values) {
 const MONO_ARGS = new Set(["amount", "buyIn", "seat", "room"]);
 
 function fillEntry(node, entry) {
-  const who = entry.actor && player(entry.actor);
+  const who = entry.actorName || (entry.actor && player(entry.actor) || {}).name;
   const args = logArgs(entry.args);
   const out = [];
-  if (who) out.push(who.name + " ");
+  if (who) out.push(who + " ");
   for (const part of t(entry.key).split(/(%\{[a-zA-Z]+\})/)) {
     const token = part.match(/^%\{([a-zA-Z]+)\}$/);
     if (!token) { if (part) out.push(part); continue; }
@@ -1302,9 +1333,85 @@ function renderHost() {
     return row;
   });
   document.getElementById("hostRows").replaceChildren(...playerRows);
+  renderSeatAdmin();
 
   fill(document.getElementById("buyInBtn"), "hostPanel.buyInNow",
        num(fmt(state.config.defaultBuyIn)));
+}
+
+/**
+ * The two things the rules cannot fix by themselves: a phone that is never
+ * coming back, and somebody who should not be at the table any more.
+ *
+ * Handing a seat over moves the chips with it — it is a change of who holds
+ * them, not a payout — so the table stays balanced either way.
+ */
+let giving = null;
+
+function renderSeatAdmin() {
+  const seated = state.players.filter((who) => who.seat !== null)
+    .sort((a, b) => a.seat - b.seat);
+  const chosen = giving && seated.find((who) => who.id === giving);
+  const cap = document.getElementById("seatsCap");
+  if (chosen) fill(cap, "seats.to", chosen.name);
+  else cap.textContent = t("seats.title");
+
+  let rows;
+  if (chosen) {
+    const standing = state.players.filter((who) => who.seat === null);
+    if (!standing.length) {
+      const note = el("div", "note");
+      note.append(el("span", "bang"), el("span", "txt", t("seats.none")));
+      rows = [note];
+    } else {
+      rows = standing.map((who) => {
+        const row = el("div", "hrow");
+        const block = el("div", "who");
+        block.append(el("div", "n", who.name));
+        const line = el("div", "s");
+        line.append(el("span", "num", fmt(chosen.stack)));
+        block.append(line);
+        row.append(block);
+        const take = el("button", "rowBtn", t("seats.take"));
+        take.onclick = () => {
+          if (!confirm(t("seats.confirm", who.name, chosen.name))) return;
+          hostCommand({ type: "transfer_seat", from: chosen.id, to: who.id });
+          giving = null;
+          renderSeatAdmin();
+        };
+        row.append(take);
+        return row;
+      });
+    }
+    const back = el("button", "secondary", t("log.back"));
+    back.style.height = "48px";
+    back.onclick = () => { giving = null; renderSeatAdmin(); };
+    rows.push(back);
+  } else {
+    rows = seated.map((who) => {
+      const row = el("div", "hrow");
+      const block = el("div", "who");
+      block.append(el("div", "n", who.name));
+      const line = el("div", "s" + (who.connected ? "" : " broke"));
+      line.append(el("span", "num", fmt(who.stack)));
+      if (!who.connected) line.append(document.createTextNode(" \u00B7 " + t("seats.offline")));
+      block.append(line);
+      row.append(block);
+      const hand = el("button", "rowBtn", t("seats.hand"));
+      hand.onclick = () => { giving = who.id; renderSeatAdmin(); };
+      row.append(hand);
+      if (!who.isHost) {
+        const out = el("button", "rowBtn danger", t("seats.out"));
+        out.onclick = () => {
+          if (!confirm(t("kick.confirm", who.name))) return;
+          hostCommand({ type: "kick", player: who.id });
+        };
+        row.append(out);
+      }
+      return row;
+    });
+  }
+  document.getElementById("seatRows").replaceChildren(...rows);
 }
 
 // ---------------------------------------------------------------- log

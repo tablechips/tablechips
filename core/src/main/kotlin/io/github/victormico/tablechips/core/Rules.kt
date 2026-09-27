@@ -17,6 +17,11 @@ object Rules {
             at = event.at,
             key = event.logKey,
             actor = event.logActor,
+            // Before the event, so somebody thrown out still has a name here,
+            // and a rename reads as the old name becoming the new one.
+            actorName = event.logActor?.let { id ->
+                (state.player(id) ?: next.player(id))?.name
+            },
             args = event.logArgs(),
         )
         return next.copy(
@@ -48,6 +53,8 @@ object Rules {
             is CreatePot -> planCreatePot(state, command, at)
             is AdjustStack -> planAdjust(state, command, at)
             is SetConfig -> planSetConfig(state, command, at)
+            is KickPlayer -> planKick(state, command, at)
+            is TransferSeat -> planTransferSeat(state, command, at)
             // Undo is not an event: it removes them. See Table.undo.
             is UndoLast -> return if (!isHost(state, command.actor)) {
                 CommandResult.Rejected(RuleError.NOT_HOST)
@@ -184,6 +191,25 @@ object Rules {
         return ok(StackAdjusted(player.id, command.delta, at))
     }
 
+    private fun planKick(state: TableState, command: KickPlayer, at: Long): Plan {
+        if (!isHost(state, command.actor)) return fail(RuleError.NOT_HOST)
+        state.player(command.player) ?: return fail(RuleError.INVALID_TARGET)
+        // A host who throws themselves out leaves the table with no host at all.
+        if (command.player == command.actor) return fail(RuleError.NOT_YOURSELF)
+        return ok(PlayerKicked(command.player, at))
+    }
+
+    private fun planTransferSeat(state: TableState, command: TransferSeat, at: Long): Plan {
+        if (!isHost(state, command.actor)) return fail(RuleError.NOT_HOST)
+        val from = state.player(command.from) ?: return fail(RuleError.INVALID_TARGET)
+        val to = state.player(command.to) ?: return fail(RuleError.INVALID_TARGET)
+        if (from.id == to.id) return fail(RuleError.NOT_YOURSELF)
+        if (!from.seated) return fail(RuleError.NOT_SEATED)
+        // The one taking it over must have nothing of their own to lose.
+        if (to.seated) return fail(RuleError.SEAT_NOT_FREE)
+        return ok(SeatTransferred(from.id, to.id, at))
+    }
+
     private fun planSetConfig(state: TableState, command: SetConfig, at: Long): Plan {
         if (!isHost(state, command.actor)) return fail(RuleError.NOT_HOST)
         val config = command.config
@@ -234,6 +260,41 @@ object Rules {
                 players = state.players.filterNot { it.id == event.player },
                 bank = state.bank.copy(cashedOut = state.bank.cashedOut + (leaving?.stack ?: 0)),
             )
+        }
+
+        is PlayerKicked -> {
+            val kicked = state.player(event.player)
+            state.copy(
+                players = state.players.filterNot { it.id == event.player },
+                bank = state.bank.copy(cashedOut = state.bank.cashedOut + (kicked?.stack ?: 0)),
+            )
+        }
+
+        is SeatTransferred -> {
+            val from = state.player(event.from)
+            if (from == null) {
+                state
+            } else {
+                state.copy(
+                    players = state.players
+                        .filterNot { it.id == event.from }
+                        .map { player ->
+                            if (player.id != event.to) {
+                                player
+                            } else {
+                                // Everything about the seat moves across: the
+                                // chips, what was bought in for them, and the
+                                // place at the table. Only the name changes.
+                                player.copy(
+                                    seat = from.seat,
+                                    stack = from.stack,
+                                    boughtIn = from.boughtIn,
+                                    isHost = player.isHost || from.isHost,
+                                )
+                            }
+                        },
+                )
+            }
         }
 
         is Rebought -> state.mapPlayer(event.player) {

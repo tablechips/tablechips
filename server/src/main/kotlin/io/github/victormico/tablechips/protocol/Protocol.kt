@@ -125,6 +125,14 @@ data class CreatePotCommand(val name: String? = null) : HostCommand
 data class SetConfigCommand(val config: TableConfig) : HostCommand
 
 @Serializable
+@SerialName("kick")
+data class KickCommand(val player: PlayerId) : HostCommand
+
+@Serializable
+@SerialName("transfer_seat")
+data class TransferSeatCommand(val from: PlayerId, val to: PlayerId) : HostCommand
+
+@Serializable
 @SerialName("undo")
 data object UndoCommand : HostCommand
 

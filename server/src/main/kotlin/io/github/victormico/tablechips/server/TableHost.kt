@@ -5,6 +5,7 @@ import io.github.victormico.tablechips.core.AwardPot
 import io.github.victormico.tablechips.core.CommandResult
 import io.github.victormico.tablechips.core.CreatePot
 import io.github.victormico.tablechips.core.JoinTable
+import io.github.victormico.tablechips.core.KickPlayer
 import io.github.victormico.tablechips.core.LeaveTable
 import io.github.victormico.tablechips.core.PlaceBet
 import io.github.victormico.tablechips.core.PlayerId
@@ -16,6 +17,7 @@ import io.github.victormico.tablechips.core.StandUp
 import io.github.victormico.tablechips.core.Table
 import io.github.victormico.tablechips.core.TableCommand
 import io.github.victormico.tablechips.core.TransferChips
+import io.github.victormico.tablechips.core.TransferSeat
 import io.github.victormico.tablechips.core.UndoLast
 import io.github.victormico.tablechips.core.newPlayerId
 import io.github.victormico.tablechips.protocol.Action
@@ -27,6 +29,10 @@ import io.github.victormico.tablechips.protocol.CreatePotCommand
 import io.github.victormico.tablechips.protocol.ErrorMessage
 import io.github.victormico.tablechips.protocol.HostCommandMessage
 import io.github.victormico.tablechips.protocol.Join
+import io.github.victormico.tablechips.protocol.KickCommand
+import io.github.victormico.tablechips.protocol.Kicked
+import io.github.victormico.tablechips.protocol.LedgerStore
+import io.github.victormico.tablechips.protocol.NoLedgerStore
 import io.github.victormico.tablechips.protocol.Leave
 import io.github.victormico.tablechips.protocol.PROTOCOL_VERSION
 import io.github.victormico.tablechips.protocol.ProtocolError
@@ -40,6 +46,7 @@ import io.github.victormico.tablechips.protocol.StandUpAction
 import io.github.victormico.tablechips.protocol.StateMessage
 import io.github.victormico.tablechips.protocol.Transport
 import io.github.victormico.tablechips.protocol.TransferAction
+import io.github.victormico.tablechips.protocol.TransferSeatCommand
 import io.github.victormico.tablechips.protocol.UndoCommand
 import io.github.victormico.tablechips.core.TableState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,6 +70,7 @@ import kotlinx.coroutines.sync.withLock
 class TableHost(
     val table: Table,
     private val newId: () -> PlayerId = { newPlayerId() },
+    private val store: LedgerStore = NoLedgerStore,
 ) {
     private val mutex = Mutex()
     private val connections = mutableListOf<Connection>()
@@ -175,6 +183,12 @@ class TableHost(
                     // new player, not a ghost holding a seat.
                     if (command is LeaveTable) connection.player = null
                     broadcastLocked()
+                    // Told after the state, so the screen it lands on is final.
+                    when (command) {
+                        is KickPlayer -> evictLocked(command.player, "kicked")
+                        is TransferSeat -> evictLocked(command.from, "seat_transferred")
+                        else -> Unit
+                    }
                 }
             }
         }
@@ -193,6 +207,29 @@ class TableHost(
     }
 
     /**
+     * Hangs up on a player the table no longer holds a place for. Already under
+     * the lock: the connections are the table's own list.
+     */
+    private fun evictLocked(player: PlayerId, reason: String) {
+        connections.filter { it.player == player }.forEach { connection ->
+            connection.player = null
+            connection.queue(Kicked(reason = reason))
+        }
+    }
+
+    /**
+     * Tells everybody the table is over before the server goes down under them.
+     *
+     * Without this a guest's phone just shows "reconnecting" forever and they
+     * have no way to know the game finished rather than the wifi dropped.
+     */
+    suspend fun closeAll(reason: String = "table_closed") {
+        mutex.withLock {
+            connections.forEach { it.queue(Kicked(reason = reason)) }
+        }
+    }
+
+    /**
      * Queues the whole state for everyone, while holding the lock.
      *
      * Queuing rather than sending is what keeps the order: two commands landing
@@ -204,6 +241,10 @@ class TableHost(
         val state = table.snapshot()
         val undoDepth = table.undoDepth
         _state.value = state
+        // Written here, still under the lock, because a move the players saw
+        // and a move on disk have to be the same move: a phone can be killed
+        // between the two, and then the only record left is this file.
+        runCatching { store.save(table.ledger()) }
         connections.forEach { connection ->
             val player = connection.player ?: return@forEach
             connection.queue(StateMessage(state = state, you = player, undoDepth = undoDepth))
@@ -233,6 +274,8 @@ internal fun ClientMessage.toCommand(actor: PlayerId): TableCommand? = when (thi
         is AdjustStackCommand -> AdjustStack(actor, command.player, command.delta)
         is CreatePotCommand -> CreatePot(actor, command.name)
         is SetConfigCommand -> SetConfig(actor, command.config)
+        is KickCommand -> KickPlayer(actor, command.player)
+        is TransferSeatCommand -> TransferSeat(actor, command.from, command.to)
         UndoCommand -> UndoLast(actor)
     }
 }

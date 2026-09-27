@@ -182,7 +182,7 @@ class ScreensTest {
                 pendingSplit = null,
                 onAward = { player, _ -> awarded = player.name },
                 onSplit = {}, onNewPot = {}, onGive = {}, onTake = {}, onBuyIn = {},
-                onLog = {}, onClose = {}, onBack = {},
+                onSeats = {}, onLog = {}, onClose = {}, onBack = {},
             )
         }
 
@@ -216,8 +216,9 @@ class ScreensTest {
         compose.setContent {
             HomeScreen(
                 starting = false, failed = false, canResume = false, tableOpen = false,
+                abandoned = null,
                 onCreate = { created = true }, onJoin = {}, onResume = {},
-                onReturn = {}, onClose = {},
+                onReturn = {}, onRecover = {}, onClose = {},
             )
         }
 
@@ -259,6 +260,7 @@ class ScreensTest {
                 prefs = prefs,
                 onStartHost = { started = true },
                 onStopHost = {},
+                onDiscardSaved = {},
                 onShare = {},
                 onOpenInBrowser = {},
             )
@@ -283,6 +285,7 @@ class ScreensTest {
                 prefs = prefs,
                 onStartHost = { started = true },
                 onStopHost = {},
+                onDiscardSaved = {},
                 onShare = {},
                 onOpenInBrowser = {},
             )
@@ -306,8 +309,9 @@ class ScreensTest {
         compose.setContent {
             HomeScreen(
                 starting = false, failed = false, canResume = true, tableOpen = true,
+                abandoned = null,
                 onCreate = {}, onJoin = {}, onResume = {},
-                onReturn = { returned = true }, onClose = { closed = true },
+                onReturn = { returned = true }, onRecover = {}, onClose = { closed = true },
             )
         }
 
@@ -372,5 +376,77 @@ class ScreensTest {
             )
         }
         compose.waitForIdle()
+    }
+
+    /**
+     * A phone that is never coming back leaves a seat with chips on it. The
+     * host has to be able to hand that seat to whoever is holding those chips
+     * now, and to throw somebody out; both are two taps and a confirmation.
+     */
+    @Test
+    fun `the seats screen hands a seat to somebody without one`() {
+        val table = Table("ZGWH", TableConfig(defaultBuyIn = 1000), clock = { 0 })
+        table.execute(JoinTable(anna, "Anna"))
+        table.execute(JoinTable(bru, "Bru"))
+        table.execute(SitDown(anna))
+        table.execute(SitDown(bru))
+        val carla = PlayerId("carla")
+        table.execute(JoinTable(carla, "Carla"))
+        table.setConnected(anna, true)
+        table.setConnected(carla, true)
+        val state = ClientState(
+            connection = Connection.ONLINE,
+            table = table.snapshot(),
+            you = anna,
+            undoDepth = table.undoDepth,
+        )
+        var handed: Pair<String, String>? = null
+        var thrown: String? = null
+        compose.setContent {
+            SeatsScreen(
+                state = state,
+                onKick = { player -> thrown = player.name },
+                onTransfer = { from, to -> handed = from.name to to.name },
+                onBack = {},
+            )
+        }
+
+        // Bru's phone is gone, and the screen says so before anything is done.
+        compose.onNodeWithText("Bru").assertIsDisplayed()
+        compose.onAllNodesWithText("Fora").onFirst().performClick()
+        assertEquals("Bru", thrown)
+
+        compose.onAllNodesWithText("Passar").onLast().performClick()
+        compose.onNodeWithText("Carla").assertIsDisplayed()
+        compose.onNodeWithText("Passa'l").performClick()
+
+        assertEquals("Bru" to "Carla", handed)
+    }
+
+    /**
+     * The process was killed with a game in progress. What the front door offers
+     * is that game back, not an empty table over the top of it.
+     */
+    @Test
+    fun `home offers an interrupted game back before anything else`() {
+        val table = Table("ZGWH", TableConfig(defaultBuyIn = 1000), clock = { 0 })
+        table.execute(JoinTable(anna, "Anna"))
+        table.execute(SitDown(anna))
+        table.execute(PlaceBet(anna, 250))
+        var recovered = false
+        var created = false
+        compose.setContent {
+            HomeScreen(
+                starting = false, failed = false, canResume = false, tableOpen = false,
+                abandoned = table.snapshot(),
+                onCreate = { created = true }, onJoin = {}, onResume = {},
+                onReturn = {}, onRecover = { recovered = true }, onClose = {},
+            )
+        }
+
+        compose.onNodeWithText("Recupera la taula").performClick()
+        assertEquals(true, recovered)
+        compose.onNodeWithText("Crear-ne una de nova").performClick()
+        assertEquals(true, created)
     }
 }

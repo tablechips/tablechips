@@ -105,6 +105,36 @@ data class PlayerLeft(
     override val logActor: PlayerId get() = player
 }
 
+/**
+ * The host closing somebody's seat. Same accounting as leaving — the chips go
+ * with them — but it is a different thing to read in the log, and it is
+ * undoable like everything else.
+ */
+@Serializable
+@SerialName("player_kicked")
+data class PlayerKicked(
+    val player: PlayerId,
+    override val at: Long,
+) : TableEvent {
+    override val logKey: String get() = "log.player_kicked"
+    override val logActor: PlayerId get() = player
+}
+
+/**
+ * A seat handed from one identity to another: the way back for somebody whose
+ * phone forgot who it was. The chips do not move, the name over them does.
+ */
+@Serializable
+@SerialName("seat_transferred")
+data class SeatTransferred(
+    val from: PlayerId,
+    val to: PlayerId,
+    override val at: Long,
+) : TableEvent {
+    override val logKey: String get() = "log.seat_transferred"
+    override val logActor: PlayerId get() = to
+}
+
 @Serializable
 @SerialName("rebuy")
 data class Rebought(

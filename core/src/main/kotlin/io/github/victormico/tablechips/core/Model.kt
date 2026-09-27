@@ -88,6 +88,12 @@ data class LogEntry(
     val at: Long,
     val key: String,
     val actor: PlayerId? = null,
+    /**
+     * The actor's name as it was when this happened. Carried rather than looked
+     * up, because a player can leave the table while their line stays in the
+     * log: a nameless line settles no argument.
+     */
+    val actorName: String? = null,
     val args: Map<String, String> = emptyMap(),
 )
 

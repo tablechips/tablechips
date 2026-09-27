@@ -41,6 +41,8 @@ fun errorText(code: String): String = stringResource(
         "not_joined" -> R.string.error_not_joined
         "wrong_room" -> R.string.error_wrong_room
         "kicked" -> R.string.error_kicked
+        "table_closed" -> R.string.error_table_closed
+        "seat_transferred" -> R.string.error_seat_transferred
         else -> R.string.error_no_table
     },
 )
@@ -53,7 +55,8 @@ fun potName(pot: Pot): String =
 /** One line of the activity log, with the actor in front of it. */
 @Composable
 fun logLine(entry: LogEntry, table: TableState): String {
-    val who = entry.actor?.let { id -> table.players.firstOrNull { it.id == id } }?.name
+    val who = entry.actorName
+        ?: entry.actor?.let { id -> table.players.firstOrNull { it.id == id } }?.name
     val amount = entry.args["amount"]?.toLongOrNull()?.let { chips(it) } ?: ""
     val buyIn = entry.args["buyIn"]?.toLongOrNull()?.let { chips(it) } ?: ""
     val pot = entry.args["pot"]?.let { id ->
@@ -74,6 +77,8 @@ fun logLine(entry: LogEntry, table: TableState): String {
         "log.transfer" -> stringResource(R.string.log_transfer, amount)
         "log.stack_added" -> stringResource(R.string.log_stack_added, amount)
         "log.stack_removed" -> stringResource(R.string.log_stack_removed, amount)
+        "log.player_kicked" -> stringResource(R.string.log_player_kicked)
+        "log.seat_transferred" -> stringResource(R.string.log_seat_transferred)
         else -> entry.key
     }
     return if (who == null) text else "$who $text"

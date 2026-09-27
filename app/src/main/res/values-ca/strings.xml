@@ -134,7 +134,7 @@
     <string name="home_return">Tornar a la taula</string>
     <string name="home_return_sub">La taula segueix oberta en aquest mòbil</string>
     <string name="host_close_title">Tancar la taula?</string>
-    <string name="host_close_body">Es tancarà per a tothom. Amb la taula se\'n va el compte de fitxes: encara no es desa.</string>
+    <string name="host_close_body">Es tancarà per a tothom i s\'esborrarà la partida desada. Si vols continuar-la després, deixa-la oberta.</string>
     <string name="leave_title">Marxar de la taula?</string>
     <string name="leave_body">Les teues fitxes surten del joc. La taula continua oberta per als altres.</string>
 
@@ -152,4 +152,32 @@
     <string name="notification_title">La taula %1$s és oberta</string>
     <string name="notification_text">%1$s · toca per tornar-hi</string>
     <string name="notification_stop">Tanca</string>
+
+    <!-- Recuperar una taula interrompuda -->
+    <string name="home_recover">Recupera la taula</string>
+    <string name="home_recover_sub">Taula %1$s · %2$s jugadors · %3$s fitxes</string>
+    <string name="home_new_table">Crear-ne una de nova</string>
+    <string name="discard_title">Descartar la taula desada?</string>
+    <string name="discard_body">Es perden les fitxes i l\'historial de la partida interrompuda.</string>
+    <string name="discard_confirm">Descarta-la</string>
+    <string name="host_panel_kick">Fora</string>
+    <string name="kick_title">Fer fora %1$s?</string>
+    <string name="kick_body">Les seues %1$s fitxes surten del joc i el lloc queda lliure. Es pot desfer des de l\'historial.</string>
+    <string name="kick_confirm">Fes-lo fora</string>
+    <string name="host_panel_seats">Llocs</string>
+    <string name="seat_action">Passar un lloc</string>
+    <string name="seat_title">Passar un lloc</string>
+    <string name="seat_sub">Per a un mòbil que no torna: el lloc, les seues fitxes i la seua entrada passen a algú altre. De la taula no surt res.</string>
+    <string name="seat_from">El lloc de qui</string>
+    <string name="seat_to">Passa el lloc de %1$s a</string>
+    <string name="seat_none">Tothom qui hi ha ja té lloc. Qui se\'l queda ha d\'entrar primer a la taula.</string>
+    <string name="seat_offline">sense connexió</string>
+    <string name="seat_confirm_title">Passar el lloc?</string>
+    <string name="seat_confirm_body">%1$s es queda el lloc %2$s amb les %3$s fitxes que hi ha.</string>
+    <string name="seat_confirm">Passa\'l</string>
+    <string name="error_table_closed">L\'amfitrió ha tancat la taula</string>
+    <string name="error_seat_transferred">El teu lloc ha passat a una altra persona</string>
+    <string name="log_player_kicked">l\'han fet fora de la taula</string>
+    <string name="log_seat_transferred">s\'ha quedat un lloc</string>
+    <string name="seat_hand">Passar</string>
 </resources>

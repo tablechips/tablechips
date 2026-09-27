@@ -18,8 +18,8 @@ import kotlinx.coroutines.launch
 
 /**
  * What this device remembers between sessions: who you are, and where the last
- * table was. Three keys, so plain preferences rather than a datastore; when F6
- * persists the ledger itself that decision is worth revisiting.
+ * table was. Three keys, so plain preferences rather than a datastore. The
+ * ledger is a different matter and lives in its own file, next to this one.
  */
 class Prefs(context: Context) {
     private val store = context.applicationContext.getSharedPreferences("tablechips", Context.MODE_PRIVATE)

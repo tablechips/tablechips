@@ -35,7 +35,8 @@ computes nothing that matters.
 
 `hostCommand` is one of `award_pot` (`to`, `pot`, `amount?` — null means the
 whole pot), `adjust_stack` (`player`, `delta`), `create_pot` (`name?`),
-`set_config` (`config`), `undo`.
+`set_config` (`config`), `kick` (`player`), `transfer_seat` (`from`, `to`),
+`undo`.
 
 **No frame carries the id of who sent it.** The server takes that from the
 connection, so a client cannot act on behalf of another player by editing a
@@ -47,7 +48,13 @@ frame.
 |---|---|---|
 | `state` | `state`, `you`, `undoDepth` | the whole table; `you` tells a new client the id it was given |
 | `error` | `code` | the last command was refused |
-| `kicked` | `reason` | the server is about to drop this connection (from F6) |
+| `kicked` | `reason` | this connection no longer holds a place at the table |
+
+`kicked.reason` is a code too: `kicked` (the host threw this player out),
+`seat_transferred` (the seat went to another identity) or `table_closed` (the
+whole table is over). The client stops reconnecting on any of them — rejoining
+would only be refused again — and says which one it was, because silence looks
+like a network drop, which is the one thing it is not.
 
 `error.code` is a code, never a sentence: `insufficient_chips`, `not_host`,
 `seat_taken`, `not_joined`, `unsupported_version`… The client renders it in the
@@ -56,7 +63,7 @@ is `RuleError` in `:core` plus `ProtocolError` in `:server`.
 
 ## Identity and reconnection
 
-Each client keeps its `playerId` locally: DataStore in the app, `localStorage`
+Each client keeps its `playerId` locally: preferences in the app, `localStorage`
 in the browser. On reconnect it sends the same id in `join` and gets its seat,
 its stack and its history back. A client with no stored id gets a fresh one and
 learns it from the `you` field of the first `state`.
@@ -64,6 +71,20 @@ learns it from the `you` field of the first `state`.
 Connection state is **not** part of the ledger: `connected` on a player is
 presence, it never lands on the undo stack, and undoing a move never changes who
 is online. Losing a phone to a dead battery must not be undoable.
+
+## Persistence
+
+The host writes the whole ledger to storage after every accepted command, under
+the same lock that broadcasts it: a move the players have seen and a move on
+disk are the same move. A table therefore survives the death of the process
+hosting it — the phone is killed for memory, or runs out of battery — and comes
+back by replaying the ledger, with its room code, its chips, its seats and its
+log. The clients reconnect on their own and find their seats, because the id
+they hold is the same id the ledger knows.
+
+Closing the table is the one thing that throws the ledger away, and it says
+goodbye first: every connection gets `kicked` with `table_closed` before the
+server stops.
 
 ## Version
 

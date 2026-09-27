@@ -37,8 +37,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             App(
                 prefs = prefs,
-                onStartHost = { HostService.start(this) },
+                onStartHost = { resume: Boolean -> HostService.start(this, resume) },
                 onStopHost = { HostService.stop(this) },
+                onDiscardSaved = { HostController.discardSaved() },
                 onShare = { url: String -> share(url) },
                 onOpenInBrowser = { url: String -> openInBrowser(url) },
             )

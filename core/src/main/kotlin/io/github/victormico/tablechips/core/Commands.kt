@@ -88,6 +88,27 @@ data class AdjustStack(
 @SerialName("set_config")
 data class SetConfig(override val actor: PlayerId, val config: TableConfig) : TableCommand
 
+/** Host only. Closes somebody's seat and takes their chips out of the game. */
+@Serializable
+@SerialName("kick")
+data class KickPlayer(override val actor: PlayerId, val player: PlayerId) : TableCommand
+
+/**
+ * Host only. Hands a seat to somebody who is at the table without one.
+ *
+ * This is the manual way back for a player whose phone lost its id — private
+ * browsing, a cleared browser, a new device mid-game. They join again as
+ * themselves, the host taps their name on the empty-looking seat, and their
+ * chips are theirs again.
+ */
+@Serializable
+@SerialName("transfer_seat")
+data class TransferSeat(
+    override val actor: PlayerId,
+    val from: PlayerId,
+    val to: PlayerId,
+) : TableCommand
+
 /** Host only. Undoes the last ledger entry; there is no depth limit. */
 @Serializable
 @SerialName("undo")
@@ -115,6 +136,8 @@ enum class RuleError {
     @SerialName("not_host") NOT_HOST,
     @SerialName("invalid_config") INVALID_CONFIG,
     @SerialName("nothing_to_undo") NOTHING_TO_UNDO,
+    @SerialName("not_yourself") NOT_YOURSELF,
+    @SerialName("seat_not_free") SEAT_NOT_FREE,
 }
 
 sealed interface CommandResult {

@@ -134,7 +134,7 @@
     <string name="home_return">Volver a la mesa</string>
     <string name="home_return_sub">La mesa sigue abierta en este móvil</string>
     <string name="host_close_title">¿Cerrar la mesa?</string>
-    <string name="host_close_body">Se cerrará para todos. Con la mesa se va la cuenta de fichas: todavía no se guarda.</string>
+    <string name="host_close_body">Se cerrará para todos y se borrará la partida guardada. Si quieres continuarla después, déjala abierta.</string>
     <string name="leave_title">¿Salir de la mesa?</string>
     <string name="leave_body">Tus fichas salen del juego. La mesa sigue abierta para los demás.</string>
 
@@ -152,4 +152,32 @@
     <string name="notification_title">La mesa %1$s está abierta</string>
     <string name="notification_text">%1$s · toca para volver</string>
     <string name="notification_stop">Cerrar</string>
+
+    <!-- Recuperar una mesa interrumpida -->
+    <string name="home_recover">Recupera la mesa</string>
+    <string name="home_recover_sub">Mesa %1$s · %2$s jugadores · %3$s fichas</string>
+    <string name="home_new_table">Crear una nueva</string>
+    <string name="discard_title">¿Descartar la mesa guardada?</string>
+    <string name="discard_body">Se pierden las fichas y el historial de la partida interrumpida.</string>
+    <string name="discard_confirm">Descártala</string>
+    <string name="host_panel_kick">Fuera</string>
+    <string name="kick_title">¿Echar a %1$s?</string>
+    <string name="kick_body">Sus %1$s fichas salen del juego y el puesto queda libre. Se puede deshacer desde el historial.</string>
+    <string name="kick_confirm">Échalo</string>
+    <string name="host_panel_seats">Puestos</string>
+    <string name="seat_action">Pasar un puesto</string>
+    <string name="seat_title">Pasar un puesto</string>
+    <string name="seat_sub">Para un móvil que no vuelve: el puesto, sus fichas y su entrada pasan a otra persona. De la mesa no sale nada.</string>
+    <string name="seat_from">El puesto de quién</string>
+    <string name="seat_to">Pasa el puesto de %1$s a</string>
+    <string name="seat_none">Todos los que están ya tienen puesto. Quien se lo quede tiene que entrar primero en la mesa.</string>
+    <string name="seat_offline">sin conexión</string>
+    <string name="seat_confirm_title">¿Pasar el puesto?</string>
+    <string name="seat_confirm_body">%1$s se queda el puesto %2$s con las %3$s fichas que hay.</string>
+    <string name="seat_confirm">Pásalo</string>
+    <string name="error_table_closed">El anfitrión ha cerrado la mesa</string>
+    <string name="error_seat_transferred">Tu puesto ha pasado a otra persona</string>
+    <string name="log_player_kicked">lo han echado de la mesa</string>
+    <string name="log_seat_transferred">se ha quedado un puesto</string>
+    <string name="seat_hand">Pasar</string>
 </resources>

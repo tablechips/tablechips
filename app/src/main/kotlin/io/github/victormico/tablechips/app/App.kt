@@ -38,11 +38,13 @@ import io.github.victormico.tablechips.protocol.AwardPotCommand
 import io.github.victormico.tablechips.protocol.BetAction
 import io.github.victormico.tablechips.protocol.CreatePotCommand
 import io.github.victormico.tablechips.protocol.HostCommandMessage
+import io.github.victormico.tablechips.protocol.KickCommand
 import io.github.victormico.tablechips.protocol.RebuyAction
 import io.github.victormico.tablechips.protocol.SetConfigCommand
 import io.github.victormico.tablechips.protocol.Sit
 import io.github.victormico.tablechips.protocol.StandUpAction
 import io.github.victormico.tablechips.protocol.TableConnection
+import io.github.victormico.tablechips.protocol.TransferSeatCommand
 import io.github.victormico.tablechips.protocol.parseTableLink
 import io.github.victormico.tablechips.protocol.UndoCommand
 import kotlinx.coroutines.delay
@@ -104,7 +106,13 @@ private fun appTexts(): AppTexts = AppTexts(
 )
 
 /** A question that has to be answered before something irreversible happens. */
-private enum class Ask { CloseTable, Leave }
+private sealed interface Ask {
+    data object CloseTable : Ask
+    data object Leave : Ask
+    data object DiscardSaved : Ask
+    data class Kick(val player: Player) : Ask
+    data class HandSeat(val from: Player, val to: Player) : Ask
+}
 
 private sealed interface Screen {
     data object Home : Screen
@@ -114,6 +122,7 @@ private sealed interface Screen {
     data object Table : Screen
     data object Amount : Screen
     data object HostPanel : Screen
+    data object Seats : Screen
     data object Log : Screen
     data object Connection : Screen
 }
@@ -124,13 +133,16 @@ private const val UNDO_WINDOW_MILLIS = 30_000L
 @Composable
 fun App(
     prefs: Prefs,
-    onStartHost: () -> Unit,
+    /** Opens the table, picking a saved game back up when asked to. */
+    onStartHost: (resume: Boolean) -> Unit,
     onStopHost: () -> Unit,
+    onDiscardSaved: () -> Unit,
     onShare: (String) -> Unit,
     onOpenInBrowser: (String) -> Unit,
 ) {
     val texts = appTexts()
     val hostStatus by HostController.status.collectAsStateWithLifecycle()
+    val abandoned by HostController.abandoned.collectAsStateWithLifecycle()
     val incoming by IncomingLinks.link.collectAsStateWithLifecycle()
     val state by Session.state.collectAsStateWithLifecycle()
 
@@ -208,7 +220,13 @@ fun App(
                 failed = hostStatus.failure != null,
                 canResume = prefs.lastAddress != null,
                 tableOpen = hostStatus.running,
-                onCreate = { if (name.isBlank()) screen = Screen.Name else onStartHost() },
+                abandoned = abandoned,
+                onCreate = {
+                    if (name.isBlank()) screen = Screen.Name
+                    else if (abandoned != null) asking = Ask.DiscardSaved
+                    else onStartHost(false)
+                },
+                onRecover = { if (name.isBlank()) screen = Screen.Name else onStartHost(true) },
                 onReturn = {
                     // The table is up; this only takes a seat at it again.
                     Session.connect(
@@ -229,7 +247,7 @@ fun App(
             Screen.Name -> NameScreen(
                 name = name,
                 onName = { name = it },
-                onDone = { prefs.name = name.trim(); onStartHost() },
+                onDone = { prefs.name = name.trim(); onStartHost(abandoned != null) },
                 onBack = { screen = Screen.Home },
             )
 
@@ -432,9 +450,17 @@ fun App(
                         ),
                     )
                 },
+                onSeats = { screen = Screen.Seats },
                 onLog = { screen = Screen.Log },
                 onClose = if (hostStatus.running) ({ asking = Ask.CloseTable }) else null,
                 onBack = { screen = Screen.Table },
+            )
+
+            Screen.Seats -> SeatsScreen(
+                state = state,
+                onKick = { player -> asking = Ask.Kick(player) },
+                onTransfer = { from, to -> asking = Ask.HandSeat(from, to) },
+                onBack = { screen = Screen.HostPanel },
             )
 
             Screen.Log -> LogScreen(
@@ -465,6 +491,49 @@ fun App(
                 onConfirm = { asking = null; closeTable() },
                 onCancel = { asking = null },
             )
+
+            Ask.DiscardSaved -> ConfirmDialog(
+                title = stringResource(R.string.discard_title),
+                body = stringResource(R.string.discard_body),
+                confirm = stringResource(R.string.discard_confirm),
+                cancel = stringResource(R.string.common_cancel),
+                onConfirm = { asking = null; onDiscardSaved(); onStartHost(false) },
+                onCancel = { asking = null },
+            )
+
+            is Ask.Kick -> (asking as Ask.Kick).let { ask ->
+                ConfirmDialog(
+                    title = stringResource(R.string.kick_title, ask.player.name),
+                    body = stringResource(R.string.kick_body, chips(ask.player.stack)),
+                    confirm = stringResource(R.string.kick_confirm),
+                    cancel = stringResource(R.string.common_cancel),
+                    onConfirm = {
+                        asking = null
+                        Session.act(HostCommandMessage(KickCommand(ask.player.id)))
+                    },
+                    onCancel = { asking = null },
+                )
+            }
+
+            is Ask.HandSeat -> (asking as Ask.HandSeat).let { ask ->
+                ConfirmDialog(
+                    title = stringResource(R.string.seat_confirm_title),
+                    body = stringResource(
+                        R.string.seat_confirm_body,
+                        ask.to.name,
+                        chips((ask.from.seat ?: 0).toLong()),
+                        chips(ask.from.stack),
+                    ),
+                    confirm = stringResource(R.string.seat_confirm),
+                    cancel = stringResource(R.string.common_cancel),
+                    onConfirm = {
+                        asking = null
+                        Session.act(HostCommandMessage(TransferSeatCommand(ask.from.id, ask.to.id)))
+                        screen = Screen.HostPanel
+                    },
+                    onCancel = { asking = null },
+                )
+            }
 
             Ask.Leave -> ConfirmDialog(
                 title = stringResource(R.string.leave_title),

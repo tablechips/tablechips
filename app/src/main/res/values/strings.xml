@@ -149,7 +149,7 @@
     <string name="home_return">Back to the table</string>
     <string name="home_return_sub">The table is still open on this phone</string>
     <string name="host_close_title">Close the table?</string>
-    <string name="host_close_body">It closes for everyone. The chip count goes with it: it is not saved yet.</string>
+    <string name="host_close_body">It closes for everyone, and the saved game goes with it. To carry on later, leave it open instead.</string>
     <string name="leave_title">Leave the table?</string>
     <string name="leave_body">Your chips come out of the game. The table stays open for everybody else.</string>
 
@@ -167,4 +167,32 @@
     <string name="notification_title">Table %1$s is open</string>
     <string name="notification_text">%1$s · tap to return</string>
     <string name="notification_stop">Close</string>
+
+    <!-- Recovering an interrupted table -->
+    <string name="home_recover">Pick the table back up</string>
+    <string name="home_recover_sub">Table %1$s · %2$s players · %3$s chips</string>
+    <string name="home_new_table">Start a new table instead</string>
+    <string name="discard_title">Discard the saved table?</string>
+    <string name="discard_body">The chips and the log of the interrupted game are lost for good.</string>
+    <string name="discard_confirm">Discard it</string>
+    <string name="host_panel_kick">Out</string>
+    <string name="kick_title">Throw %1$s out?</string>
+    <string name="kick_body">Their %1$s chips are cashed out and the seat is freed. It can be undone from the log.</string>
+    <string name="kick_confirm">Throw out</string>
+    <string name="host_panel_seats">Seats</string>
+    <string name="seat_action">Hand a seat over</string>
+    <string name="seat_title">Hand a seat over</string>
+    <string name="seat_sub">For a phone that is not coming back: the seat, its chips and its buy-in move to somebody else. Nothing leaves the table.</string>
+    <string name="seat_from">Whose seat</string>
+    <string name="seat_to">Hand the seat of %1$s to</string>
+    <string name="seat_none">Everybody here has a seat already. Whoever takes this one over has to join the table first.</string>
+    <string name="seat_offline">not connected</string>
+    <string name="seat_confirm_title">Hand the seat over?</string>
+    <string name="seat_confirm_body">%1$s takes over seat %2$s with the %3$s chips on it.</string>
+    <string name="seat_confirm">Hand it over</string>
+    <string name="error_table_closed">The host closed the table</string>
+    <string name="error_seat_transferred">Your seat went to somebody else</string>
+    <string name="log_player_kicked">was thrown out of the table</string>
+    <string name="log_seat_transferred">took over a seat</string>
+    <string name="seat_hand">Hand over</string>
 </resources>
