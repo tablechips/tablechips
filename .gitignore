@@ -7,3 +7,6 @@ local.properties
 captures/
 *.keystore
 !debug.keystore
+
+# Built apks handed over for testing, never committed.
+*.apk
