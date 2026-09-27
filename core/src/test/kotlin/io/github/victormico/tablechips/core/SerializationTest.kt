@@ -41,11 +41,47 @@ class SerializationTest {
     }
 
     @Test
+    fun `a hand of every mode survives a round trip`() {
+        val bank = bankTable(mode = GameMode.SEVEN_HALF, naturalPays = Payout(2, 1))
+        bank.accept(PlaceStake(BRU, 30))
+        bank.accept(PlaceStake(CARME, 10))
+        bank.accept(CancelStake(CARME))
+        bank.accept(SettleHand(ANNA, BRU, HandOutcome.NATURAL))
+        bank.accept(SetBanker(ANNA, BRU))
+
+        val bankLedger = json.decodeFromString<List<TableEvent>>(json.encodeToString(bank.ledger()))
+        assertEquals(bank.ledger(), bankLedger)
+        assertEquals(bank.snapshot(), Table.restore(bankLedger).snapshot())
+
+        val poker = pokerTable(defaultBuyIn = 0, smallBlind = 0, bigBlind = 0)
+        poker.accept(Rebuy(ANNA, 100))
+        poker.accept(Rebuy(BRU, 100))
+        poker.accept(Rebuy(CARME, 20))
+        poker.accept(StartHand(ANNA))
+        poker.accept(PlaceBet(CARME, 20))
+        poker.accept(PlaceBet(ANNA, 60))
+        poker.accept(PlaceBet(BRU, 60))
+        poker.accept(CloseRound(ANNA))
+        poker.accept(Fold(BRU))
+        poker.accept(SplitPots(ANNA))
+
+        val pokerLedger = json.decodeFromString<List<TableEvent>>(json.encodeToString(poker.ledger()))
+        assertEquals(poker.ledger(), pokerLedger)
+        assertEquals(poker.snapshot(), Table.restore(pokerLedger).snapshot())
+    }
+
+    @Test
     fun `events are tagged with stable names`() {
         val encoded = json.encodeToString<TableEvent>(BetPlaced(ANNA, 10, MAIN_POT, at = 1))
 
         assertTrue(encoded.contains("\"type\":\"bet\""), encoded)
         assertTrue(encoded.contains("\"player\":\"anna\""), encoded)
+
+        val settled = json.encodeToString<TableEvent>(
+            HandSettled(ANNA, BRU, HandOutcome.NATURAL, stake = 10, delta = 15, at = 1),
+        )
+        assertTrue(settled.contains("\"type\":\"hand_settled\""), settled)
+        assertTrue(settled.contains("\"outcome\":\"natural\""), settled)
     }
 
     @Test

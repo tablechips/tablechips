@@ -14,11 +14,17 @@ import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import io.github.victormico.tablechips.core.MAIN_POT
 import io.github.victormico.tablechips.core.PlayerId
 import io.github.victormico.tablechips.core.Table
 import io.github.victormico.tablechips.core.TableConfig
 import io.github.victormico.tablechips.core.AwardPot
+import io.github.victormico.tablechips.core.GameMode
+import io.github.victormico.tablechips.core.HandOutcome
+import io.github.victormico.tablechips.core.PlaceStake
+import io.github.victormico.tablechips.core.SetBanker
+import io.github.victormico.tablechips.core.StartHand
 import io.github.victormico.tablechips.core.JoinTable
 import io.github.victormico.tablechips.core.PlaceBet
 import io.github.victormico.tablechips.core.SitDown
@@ -182,7 +188,9 @@ class ScreensTest {
                 pendingSplit = null,
                 onAward = { player, _ -> awarded = player.name },
                 onSplit = {}, onNewPot = {}, onGive = {}, onTake = {}, onBuyIn = {},
-                onSeats = {}, onLog = {}, onClose = {}, onBack = {},
+                onSeats = {}, onBanker = {}, onSettle = { _, _ -> }, onMode = {},
+                onNaturalPays = {}, onNewHand = {}, onCloseRound = {}, onSplitPots = {},
+                onBlinds = {}, onLog = {}, onClose = {}, onBack = {},
             )
         }
 
@@ -448,5 +456,177 @@ class ScreensTest {
         assertEquals(true, recovered)
         compose.onNodeWithText("Crear-ne una de nova").performClick()
         assertEquals(true, created)
+    }
+
+    /** A table playing a game with a bank, one hand up for settling. */
+    private fun bankTable(mode: GameMode = GameMode.BLACKJACK): ClientState {
+        val table = Table("ZGWH", TableConfig(defaultBuyIn = 1000, mode = mode), clock = { 0 })
+        table.execute(JoinTable(anna, "Anna"))
+        table.execute(JoinTable(bru, "Bru"))
+        table.execute(SitDown(anna))
+        table.execute(SitDown(bru))
+        table.execute(SetBanker(anna, anna))
+        table.execute(PlaceStake(bru, 250))
+        table.setConnected(anna, true)
+        table.setConnected(bru, true)
+        return ClientState(
+            connection = Connection.ONLINE,
+            table = table.snapshot(),
+            you = bru,
+            undoDepth = table.undoDepth,
+        )
+    }
+
+    @Test
+    fun `against the bank the screen shows the stake and who holds it`() {
+        var staked = false
+        compose.setContent {
+            TableScreen(
+                state = bankTable(), selectedPot = MAIN_POT, onSelectPot = {},
+                undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {},
+                onStand = {}, onSit = {}, onStake = { staked = true },
+            )
+        }
+
+        compose.onNodeWithText("La teua aposta".uppercase()).assertIsDisplayed()
+        compose.onNodeWithText("250").assertIsDisplayed()
+        compose.onNodeWithText("La banca".uppercase()).assertIsDisplayed()
+        compose.onAllNodesWithText("Anna").onFirst().assertIsDisplayed()
+        // No pot anywhere: in this game there is not one.
+        compose.onNodeWithText("Pot".uppercase()).assertDoesNotExist()
+        compose.onNodeWithText("Apostar").performClick()
+
+        assertEquals(true, staked)
+    }
+
+    @Test
+    fun `the banker is told to settle from the panel rather than offered a bet`() {
+        val state = bankTable().let { it.copy(you = anna) }
+        compose.setContent {
+            TableScreen(
+                state = state, selectedPot = MAIN_POT, onSelectPot = {},
+                undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {},
+                onStand = {}, onSit = {},
+            )
+        }
+
+        // The card says who holds it; the bar says what holding it means.
+        compose.onNodeWithText("Tens la banca").assertIsDisplayed()
+        compose.onNodeWithText(
+            "Els altres juguen contra tu. Resol cada mà des del panell.",
+        ).assertIsDisplayed()
+        compose.onNodeWithText("Apostar").assertDoesNotExist()
+    }
+
+    /**
+     * The four buttons that are the whole of the app's opinion about a hand of
+     * blackjack, and the word on the second one, which belongs to the game.
+     */
+    @Test
+    fun `the host settles a hand from the panel, in the game's own words`() {
+        var settled: Pair<String, HandOutcome>? = null
+        val state = bankTable(GameMode.SEVEN_HALF).copy(you = anna)
+        compose.setContent {
+            HostPanelScreen(
+                state = state, selectedPot = MAIN_POT, pendingSplit = null,
+                onAward = { _, _ -> }, onSplit = {}, onNewPot = {}, onGive = {}, onTake = {},
+                onBuyIn = {}, onSeats = {}, onBanker = {},
+                onSettle = { player, outcome -> settled = player.name to outcome },
+                onMode = {}, onNaturalPays = {}, onNewHand = {}, onCloseRound = {},
+                onSplitPots = {}, onBlinds = {}, onLog = {}, onClose = {}, onBack = {},
+            )
+        }
+
+        compose.onNodeWithText("Mans per resoldre".uppercase()).assertIsDisplayed()
+        // The word on the button is the game's: set i mig here, blackjack there.
+        compose.onAllNodesWithText("Set i mig").onFirst().assertExists()
+        compose.onNodeWithText("Guanya").performScrollTo().performClick()
+
+        assertEquals("Bru" to HandOutcome.WIN, settled)
+    }
+
+    /** A table mid-hand of poker, with somebody all-in for less than the rest. */
+    private fun pokerState(): ClientState {
+        val table = Table(
+            "ZGWH",
+            TableConfig(defaultBuyIn = 1000, mode = GameMode.POKER, smallBlind = 10, bigBlind = 20),
+            clock = { 0 },
+        )
+        table.execute(JoinTable(anna, "Anna"))
+        table.execute(JoinTable(bru, "Bru"))
+        table.execute(SitDown(anna))
+        table.execute(SitDown(bru))
+        table.execute(StartHand(anna))
+        table.setConnected(anna, true)
+        table.setConnected(bru, true)
+        return ClientState(
+            connection = Connection.ONLINE,
+            table = table.snapshot(),
+            you = bru,
+            undoDepth = table.undoDepth,
+        )
+    }
+
+    @Test
+    fun `at poker the button says what a call costs`() {
+        var called = 0L
+        var folded = false
+        compose.setContent {
+            TableScreen(
+                state = pokerState(), selectedPot = MAIN_POT, onSelectPot = {},
+                undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {},
+                onStand = {}, onSit = {},
+                onCall = { called = it }, onFold = { folded = true },
+            )
+        }
+
+        // Heads-up: Anna has the button and the small blind, Bru the big one,
+        // so Bru is the one facing nothing and Anna owes the difference.
+        compose.onNodeWithText("Per igualar".uppercase()).assertDoesNotExist()
+        compose.onNodeWithText("Apostar").assertIsDisplayed()
+        compose.onNodeWithText("Retirar-se").performClick()
+        assertEquals(true, folded)
+        assertEquals(0L, called)
+    }
+
+    @Test
+    fun `the player who owes chips is offered the exact number`() {
+        var called = 0L
+        val state = pokerState().copy(you = anna)
+        compose.setContent {
+            TableScreen(
+                state = state, selectedPot = MAIN_POT, onSelectPot = {},
+                undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {},
+                onStand = {}, onSit = {}, onCall = { called = it },
+            )
+        }
+
+        compose.onNodeWithText("Per igualar".uppercase()).assertIsDisplayed()
+        compose.onNodeWithText("Igualar 10").performClick()
+
+        assertEquals(10L, called)
+    }
+
+    @Test
+    fun `the host runs the hand from the panel and can change the game`() {
+        var started = false
+        var picked: GameMode? = null
+        val state = pokerState().copy(you = anna)
+        compose.setContent {
+            HostPanelScreen(
+                state = state, selectedPot = MAIN_POT, pendingSplit = null,
+                onAward = { _, _ -> }, onSplit = {}, onNewPot = {}, onGive = {}, onTake = {},
+                onBuyIn = {}, onSeats = {}, onBanker = {}, onSettle = { _, _ -> },
+                onMode = { picked = it }, onNaturalPays = {}, onNewHand = { started = true },
+                onCloseRound = {}, onSplitPots = {}, onBlinds = {}, onLog = {},
+                onClose = {}, onBack = {},
+            )
+        }
+
+        compose.onNodeWithText("Mà nova").performScrollTo().performClick()
+        assertEquals(true, started)
+        compose.onNodeWithText("Joc".uppercase()).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Set i mig").performScrollTo().performClick()
+        assertEquals(GameMode.SEVEN_HALF, picked)
     }
 }

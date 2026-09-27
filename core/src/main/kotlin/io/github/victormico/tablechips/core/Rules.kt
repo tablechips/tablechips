@@ -55,6 +55,14 @@ object Rules {
             is SetConfig -> planSetConfig(state, command, at)
             is KickPlayer -> planKick(state, command, at)
             is TransferSeat -> planTransferSeat(state, command, at)
+            is SetBanker -> planSetBanker(state, command, at)
+            is PlaceStake -> planStake(state, command, at)
+            is CancelStake -> planCancelStake(state, command, at)
+            is SettleHand -> planSettle(state, command, at)
+            is StartHand -> planStartHand(state, command, at)
+            is Fold -> planFold(state, command, at)
+            is CloseRound -> planCloseRound(state, command, at)
+            is SplitPots -> planSplitPots(state, command, at)
             // Undo is not an event: it removes them. See Table.undo.
             is UndoLast -> return if (!isHost(state, command.actor)) {
                 CommandResult.Rejected(RuleError.NOT_HOST)
@@ -133,7 +141,19 @@ object Rules {
     private fun planStandUp(state: TableState, command: StandUp, at: Long): Plan {
         val player = state.player(command.actor) ?: return fail(RuleError.UNKNOWN_PLAYER)
         if (!player.seated) return fail(RuleError.NOT_SEATED)
-        return ok(PlayerStoodUp(player.id, at))
+        return Plan.Ok(
+            buildList {
+                // Nobody walks away from the table holding chips that are still
+                // up for a hand: they go back to the stack on the way out.
+                if (player.stake > 0) add(StakeReturned(player.id, player.stake, at))
+                // In poker what is already in the pot stays there, which is
+                // what folding means; leaving the seat is not a free take-back.
+                if (state.config.mode == GameMode.POKER && !player.folded && player.committed > 0) {
+                    add(PlayerFolded(player.id, at))
+                }
+                add(PlayerStoodUp(player.id, at))
+            },
+        )
     }
 
     private fun planLeave(state: TableState, command: LeaveTable, at: Long): Plan {
@@ -210,11 +230,192 @@ object Rules {
         return ok(SeatTransferred(from.id, to.id, at))
     }
 
+    // ----------------------------------------------------------- bank games
+
+    private fun planSetBanker(state: TableState, command: SetBanker, at: Long): Plan {
+        if (!isHost(state, command.actor)) return fail(RuleError.NOT_HOST)
+        if (!state.config.mode.isBankGame) return fail(RuleError.WRONG_MODE)
+        val player = command.player
+        if (player == null) return ok(BankerChanged(null, at))
+        val taking = state.player(player) ?: return fail(RuleError.INVALID_TARGET)
+        if (!taking.seated) return fail(RuleError.NOT_SEATED)
+        if (state.banker == taking.id) return Plan.Ok(emptyList())
+        // The bank plays against the others, so it cannot be one of them.
+        return if (taking.stake > 0) {
+            Plan.Ok(listOf(StakeReturned(taking.id, taking.stake, at), BankerChanged(taking.id, at)))
+        } else {
+            ok(BankerChanged(taking.id, at))
+        }
+    }
+
+    private fun planStake(state: TableState, command: PlaceStake, at: Long): Plan {
+        if (!state.config.mode.isBankGame) return fail(RuleError.WRONG_MODE)
+        val player = state.player(command.actor) ?: return fail(RuleError.UNKNOWN_PLAYER)
+        if (!player.seated) return fail(RuleError.NOT_SEATED)
+        val banker = state.bankerPlayer ?: return fail(RuleError.NO_BANKER)
+        if (banker.id == player.id) return fail(RuleError.BANKER_CANNOT_BET)
+        if (command.amount <= 0) return fail(RuleError.INVALID_AMOUNT)
+        if (command.amount > player.stack) return fail(RuleError.INSUFFICIENT_CHIPS)
+        return ok(StakePlaced(player.id, command.amount, at))
+    }
+
+    private fun planCancelStake(state: TableState, command: CancelStake, at: Long): Plan {
+        val player = state.player(command.actor) ?: return fail(RuleError.UNKNOWN_PLAYER)
+        if (player.stake <= 0) return fail(RuleError.NO_STAKE)
+        return ok(StakeReturned(player.id, player.stake, at))
+    }
+
+    private fun planSettle(state: TableState, command: SettleHand, at: Long): Plan {
+        if (!isHost(state, command.actor)) return fail(RuleError.NOT_HOST)
+        if (!state.config.mode.isBankGame) return fail(RuleError.WRONG_MODE)
+        val banker = state.bankerPlayer ?: return fail(RuleError.NO_BANKER)
+        val player = state.player(command.player) ?: return fail(RuleError.INVALID_TARGET)
+        if (player.id == banker.id) return fail(RuleError.BANKER_CANNOT_BET)
+        if (player.stake <= 0) return fail(RuleError.NO_STAKE)
+        val stake = command.amount ?: player.stake
+        if (stake <= 0) return fail(RuleError.INVALID_AMOUNT)
+        if (stake > player.stake) return fail(RuleError.INSUFFICIENT_CHIPS)
+        val delta = when (command.outcome) {
+            HandOutcome.LOSE -> -stake
+            HandOutcome.PUSH -> 0
+            HandOutcome.WIN -> stake
+            HandOutcome.NATURAL -> state.config.naturalPays.of(stake)
+        }
+        // A bank that cannot cover what it owes is not a bank: buy in first.
+        if (delta > banker.stack) return fail(RuleError.INSUFFICIENT_CHIPS)
+        return ok(HandSettled(player.id, banker.id, command.outcome, stake, delta, at))
+    }
+
+    // ---------------------------------------------------------------- poker
+
+    private fun planStartHand(state: TableState, command: StartHand, at: Long): Plan {
+        if (!isHost(state, command.actor)) return fail(RuleError.NOT_HOST)
+        if (state.config.mode != GameMode.POKER) return fail(RuleError.WRONG_MODE)
+        val order = seatOrder(state)
+        if (order.size < 2) return fail(RuleError.NOT_ENOUGH_PLAYERS)
+        val button = nextSeat(order, state.button)
+        return ok(HandStarted(button, blindsFor(state, order, button), at))
+    }
+
+    /** Seats with somebody in them, in table order. */
+    private fun seatOrder(state: TableState): List<Int> =
+        state.players.mapNotNull { it.seat }.sorted()
+
+    private fun nextSeat(order: List<Int>, after: Int?): Int =
+        order.firstOrNull { after == null || it > after } ?: order.first()
+
+    /**
+     * Small blind to the left of the button, big blind after it — except
+     * heads-up, where the button posts the small blind, as at any real table.
+     */
+    private fun blindsFor(state: TableState, order: List<Int>, button: Int): List<Blind> {
+        val small = state.config.smallBlind
+        val big = state.config.bigBlind
+        if (small <= 0 && big <= 0) return emptyList()
+        val smallSeat = if (order.size == 2) button else nextSeat(order, button)
+        val bigSeat = nextSeat(order, smallSeat)
+        return listOfNotNull(
+            blind(state, smallSeat, small),
+            blind(state, bigSeat, big),
+        )
+    }
+
+    /** A blind is capped by the stack behind it: that is what being all-in is. */
+    private fun blind(state: TableState, seat: Int, amount: Long): Blind? {
+        if (amount <= 0) return null
+        val player = state.playerAtSeat(seat) ?: return null
+        val posted = minOf(amount, player.stack)
+        return if (posted <= 0) null else Blind(player.id, posted)
+    }
+
+    private fun planFold(state: TableState, command: Fold, at: Long): Plan {
+        if (state.config.mode != GameMode.POKER) return fail(RuleError.WRONG_MODE)
+        val player = state.player(command.actor) ?: return fail(RuleError.UNKNOWN_PLAYER)
+        if (!player.seated) return fail(RuleError.NOT_SEATED)
+        if (player.folded) return Plan.Ok(emptyList())
+        return ok(PlayerFolded(player.id, at))
+    }
+
+    private fun planCloseRound(state: TableState, command: CloseRound, at: Long): Plan {
+        if (!isHost(state, command.actor)) return fail(RuleError.NOT_HOST)
+        if (state.config.mode != GameMode.POKER) return fail(RuleError.WRONG_MODE)
+        if (state.currentBet == 0L && state.players.none { it.roundBet > 0 }) {
+            return Plan.Ok(emptyList())
+        }
+        return ok(RoundClosed(at))
+    }
+
+    private fun planSplitPots(state: TableState, command: SplitPots, at: Long): Plan {
+        if (!isHost(state, command.actor)) return fail(RuleError.NOT_HOST)
+        if (state.config.mode != GameMode.POKER) return fail(RuleError.WRONG_MODE)
+        val pots = sidePots(state) ?: return fail(RuleError.NOTHING_TO_SPLIT)
+        return ok(PotsSplit(pots, at))
+    }
+
+    /**
+     * The pot cut into the pots that can actually be won.
+     *
+     * Every player matched what they could; a player who is all-in for less can
+     * only win the layer they paid into. Chips nobody could call go back to the
+     * one who put them in, as a pot only they may be given.
+     *
+     * Null when there is nothing to cut: no all-in, or a pot that no longer
+     * matches what was put into it because the host has been moving chips by
+     * hand. Splitting then would invent chips, so the host keeps doing it by
+     * hand.
+     */
+    fun sidePots(state: TableState): List<Pot>? {
+        val committed = state.players.filter { it.committed > 0 }
+        if (committed.isEmpty()) return null
+        val total = committed.sumOf { it.committed }
+        val single = state.pots.singleOrNull() ?: return null
+        if (single.amount != total) return null
+        val live = committed.filter { !it.folded }
+        if (live.isEmpty()) return null
+        val levels = live.map { it.committed }.distinct().sorted()
+        val top = levels.last()
+        if (levels.size < 2 && committed.none { it.committed > top }) return null
+
+        val pots = mutableListOf<Pot>()
+        var floor = 0L
+        levels.forEach { level ->
+            val slice = committed.sumOf {
+                minOf(it.committed, level) - minOf(it.committed, floor)
+            }
+            if (slice > 0) {
+                pots += Pot(
+                    id = if (pots.isEmpty()) MAIN_POT else PotId("side-" + pots.size),
+                    amount = slice,
+                    eligible = live.filter { it.committed >= level }.map { it.id },
+                )
+            }
+            floor = level
+        }
+        // Whatever was bet above what anybody could call is not in play: it goes
+        // back to whoever put it there, as a pot only they can be given.
+        committed.filter { it.committed > top }.forEach { player ->
+            pots += Pot(
+                id = PotId("side-" + pots.size),
+                amount = player.committed - top,
+                eligible = listOf(player.id),
+            )
+        }
+        return pots.takeIf { it.size > 1 }
+    }
+
     private fun planSetConfig(state: TableState, command: SetConfig, at: Long): Plan {
         if (!isHost(state, command.actor)) return fail(RuleError.NOT_HOST)
         val config = command.config
         if (config.seatCount !in 1..MAX_SEATS) return fail(RuleError.INVALID_CONFIG)
         if (config.defaultBuyIn < 0) return fail(RuleError.INVALID_CONFIG)
+        if (!config.naturalPays.valid) return fail(RuleError.INVALID_CONFIG)
+        if (config.smallBlind < 0 || config.bigBlind < 0) return fail(RuleError.INVALID_CONFIG)
+        if (config.smallBlind > config.bigBlind) return fail(RuleError.INVALID_CONFIG)
+        // Changing the game under chips that are up for a hand would strand
+        // them: settle what is on the table first.
+        if (config.mode != state.config.mode && state.players.any { it.stake > 0 }) {
+            return fail(RuleError.INVALID_CONFIG)
+        }
         return ok(ConfigChanged(config, at))
     }
 
@@ -223,6 +424,8 @@ object Rules {
 
         is ConfigChanged -> state.copy(
             config = event.config,
+            // A game with no bank has no banker.
+            banker = state.banker.takeIf { event.config.mode.isBankGame },
             // Shrinking the table empties the seats that no longer exist.
             players = state.players.map { player ->
                 if (player.seat != null && player.seat >= event.config.seatCount) {
@@ -251,24 +454,17 @@ object Rules {
             )
         }.let { it.copy(bank = it.bank.copy(boughtIn = it.bank.boughtIn + event.buyIn)) }
 
-        is PlayerStoodUp -> state.mapPlayer(event.player) { it.copy(seat = null) }
+        is PlayerStoodUp -> state
+            .mapPlayer(event.player) { it.copy(seat = null) }
+            // The bank belongs to a seat at the table, not to a spectator.
+            .copy(banker = state.banker.takeIf { it != event.player })
 
-        is PlayerLeft -> {
-            // Whatever the player still had is cashed out, so the books close.
-            val leaving = state.player(event.player)
-            state.copy(
-                players = state.players.filterNot { it.id == event.player },
-                bank = state.bank.copy(cashedOut = state.bank.cashedOut + (leaving?.stack ?: 0)),
-            )
-        }
+        // Whatever the player still had — stack and anything still up for a
+        // hand — is cashed out, so the books close. What they had already put
+        // in the pot stays in the pot: that is not theirs any more.
+        is PlayerLeft -> state.removePlayer(event.player)
 
-        is PlayerKicked -> {
-            val kicked = state.player(event.player)
-            state.copy(
-                players = state.players.filterNot { it.id == event.player },
-                bank = state.bank.copy(cashedOut = state.bank.cashedOut + (kicked?.stack ?: 0)),
-            )
-        }
+        is PlayerKicked -> state.removePlayer(event.player)
 
         is SeatTransferred -> {
             val from = state.player(event.from)
@@ -289,10 +485,15 @@ object Rules {
                                     seat = from.seat,
                                     stack = from.stack,
                                     boughtIn = from.boughtIn,
+                                    stake = from.stake,
+                                    committed = from.committed,
+                                    roundBet = from.roundBet,
+                                    folded = from.folded,
                                     isHost = player.isHost || from.isHost,
                                 )
                             }
                         },
+                    banker = if (state.banker == event.from) event.to else state.banker,
                 )
             }
         }
@@ -304,6 +505,20 @@ object Rules {
         is BetPlaced -> state
             .mapPlayer(event.player) { it.copy(stack = it.stack - event.amount) }
             .mapPot(event.pot) { it.copy(amount = it.amount + event.amount) }
+            .let { next ->
+                if (next.config.mode != GameMode.POKER) return@let next
+                // In poker a bet is also a contribution to this hand, which is
+                // what the side pots and the next call are computed from.
+                val contributed = next.mapPlayer(event.player) {
+                    it.copy(committed = it.committed + event.amount, roundBet = it.roundBet + event.amount)
+                }
+                contributed.copy(
+                    currentBet = maxOf(
+                        contributed.currentBet,
+                        contributed.player(event.player)?.roundBet ?: 0,
+                    ),
+                )
+            }
 
         is PotAwarded -> state
             .mapPot(event.pot) { it.copy(amount = it.amount - event.amount) }
@@ -315,9 +530,74 @@ object Rules {
             .mapPlayer(event.from) { it.copy(stack = it.stack - event.amount) }
             .mapPlayer(event.to) { it.copy(stack = it.stack + event.amount) }
 
+        is BankerChanged -> state.copy(banker = event.player)
+
+        is StakePlaced -> state.mapPlayer(event.player) {
+            it.copy(stack = it.stack - event.amount, stake = it.stake + event.amount)
+        }
+
+        is StakeReturned -> state.mapPlayer(event.player) {
+            it.copy(stack = it.stack + event.amount, stake = it.stake - event.amount)
+        }
+
+        // The stake leaves the pile it was in, the player gets back whatever the
+        // outcome says, and the difference is the bank's — in either direction.
+        is HandSettled -> state
+            .mapPlayer(event.player) {
+                it.copy(
+                    stake = it.stake - event.stake,
+                    stack = it.stack + event.stake + event.delta,
+                )
+            }
+            .mapPlayer(event.banker) { it.copy(stack = it.stack - event.delta) }
+
+        is HandStarted -> {
+            val cleared = state.copy(
+                button = event.button,
+                currentBet = 0,
+                // Anything the last hand left lying in a pot rolls into this
+                // one, exactly as it would on a table: chips are never dropped.
+                pots = listOf(Pot(MAIN_POT, state.pots.sumOf { it.amount })),
+                players = state.players.map {
+                    it.copy(committed = 0, roundBet = 0, folded = false)
+                },
+            )
+            event.blinds.fold(cleared) { state, blind ->
+                state
+                    .mapPlayer(blind.player) {
+                        it.copy(
+                            stack = it.stack - blind.amount,
+                            committed = blind.amount,
+                            roundBet = blind.amount,
+                        )
+                    }
+                    .mapPot(MAIN_POT) { it.copy(amount = it.amount + blind.amount) }
+                    .let { it.copy(currentBet = maxOf(it.currentBet, blind.amount)) }
+            }
+        }
+
+        is PlayerFolded -> state.mapPlayer(event.player) { it.copy(folded = true) }
+
+        is RoundClosed -> state.copy(
+            currentBet = 0,
+            players = state.players.map { it.copy(roundBet = 0) },
+        )
+
+        is PotsSplit -> state.copy(pots = event.pots)
+
         is StackAdjusted -> state
             .mapPlayer(event.player) { it.copy(stack = it.stack + event.delta) }
             .let { it.copy(bank = it.bank.copy(adjusted = it.bank.adjusted + event.delta)) }
+    }
+
+    /** Takes somebody off the table and cashes out everything that was theirs. */
+    private fun TableState.removePlayer(id: PlayerId): TableState {
+        val leaving = player(id)
+        return copy(
+            players = players.filterNot { it.id == id },
+            banker = banker.takeIf { it != id },
+            bank = bank.copy(cashedOut = bank.cashedOut + (leaving?.stack ?: 0) + (leaving?.stake ?: 0)),
+        )
     }
 
     private fun TableState.mapPlayer(id: PlayerId, block: (Player) -> Player): TableState =

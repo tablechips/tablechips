@@ -48,3 +48,31 @@ fun seatedTable(defaultBuyIn: Long = 100): Table = newTable(defaultBuyIn).apply 
     accept(SitDown(BRU))
     accept(SitDown(CARME))
 }
+
+/** The same three players, playing a game with a bank. */
+fun bankTable(
+    mode: GameMode = GameMode.BLACKJACK,
+    defaultBuyIn: Long = 100,
+    naturalPays: Payout = Payout(),
+): Table = seatedTable(defaultBuyIn).apply {
+    accept(SetConfig(ANNA, snapshot().config.copy(mode = mode, naturalPays = naturalPays)))
+    accept(SetBanker(ANNA, ANNA))
+}
+
+/** The same three players, playing poker with blinds. */
+fun pokerTable(
+    defaultBuyIn: Long = 100,
+    smallBlind: Long = 5,
+    bigBlind: Long = 10,
+): Table = seatedTable(defaultBuyIn).apply {
+    accept(
+        SetConfig(
+            ANNA,
+            snapshot().config.copy(
+                mode = GameMode.POKER,
+                smallBlind = smallBlind,
+                bigBlind = bigBlind,
+            ),
+        ),
+    )
+}

@@ -212,3 +212,132 @@ data class StackAdjusted(
     override fun logArgs(): Map<String, String> =
         mapOf("amount" to (if (delta < 0) -delta else delta).toString())
 }
+
+// --------------------------------------------------------------- bank games
+
+/**
+ * Who is holding the bank. Null means nobody is, which is where a table starts
+ * and where it goes back to when the banker stands up.
+ */
+@Serializable
+@SerialName("banker_changed")
+data class BankerChanged(
+    val player: PlayerId?,
+    override val at: Long,
+) : TableEvent {
+    override val logKey: String get() = if (player == null) "log.banker_cleared" else "log.banker_changed"
+    override val logActor: PlayerId? get() = player
+}
+
+/** Chips put up for the hand about to be played. Out of the stack, not yet lost. */
+@Serializable
+@SerialName("stake_placed")
+data class StakePlaced(
+    val player: PlayerId,
+    val amount: Long,
+    override val at: Long,
+) : TableEvent {
+    override val logKey: String get() = "log.stake_placed"
+    override val logActor: PlayerId get() = player
+    override fun logArgs(): Map<String, String> = mapOf("amount" to amount.toString())
+}
+
+/** Taken back before the cards: a mistyped amount is not a bet. */
+@Serializable
+@SerialName("stake_returned")
+data class StakeReturned(
+    val player: PlayerId,
+    val amount: Long,
+    override val at: Long,
+) : TableEvent {
+    override val logKey: String get() = "log.stake_returned"
+    override val logActor: PlayerId get() = player
+    override fun logArgs(): Map<String, String> = mapOf("amount" to amount.toString())
+}
+
+/**
+ * One hand resolved against the bank.
+ *
+ * [stake] leaves the player's stake pile and [delta] moves between the banker
+ * and the player: negative when the bank takes it, positive when the bank pays.
+ * Both are written into the event rather than recomputed, so replaying an old
+ * ledger cannot be changed by today's payout setting or today's banker.
+ */
+@Serializable
+@SerialName("hand_settled")
+data class HandSettled(
+    val player: PlayerId,
+    val banker: PlayerId,
+    val outcome: HandOutcome,
+    val stake: Long,
+    val delta: Long,
+    override val at: Long,
+) : TableEvent {
+    override val logKey: String get() = when (outcome) {
+        HandOutcome.WIN -> "log.hand_won"
+        HandOutcome.LOSE -> "log.hand_lost"
+        HandOutcome.PUSH -> "log.hand_push"
+        HandOutcome.NATURAL -> "log.hand_natural"
+    }
+
+    override val logActor: PlayerId get() = player
+    override fun logArgs(): Map<String, String> = mapOf(
+        "amount" to (if (delta < 0) -delta else delta).toString(),
+        "stake" to stake.toString(),
+    )
+}
+
+// -------------------------------------------------------------------- poker
+
+/** A blind posted at the start of a hand. */
+@Serializable
+data class Blind(val player: PlayerId, val amount: Long)
+
+/**
+ * A new hand: the button moves, the blinds go in, and everything the previous
+ * hand left behind is cleared.
+ */
+@Serializable
+@SerialName("hand_started")
+data class HandStarted(
+    val button: Int,
+    val blinds: List<Blind> = emptyList(),
+    override val at: Long,
+) : TableEvent {
+    override val logKey: String get() = "log.hand_started"
+    override fun logArgs(): Map<String, String> = mapOf("seat" to (button + 1).toString())
+}
+
+@Serializable
+@SerialName("player_folded")
+data class PlayerFolded(
+    val player: PlayerId,
+    override val at: Long,
+) : TableEvent {
+    override val logKey: String get() = "log.player_folded"
+    override val logActor: PlayerId get() = player
+}
+
+/** The end of a betting round: what was matched is matched, and it starts again at zero. */
+@Serializable
+@SerialName("round_closed")
+data class RoundClosed(
+    override val at: Long,
+) : TableEvent {
+    override val logKey: String get() = "log.round_closed"
+}
+
+/**
+ * The pot split into the pots that can actually be won, computed from what each
+ * player put in. A player who is all-in for less than the others can only win
+ * as much as they matched, and this is where that becomes real chips.
+ */
+@Serializable
+@SerialName("pots_split")
+data class PotsSplit(
+    val pots: List<Pot>,
+    override val at: Long,
+) : TableEvent {
+    override val logKey: String get() = "log.pots_split"
+    override fun logArgs(): Map<String, String> = mapOf("count" to pots.size.toString())
+}

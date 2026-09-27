@@ -31,12 +31,14 @@ computes nothing that matters.
 | `hostCommand` | `command` | something only the host may do |
 
 `action` is one of `bet` (`amount`, `pot`), `rebuy` (`amount`), `transfer`
-(`to`, `amount`), `rename` (`name`), `stand_up`.
+(`to`, `amount`), `rename` (`name`), `stand_up`, `stake` (`amount`, bank games),
+`cancel_stake` (bank games), `fold` (poker).
 
 `hostCommand` is one of `award_pot` (`to`, `pot`, `amount?` — null means the
 whole pot), `adjust_stack` (`player`, `delta`), `create_pot` (`name?`),
 `set_config` (`config`), `kick` (`player`), `transfer_seat` (`from`, `to`),
-`undo`.
+`set_banker` (`player`, bank games), `settle` (`player`, `outcome`, `amount?`,
+bank games), `start_hand`, `close_round`, `split_pots` (poker), `undo`.
 
 **No frame carries the id of who sent it.** The server takes that from the
 connection, so a client cannot act on behalf of another player by editing a
@@ -71,6 +73,33 @@ learns it from the `you` field of the first `state`.
 Connection state is **not** part of the ledger: `connected` on a player is
 presence, it never lands on the undo stack, and undoing a move never changes who
 is online. Losing a phone to a dead battery must not be undoable.
+
+## Games
+
+`config.mode` decides which moves mean anything: `manual`, `seven_half`,
+`blackjack`, `poker`. The app deals no cards in any of them — what changes with
+the mode is the shape of the money.
+
+**Bank games** (`seven_half`, `blackjack`). One seated player holds the bank
+(`state.banker`). Everybody else puts chips up with `stake`; those chips leave
+the stack and sit in `player.stake`, on the table but nobody's yet. The host
+ends each hand with `settle`, whose `outcome` is `win`, `lose`, `push` or
+`natural`; `natural` is paid at `config.naturalPays` (3:2 for blackjack, usually
+2:1 for set i mig), rounded down. Settling part of a stake is how a split hand
+is expressed: two outcomes over one pile. The bank must be able to cover what it
+owes, or the command is refused.
+
+**Poker.** `start_hand` moves the button, posts `config.smallBlind` and
+`config.bigBlind` (capped by the stacks behind them) and clears the last hand.
+A bet also adds to `player.committed` and `player.roundBet`, so `state.currentBet`
+minus a player's `roundBet` is what a call costs. `close_round` ends a street,
+`fold` takes somebody out of the hand, and `split_pots` cuts the pot into the
+pots that can actually be won: each `Pot` then carries `eligible`, and chips
+nobody could call come back as a pot only their owner may be given.
+
+Whose turn it is is deliberately not modelled. At a real table that is settled
+by the people sitting at it, and software that disagreed with them would only
+get in the way.
 
 ## Persistence
 

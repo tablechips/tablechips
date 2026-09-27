@@ -229,6 +229,12 @@ button[disabled] { opacity: .4; cursor: default; }
 .rowBtn { height: 48px; padding: 0 13px; border-radius: 10px; background: var(--surfaceHigh);
           font-size: 13px; flex: none; }
 .rowBtn.want { border-color: var(--lineAccent); color: var(--warn); }
+.handCard { background: var(--surface); border: 1px solid var(--lineAccent); border-radius: 11px;
+            padding: 11px 12px; display: flex; flex-direction: column; gap: 9px; }
+.handCard .hrow { background: none; border: 0; padding: 0; }
+.handBtns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.handBtns .rowBtn { width: 100%; height: 44px; padding: 0 6px; }
+.pills { flex-wrap: wrap; }
 
 .undoCard { background: var(--surfaceHigh); border: 1px solid var(--lineAccent); border-radius: 13px;
             padding: 14px 15px; display: flex; align-items: center; gap: 12px; }
@@ -449,9 +455,22 @@ button[disabled] { opacity: .4; cursor: default; }
       <div class="cap" data-i18n="hostPanel.players"></div>
       <div class="rows" id="hostRows"></div>
     </div>
+    <div class="rows" id="handsBlock" hidden>
+      <div class="cap" data-i18n="bank.hands"></div>
+      <div class="rows" id="handRows"></div>
+    </div>
+    <div class="rows" id="pokerBlock" hidden>
+      <div class="cap" data-i18n="mode.poker"></div>
+      <div class="rows" id="pokerRows"></div>
+    </div>
     <div class="rows">
       <div class="cap" id="seatsCap" data-i18n="seats.title"></div>
       <div class="rows" id="seatRows"></div>
+    </div>
+    <div class="rows">
+      <div class="cap" data-i18n="game.title"></div>
+      <div class="pills" id="modePills"></div>
+      <div class="rows" id="gameSettings"></div>
     </div>
     <div class="rows">
       <div class="cap" data-i18n="hostPanel.buyIn"></div>
@@ -588,7 +607,46 @@ const DICT = {
     "error.not_joined": "Primer has d'entrar a la taula",
     "error.wrong_room": "Aquest codi és d'una altra taula",
     "error.kicked": "L'amfitrió t'ha llevat el lloc",
-    modes: { manual: { "pot": "Pot", "pot.main": "pot" } }
+    "error.wrong_mode": "Això no es fa en aquest joc",
+    "error.no_banker": "Encara no hi ha ningú amb la banca",
+    "error.banker_cannot_bet": "Qui té la banca no aposta",
+    "error.no_stake": "No hi ha cap aposta per resoldre",
+    "error.nothing_to_split": "Aquest pot no s'ha de dividir",
+    "error.not_enough_players": "Falta gent per començar",
+    "mode.manual": "Manual", "mode.seven_half": "Set i mig",
+    "mode.blackjack": "Blackjack", "mode.poker": "Pòquer",
+    "game.title": "Joc", "game.sub": "%s · canvia'l quan vulgues",
+    "bank.title": "La banca", "bank.none": "Ningú", "bank.you": "Tens la banca",
+    "bank.youSub": "Els altres juguen contra tu. Resol cada mà des del panell.",
+    "bank.holder": "Banca: %s", "bank.need": "Ningú no té la banca encara",
+    "bank.yourStake": "La teua aposta", "bank.stake": "Apostar",
+    "bank.cancel": "Retirar l'aposta", "bank.hands": "Mans per resoldre",
+    "bank.noHands": "Encara no ha apostat ningú",
+    "bank.win": "Guanya", "bank.lose": "Perd", "bank.push": "Empat", "bank.natural": "Natural",
+    "bank.pays": "La natural paga", "bank.stakeTitle": "Quant apostes?",
+    "poker.call": "Igualar %s", "poker.bet": "Apostar", "poker.raise": "Pujar",
+    "poker.fold": "Retirar-se", "poker.folded": "Estàs fora d'aquesta mà",
+    "poker.toCall": "Per igualar", "poker.newHand": "Mà nova",
+    "poker.closeRound": "Tancar la ronda", "poker.split": "Dividir el pot",
+    "poker.blinds": "Cegues", "poker.blindsSub": "Escriu la cega gran: la petita és la meitat", "poker.blindsNow": "%s / %s · toca per canviar-les",
+    "poker.button": "Repartidor", "poker.sidePot": "Pot lateral %s",
+    "poker.onlyEligible": "Només qui hi juga pot endur-se aquest pot",
+    "poker.foldedTag": "retirat", "poker.allIn": "all-in",
+    "log.banker_changed": "ha agafat la banca", "log.banker_cleared": "la banca queda lliure",
+    "log.stake_placed": "ha apostat %{amount}", "log.stake_returned": "ha retirat %{amount}",
+    "log.hand_won": "ha guanyat %{amount} a la banca",
+    "log.hand_lost": "ha perdut %{amount} contra la banca",
+    "log.hand_push": "empat amb la banca",
+    "log.hand_natural": "natural! ha guanyat %{amount}",
+    "log.hand_started": "mà nova · repartidor al lloc %{seat}",
+    "log.player_folded": "s'ha retirat", "log.round_closed": "fi de la ronda",
+    "log.pots_split": "el pot es divideix en %{count}",
+    modes: {
+      manual: { "pot": "Pot", "pot.main": "pot" },
+      seven_half: { "bank.natural": "Set i mig", "pot": "Pot", "pot.main": "pot" },
+      blackjack: { "bank.natural": "Blackjack", "pot": "Pot", "pot.main": "pot" },
+      poker: { "pot": "Pot", "pot.main": "pot principal", "action.bet": "Apostar" }
+    }
   },
   es: {
     "home.tagline": "Fichas para partidas presenciales. Sin internet, sin cuentas.",
@@ -658,7 +716,46 @@ const DICT = {
     "error.not_joined": "Primero entra en la mesa",
     "error.wrong_room": "Ese código es de otra mesa",
     "error.kicked": "El anfitrión te ha quitado el puesto",
-    modes: { manual: { "pot": "Bote", "pot.main": "bote" } }
+    "error.wrong_mode": "Eso no se hace en este juego",
+    "error.no_banker": "Todavía no hay nadie con la banca",
+    "error.banker_cannot_bet": "Quien tiene la banca no apuesta",
+    "error.no_stake": "No hay ninguna apuesta que resolver",
+    "error.nothing_to_split": "Este bote no hay que dividirlo",
+    "error.not_enough_players": "Falta gente para empezar",
+    "mode.manual": "Manual", "mode.seven_half": "Siete y media",
+    "mode.blackjack": "Blackjack", "mode.poker": "Póquer",
+    "game.title": "Juego", "game.sub": "%s · cámbialo cuando quieras",
+    "bank.title": "La banca", "bank.none": "Nadie", "bank.you": "Tienes la banca",
+    "bank.youSub": "Los demás juegan contra ti. Resuelve cada mano desde el panel.",
+    "bank.holder": "Banca: %s", "bank.need": "Nadie tiene la banca todavía",
+    "bank.yourStake": "Tu apuesta", "bank.stake": "Apostar",
+    "bank.cancel": "Retirar la apuesta", "bank.hands": "Manos por resolver",
+    "bank.noHands": "Todavía no ha apostado nadie",
+    "bank.win": "Gana", "bank.lose": "Pierde", "bank.push": "Empate", "bank.natural": "Natural",
+    "bank.pays": "La natural paga", "bank.stakeTitle": "¿Cuánto apuestas?",
+    "poker.call": "Igualar %s", "poker.bet": "Apostar", "poker.raise": "Subir",
+    "poker.fold": "Retirarse", "poker.folded": "Estás fuera de esta mano",
+    "poker.toCall": "Para igualar", "poker.newHand": "Mano nueva",
+    "poker.closeRound": "Cerrar la ronda", "poker.split": "Dividir el bote",
+    "poker.blinds": "Ciegas", "poker.blindsSub": "Escribe la ciega grande: la pequeña es la mitad", "poker.blindsNow": "%s / %s · toca para cambiarlas",
+    "poker.button": "Repartidor", "poker.sidePot": "Bote lateral %s",
+    "poker.onlyEligible": "Solo quien sigue en la mano puede llevarse este bote",
+    "poker.foldedTag": "retirado", "poker.allIn": "all-in",
+    "log.banker_changed": "ha cogido la banca", "log.banker_cleared": "la banca queda libre",
+    "log.stake_placed": "ha apostado %{amount}", "log.stake_returned": "ha retirado %{amount}",
+    "log.hand_won": "ha ganado %{amount} a la banca",
+    "log.hand_lost": "ha perdido %{amount} contra la banca",
+    "log.hand_push": "empate con la banca",
+    "log.hand_natural": "¡natural! ha ganado %{amount}",
+    "log.hand_started": "mano nueva · repartidor en el puesto %{seat}",
+    "log.player_folded": "se ha retirado", "log.round_closed": "fin de la ronda",
+    "log.pots_split": "el bote se divide en %{count}",
+    modes: {
+      manual: { "pot": "Bote", "pot.main": "bote" },
+      seven_half: { "bank.natural": "Siete y media", "pot": "Bote", "pot.main": "bote" },
+      blackjack: { "bank.natural": "Blackjack", "pot": "Bote", "pot.main": "bote" },
+      poker: { "pot": "Bote", "pot.main": "bote principal", "action.bet": "Apostar" }
+    }
   },
   en: {
     "home.tagline": "Chips for in-person games. No internet, no accounts.",
@@ -728,7 +825,46 @@ const DICT = {
     "error.not_joined": "Join the table first",
     "error.wrong_room": "That code is from another table",
     "error.kicked": "The host closed your seat",
-    modes: { manual: { "pot": "Pot", "pot.main": "main pot" } }
+    "error.wrong_mode": "That is not part of this game",
+    "error.no_banker": "Nobody is holding the bank yet",
+    "error.banker_cannot_bet": "The bank does not bet against itself",
+    "error.no_stake": "There is no stake to settle",
+    "error.nothing_to_split": "This pot does not need splitting",
+    "error.not_enough_players": "Not enough players yet",
+    "mode.manual": "Manual", "mode.seven_half": "Seven and a half",
+    "mode.blackjack": "Blackjack", "mode.poker": "Poker",
+    "game.title": "Game", "game.sub": "%s · change it whenever",
+    "bank.title": "The bank", "bank.none": "Nobody", "bank.you": "You hold the bank",
+    "bank.youSub": "Everybody plays against you. Settle each hand from the panel.",
+    "bank.holder": "Bank: %s", "bank.need": "Nobody holds the bank yet",
+    "bank.yourStake": "Your stake", "bank.stake": "Stake",
+    "bank.cancel": "Take the stake back", "bank.hands": "Hands to settle",
+    "bank.noHands": "Nobody has staked yet",
+    "bank.win": "Wins", "bank.lose": "Loses", "bank.push": "Push", "bank.natural": "Natural",
+    "bank.pays": "A natural pays", "bank.stakeTitle": "How much do you stake?",
+    "poker.call": "Call %s", "poker.bet": "Bet", "poker.raise": "Raise",
+    "poker.fold": "Fold", "poker.folded": "You are out of this hand",
+    "poker.toCall": "To call", "poker.newHand": "New hand",
+    "poker.closeRound": "Close the round", "poker.split": "Split the pot",
+    "poker.blinds": "Blinds", "poker.blindsSub": "Type the big blind: the small one is half of it", "poker.blindsNow": "%s / %s · tap to change them",
+    "poker.button": "Dealer", "poker.sidePot": "Side pot %s",
+    "poker.onlyEligible": "Only players still in the hand can take this pot",
+    "poker.foldedTag": "folded", "poker.allIn": "all-in",
+    "log.banker_changed": "took the bank", "log.banker_cleared": "the bank is free again",
+    "log.stake_placed": "staked %{amount}", "log.stake_returned": "took back %{amount}",
+    "log.hand_won": "won %{amount} from the bank",
+    "log.hand_lost": "lost %{amount} to the bank",
+    "log.hand_push": "pushed with the bank",
+    "log.hand_natural": "natural! won %{amount}",
+    "log.hand_started": "new hand · dealer at seat %{seat}",
+    "log.player_folded": "folded", "log.round_closed": "end of the round",
+    "log.pots_split": "the pot splits into %{count}",
+    modes: {
+      manual: { "pot": "Pot", "pot.main": "main pot" },
+      seven_half: { "bank.natural": "Seven and a half", "pot": "Pot", "pot.main": "pot" },
+      blackjack: { "bank.natural": "Blackjack", "pot": "Pot", "pot.main": "pot" },
+      poker: { "pot": "Pot", "pot.main": "main pot", "action.bet": "Bet" }
+    }
   }
 };
 
@@ -931,7 +1067,25 @@ function seated() { const p = mine(); return !!p && p.seat !== null; }
 function seatedPlayers() {
   return state ? state.players.filter((p) => p.seat !== null).sort((a, b) => a.seat - b.seat) : [];
 }
-function potName(pot) { return pot.name || (pot.id === "main" ? t("pot.main") : pot.id); }
+function potName(pot) {
+  if (pot.name) return pot.name;
+  if (pot.id === "main") return t("pot.main");
+  if (mode === "poker") return t("poker.sidePot", fmt(Number(pot.id.split("-")[1] || 1)));
+  return pot.id;
+}
+function bankGame() { return mode === "seven_half" || mode === "blackjack"; }
+function banker() { return state && state.banker ? player(state.banker) : undefined; }
+function iAmBanker() { return !!me && !!state && state.banker === me; }
+function toCall(who) {
+  if (!state || !who) return 0;
+  return Math.max(0, (state.currentBet || 0) - (who.roundBet || 0));
+}
+/** Who may be given this pot: everybody, or only those still in the hand. */
+function eligibleFor(pot) {
+  const seats = seatedPlayers();
+  if (!pot.eligible) return mode === "poker" ? seats.filter((p) => !p.folded) : seats;
+  return pot.eligible.map((id) => player(id)).filter(Boolean);
+}
 function potTotal() { return state ? state.pots.reduce((sum, pot) => sum + pot.amount, 0) : 0; }
 function currentPot() {
   if (!state) return null;
@@ -1036,6 +1190,7 @@ function renderTable() {
 }
 
 function renderPots() {
+  if (bankGame()) { renderBankMetrics(); return; }
   const pots = state.pots;
   const cards = pots.map((pot) => {
     const node = el(pots.length > 1 ? "button" : "div", "card metric");
@@ -1049,6 +1204,58 @@ function renderPots() {
     }
     return node;
   });
+  if (mode === "poker") {
+    const owed = toCall(mine());
+    if (seated() && owed > 0) {
+      const card = el("div", "card metric");
+      card.append(el("div", "cap", t("poker.toCall")));
+      const value = el("div", "v");
+      figure(value, fmt(owed));
+      card.append(value);
+      cards.push(card);
+    }
+  }
+  document.getElementById("pots").replaceChildren(...cards);
+}
+
+/**
+ * In a game with a bank there is no pot: what matters is what you have up for
+ * this hand, and who you are playing it against.
+ */
+function renderBankMetrics() {
+  const cards = [];
+  const who = mine();
+  // A bank game has no pot, but chips left in one from another game are still
+  // chips: never hide them.
+  if (potTotal() > 0) {
+    const pot = el("div", "card metric");
+    pot.append(el("div", "cap", t("pot")));
+    const amount = el("div", "v");
+    figure(amount, fmt(potTotal()));
+    pot.append(amount);
+    cards.push(pot);
+  }
+  if (who && who.seat !== null && !iAmBanker()) {
+    const stake = el("div", "card metric" + (who.stake > 0 ? " sel" : ""));
+    stake.append(el("div", "cap", t("bank.yourStake")));
+    const value = el("div", "v");
+    figure(value, fmt(who.stake || 0));
+    stake.append(value);
+    cards.push(stake);
+  }
+  const bank = el("div", "card metric");
+  bank.append(el("div", "cap", t("bank.title")));
+  const held = banker();
+  const value = el("div", "v");
+  if (held) {
+    value.style.fontSize = "19px";
+    value.textContent = iAmBanker() ? t("bank.you") : held.name;
+  } else {
+    value.style.fontSize = "15px";
+    value.textContent = t("bank.none");
+  }
+  bank.append(value);
+  cards.push(bank);
   document.getElementById("pots").replaceChildren(...cards);
 }
 
@@ -1090,6 +1297,12 @@ function seatRow(seat, who) {
   const name = el("span", "pname" + (who.id === me ? " self" : ""), who.name);
   row.append(dot, name);
   if (who.isHost) row.append(el("span", "ptag", t("host.role")));
+  if (bankGame() && state.banker === who.id) row.append(el("span", "ptag", t("bank.title")));
+  if (mode === "poker") {
+    if (state.button === seat) row.append(el("span", "ptag", t("poker.button")));
+    if (who.folded) row.append(el("span", "ptag", t("poker.foldedTag")));
+    else if (who.stack === 0 && who.committed > 0) row.append(el("span", "ptag bad", t("poker.allIn")));
+  }
   if (!who.connected) row.append(el("span", "ptag bad", t("player.gone")));
   row.append(el("span", "pchips", fmt(who.stack)));
   return row;
@@ -1122,23 +1335,94 @@ function watcherRow(who) {
 function renderTableActions() {
   const bar = document.getElementById("tableActions");
   const nodes = [];
-  if (seated()) {
+  if (!seated()) {
+    const sit = el("button", "primary", t("sit.action"));
+    sit.onclick = () => askBuyIn(null);
+    bar.replaceChildren(sit);
+    return;
+  }
+  const who = mine();
+  if (bankGame()) nodes.push(...bankActions(who));
+  else if (mode === "poker") nodes.push(...pokerActions(who));
+  else {
     const bet = el("button", "primary");
     bet.append(el("span", null, t("action.bet")));
     bet.onclick = () => openBet();
     nodes.push(bet);
-    const row = el("div", "row");
-    row.append(
-      action(t("action.rebuy"), () => openRebuy()),
-      action(t("action.stand"), () => act({ type: "stand_up" }))
-    );
-    nodes.push(row);
-  } else {
-    const sit = el("button", "primary", t("sit.action"));
-    sit.onclick = () => askBuyIn(null);
-    nodes.push(sit);
   }
+  const row = el("div", "row");
+  row.append(
+    action(t("action.rebuy"), () => openRebuy()),
+    action(t("action.stand"), () => act({ type: "stand_up" }))
+  );
+  nodes.push(row);
   bar.replaceChildren(...nodes);
+}
+
+/** Stake against the bank, or hold it and wait for the others. */
+function bankActions(who) {
+  if (iAmBanker()) {
+    const note = el("div", "note");
+    note.append(el("span", "bang"), el("span", "txt", t("bank.youSub")));
+    return [note];
+  }
+  if (!state.banker) {
+    const note = el("div", "note");
+    note.append(el("span", "bang"), el("span", "txt", t("bank.need")));
+    return [note];
+  }
+  const stake = el("button", "primary");
+  stake.append(el("span", null, t("bank.stake")));
+  stake.onclick = () => openStake();
+  const nodes = [stake];
+  if (who.stake > 0) {
+    const row = el("div", "row");
+    row.append(action(t("bank.cancel"), () => act({ type: "cancel_stake" }), "want"));
+    nodes.push(row);
+  }
+  return nodes;
+}
+
+/**
+ * Call, raise, fold. What a call costs is the one number nobody at a real table
+ * agrees on, so the button carries it.
+ */
+function pokerActions(who) {
+  if (who.folded) {
+    const note = el("div", "note");
+    note.append(el("span", "bang"), el("span", "txt", t("poker.folded")));
+    return [note];
+  }
+  const owed = toCall(who);
+  const first = el("button", "primary");
+  if (owed > 0) {
+    const label = el("span", null);
+    fill(label, "poker.call", num(fmt(Math.min(owed, who.stack))));
+    first.append(label);
+    first.onclick = () => act({ type: "bet", amount: Math.min(owed, who.stack), pot: "main" });
+    first.disabled = who.stack <= 0;
+  } else {
+    first.append(el("span", null, t("poker.bet")));
+    first.onclick = () => openBet();
+  }
+  const row = el("div", "row");
+  row.append(
+    action(owed > 0 ? t("poker.raise") : t("action.bet"), () => openBet()),
+    action(t("poker.fold"), () => act({ type: "fold" }), "danger")
+  );
+  return [first, row];
+}
+
+function openStake() {
+  const who = mine();
+  openAmount({
+    title: t("bank.stakeTitle"), sub: ["bet.sub", num(fmt(who.stack))],
+    confirm: t("bank.stake"), max: who.stack,
+    initial: who.stake > 0 ? undefined : state.config.defaultBuyIn / 10 | 0,
+    rest: (value) => ({ label: t("amount.remaining"), value: who.stack - value,
+                        bad: value > who.stack }),
+    run: (value) => act({ type: "stake", amount: value })
+  });
 }
 
 function action(label, onClick, className) {
@@ -1287,7 +1571,7 @@ function renderHost() {
   figure(document.getElementById("awardPot"), fmt(pot ? pot.amount : 0));
 
   const amount = pendingSplit === null ? (pot ? pot.amount : 0) : pendingSplit;
-  const rows = seatedPlayers().map((who) => {
+  const rows = (pot ? eligibleFor(pot) : seatedPlayers()).map((who) => {
     const button = el("button", "awardBtn");
     button.append(el("span", null, t("hostPanel.wins", who.name)), el("span", "g", signed(amount)));
     button.disabled = amount <= 0;
@@ -1334,9 +1618,177 @@ function renderHost() {
   });
   document.getElementById("hostRows").replaceChildren(...playerRows);
   renderSeatAdmin();
+  renderHands();
+  renderPokerPanel();
+  renderGameSettings();
 
   fill(document.getElementById("buyInBtn"), "hostPanel.buyInNow",
        num(fmt(state.config.defaultBuyIn)));
+}
+
+/**
+ * The bank's side of a hand: one row per player with chips up, and the four
+ * ways it can end. The app never sees the cards, so this is the host saying
+ * what happened, not the app deciding it.
+ */
+function renderHands() {
+  const block = document.getElementById("handsBlock");
+  block.hidden = !bankGame();
+  if (block.hidden) return;
+  const rows = [];
+  const held = banker();
+  const bank = el("div", "hrow");
+  const bankWho = el("div", "who");
+  bankWho.append(el("div", "n", t("bank.title")));
+  bankWho.append(el("div", "s", held ? held.name : t("bank.none")));
+  bank.append(bankWho);
+  const pass = el("button", "rowBtn", t("seats.hand"));
+  pass.onclick = () => { pickingBanker = !pickingBanker; renderHands(); };
+  bank.append(pass);
+  rows.push(bank);
+  if (pickingBanker) {
+    document.getElementById("handRows").replaceChildren(bank, ...bankerPicker());
+    return;
+  }
+
+  const staked = state.players.filter((p) => p.stake > 0);
+  if (!staked.length) {
+    const note = el("div", "note");
+    note.append(el("span", "bang"), el("span", "txt", t("bank.noHands")));
+    rows.push(note);
+  }
+  staked.forEach((who) => {
+    const card = el("div", "handCard");
+    const head = el("div", "hrow");
+    const block = el("div", "who");
+    block.append(el("div", "n", who.name));
+    const line = el("div", "s");
+    line.append(el("span", "num", fmt(who.stake)));
+    block.append(line);
+    head.append(block);
+    card.append(head);
+    const buttons = el("div", "handBtns");
+    [["win", "bank.win"], ["natural", "bank.natural"],
+     ["push", "bank.push"], ["lose", "bank.lose"]].forEach(([outcome, key]) => {
+      const button = el("button", "rowBtn" + (outcome === "lose" ? " danger" : ""), t(key));
+      button.onclick = () => hostCommand({ type: "settle", player: who.id, outcome: outcome });
+      buttons.append(button);
+    });
+    card.append(buttons);
+    rows.push(card);
+  });
+  document.getElementById("handRows").replaceChildren(...rows);
+}
+
+/** The bank row opens into the names it can be handed to, and to nobody. */
+let pickingBanker = false;
+
+function bankerPicker() {
+  const rows = [];
+  seatedPlayers().forEach((who) => {
+    const row = el("div", "hrow");
+    const block = el("div", "who");
+    block.append(el("div", "n", who.name));
+    const line = el("div", "s");
+    line.append(el("span", "num", fmt(who.stack)));
+    block.append(line);
+    row.append(block);
+    const take = el("button", "rowBtn" + (state.banker === who.id ? " want" : ""), t("seats.take"));
+    take.onclick = () => {
+      pickingBanker = false;
+      hostCommand({ type: "set_banker", player: who.id });
+    };
+    row.append(take);
+    rows.push(row);
+  });
+  const none = el("button", "secondary", t("bank.none"));
+  none.style.cssText = "height:48px;font-size:14px";
+  none.onclick = () => {
+    pickingBanker = false;
+    hostCommand({ type: "set_banker", player: null });
+  };
+  rows.push(none);
+  return rows;
+}
+
+/** Running a hand of poker: the button, the streets, and the side pots. */
+function renderPokerPanel() {
+  const block = document.getElementById("pokerBlock");
+  block.hidden = mode !== "poker";
+  if (block.hidden) return;
+  const rows = [];
+  const newHand = el("button", "secondary", t("poker.newHand"));
+  newHand.style.cssText = "height:52px;font-size:15px";
+  newHand.onclick = () => hostCommand({ type: "start_hand" });
+  rows.push(newHand);
+
+  const pair = el("div", "row");
+  const close = el("button", "secondary", t("poker.closeRound"));
+  close.style.cssText = "height:52px;font-size:14px";
+  close.onclick = () => hostCommand({ type: "close_round" });
+  const split = el("button", "secondary", t("poker.split"));
+  split.style.cssText = "height:52px;font-size:14px";
+  split.onclick = () => hostCommand({ type: "split_pots" });
+  pair.append(close, split);
+  rows.push(pair);
+
+  const blinds = el("button", "secondary");
+  blinds.style.cssText = "height:52px;font-size:14px";
+  fill(blinds, "poker.blindsNow", num(fmt(state.config.smallBlind)), num(fmt(state.config.bigBlind)));
+  blinds.onclick = () => askBlinds();
+  rows.push(blinds);
+  document.getElementById("pokerRows").replaceChildren(...rows);
+}
+
+function askBlinds() {
+  openAmount({
+    title: t("poker.blinds"), sub: ["poker.blindsSub"],
+    confirm: t("buyIn.confirm"),
+    initial: state.config.bigBlind || (state.config.defaultBuyIn / 50 | 0),
+    allowZero: true,
+    rest: (value) => ({ label: t("poker.blinds"), value: value / 2 | 0 }),
+    // One number to type: the big blind. The small one is half of it, which is
+    // what it is at every table that does not say otherwise.
+    run: (value) => hostCommand({
+      type: "set_config",
+      config: Object.assign({}, state.config, { bigBlind: value, smallBlind: value / 2 | 0 })
+    }),
+    back: "host"
+  });
+}
+
+/** Which game this table is playing, and the one setting that game needs. */
+function renderGameSettings() {
+  const pills = ["manual", "seven_half", "blackjack", "poker"].map((name) => {
+    const pill = el("button", "pill" + (mode === name ? " on" : ""), t("mode." + name));
+    pill.onclick = () => {
+      if (mode === name) return;
+      hostCommand({ type: "set_config", config: Object.assign({}, state.config, { mode: name }) });
+    };
+    return pill;
+  });
+  document.getElementById("modePills").replaceChildren(...pills);
+
+  const rows = [];
+  if (bankGame()) {
+    const cap = el("div", "cap", t("bank.pays"));
+    rows.push(cap);
+    const row = el("div", "pills");
+    [[1, 1], [3, 2], [2, 1]].forEach(([numerator, denominator]) => {
+      const pays = state.config.naturalPays || { numerator: 3, denominator: 2 };
+      const on = pays.numerator === numerator && pays.denominator === denominator;
+      const pill = el("button", "pill" + (on ? " on" : ""), numerator + ":" + denominator);
+      pill.onclick = () => hostCommand({
+        type: "set_config",
+        config: Object.assign({}, state.config, {
+          naturalPays: { numerator: numerator, denominator: denominator }
+        })
+      });
+      row.append(pill);
+    });
+    rows.push(row);
+  }
+  document.getElementById("gameSettings").replaceChildren(...rows);
 }
 
 /**

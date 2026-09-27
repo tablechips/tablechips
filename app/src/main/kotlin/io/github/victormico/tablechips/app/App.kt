@@ -36,11 +36,19 @@ import io.github.victormico.tablechips.protocol.Action
 import io.github.victormico.tablechips.protocol.AdjustStackCommand
 import io.github.victormico.tablechips.protocol.AwardPotCommand
 import io.github.victormico.tablechips.protocol.BetAction
+import io.github.victormico.tablechips.protocol.CancelStakeAction
+import io.github.victormico.tablechips.protocol.CloseRoundCommand
+import io.github.victormico.tablechips.protocol.FoldAction
 import io.github.victormico.tablechips.protocol.CreatePotCommand
 import io.github.victormico.tablechips.protocol.HostCommandMessage
 import io.github.victormico.tablechips.protocol.KickCommand
 import io.github.victormico.tablechips.protocol.RebuyAction
+import io.github.victormico.tablechips.protocol.SetBankerCommand
 import io.github.victormico.tablechips.protocol.SetConfigCommand
+import io.github.victormico.tablechips.protocol.SettleCommand
+import io.github.victormico.tablechips.protocol.SplitPotsCommand
+import io.github.victormico.tablechips.protocol.StakeAction
+import io.github.victormico.tablechips.protocol.StartHandCommand
 import io.github.victormico.tablechips.protocol.Sit
 import io.github.victormico.tablechips.protocol.StandUpAction
 import io.github.victormico.tablechips.protocol.TableConnection
@@ -62,6 +70,10 @@ private class AppTexts(
     val amountResulting: String,
     val betSub: String,
     val betTitle: String,
+    val bankStake: String,
+    val bankStakeTitle: String,
+    val pokerBlinds: String,
+    val pokerBlindsSub: String,
     val buyInConfirm: String,
     val buyInSub: String,
     val giveTitle: String,
@@ -87,6 +99,10 @@ private fun appTexts(): AppTexts = AppTexts(
     amountResulting = stringResource(R.string.amount_resulting),
     betSub = stringResource(R.string.bet_sub),
     betTitle = stringResource(R.string.bet_title),
+    bankStake = stringResource(R.string.bank_stake),
+    bankStakeTitle = stringResource(R.string.bank_stake_title),
+    pokerBlinds = stringResource(R.string.poker_blinds),
+    pokerBlindsSub = stringResource(R.string.poker_blinds_sub),
     buyInConfirm = stringResource(R.string.buy_in_confirm),
     buyInSub = stringResource(R.string.buy_in_sub),
     giveTitle = stringResource(R.string.give_title),
@@ -332,6 +348,28 @@ fun App(
                     )
                 },
                 onStand = { Session.act(Action(StandUpAction)) },
+                onStake = {
+                    val me = state.me ?: return@TableScreen
+                    openAmount(
+                        AmountRequest(
+                            title = texts.bankStakeTitle,
+                            subtitle = texts.betSub.format(chips(me.stack)),
+                            confirm = texts.bankStake,
+                            max = me.stack,
+                            restLabel = texts.amountRemaining,
+                            rest = { me.stack - it },
+                            onConfirm = { amount ->
+                                Session.act(Action(StakeAction(amount)))
+                                back()
+                            },
+                        ),
+                    )
+                },
+                onCancelStake = { Session.act(Action(CancelStakeAction)) },
+                // A call goes into the pot being played for, not into whichever
+                // side pot the screen happens to be showing.
+                onCall = { amount -> Session.act(Action(BetAction(amount, MAIN_POT))) },
+                onFold = { Session.act(Action(FoldAction)) },
                 onSit = {
                     openAmount(
                         AmountRequest(
@@ -451,6 +489,48 @@ fun App(
                     )
                 },
                 onSeats = { screen = Screen.Seats },
+                onBanker = { player -> Session.act(HostCommandMessage(SetBankerCommand(player?.id))) },
+                onSettle = { player, outcome ->
+                    Session.act(HostCommandMessage(SettleCommand(player.id, outcome)))
+                },
+                onMode = { mode ->
+                    val config = table?.config ?: return@HostPanelScreen
+                    Session.act(HostCommandMessage(SetConfigCommand(config.copy(mode = mode))))
+                },
+                onNaturalPays = { pays ->
+                    val config = table?.config ?: return@HostPanelScreen
+                    Session.act(HostCommandMessage(SetConfigCommand(config.copy(naturalPays = pays))))
+                },
+                onNewHand = { Session.act(HostCommandMessage(StartHandCommand)) },
+                onCloseRound = { Session.act(HostCommandMessage(CloseRoundCommand)) },
+                onSplitPots = { Session.act(HostCommandMessage(SplitPotsCommand)) },
+                onBlinds = {
+                    val config = table?.config ?: return@HostPanelScreen
+                    openAmount(
+                        AmountRequest(
+                            title = texts.pokerBlinds,
+                            subtitle = texts.pokerBlindsSub,
+                            confirm = texts.buyInConfirm,
+                            initial = config.bigBlind.takeIf { it > 0 },
+                            allowZero = true,
+                            restLabel = texts.pokerBlinds,
+                            rest = { it / 2 },
+                            onConfirm = { amount ->
+                                // One number to type: the big blind. The small
+                                // one is half of it, as at any table that does
+                                // not say otherwise.
+                                Session.act(
+                                    HostCommandMessage(
+                                        SetConfigCommand(
+                                            config.copy(bigBlind = amount, smallBlind = amount / 2),
+                                        ),
+                                    ),
+                                )
+                                screen = Screen.HostPanel
+                            },
+                        ),
+                    )
+                },
                 onLog = { screen = Screen.Log },
                 onClose = if (hostStatus.running) ({ asking = Ask.CloseTable }) else null,
                 onBack = { screen = Screen.Table },
