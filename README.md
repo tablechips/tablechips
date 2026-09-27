@@ -125,7 +125,9 @@ Phases, as laid out in the plan:
       and the host connected to its own table over localhost like anybody else.
       Joining by typing an address; scanning a QR waits for F5, which is where
       the code that produces one lives.
-- [ ] **F5 — Link bridge.** QR, `/join` page, intent URI, custom scheme.
+- [x] **F5 — Link bridge.** The host shows a code, `/join` bridges to the app
+      or to the browser, and the app scans one itself — with no Play Services,
+      so F-Droid stays possible. See [docs/deeplinks.md](docs/deeplinks.md).
 - [ ] **F6 — Robustness.** Reconnection, seat recovery, persistence, kicking.
 - [ ] **F7 — Modes.** Blackjack, then poker.
 - [ ] **F8 — Release.** F-Droid metadata, reproducible builds.
@@ -143,6 +145,9 @@ off by a test suite:
 - **F4** — a game of app and browsers together, eight players or more. Eight app
   clients at one table is a JVM test, and the screens are rendered and driven on
   the JVM too; the mixed table of real phones is not.
+- **F5** — the checklist in `docs/deeplinks.md`, on two phones from different
+  manufacturers. What a code carries and what a scanner reads back out of it is
+  a JVM test; what a particular phone's camera app does with it is not.
 
 ## Decisions worth not reopening
 

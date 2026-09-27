@@ -1,6 +1,7 @@
 package io.github.victormico.tablechips.server
 
 import io.github.victormico.tablechips.protocol.PROTOCOL_VERSION
+import io.github.victormico.tablechips.protocol.qrCode
 import io.github.victormico.tablechips.protocol.WebSocketTransport
 import io.ktor.http.ContentType
 import io.ktor.server.application.Application
@@ -105,6 +106,27 @@ fun Application.module(tableHost: TableHost) {
             }
         }
 
+        /**
+         * The bridge a scanned code lands on. It is served for any path under
+         * /join so the link can carry a room code, and it is the same file for
+         * everybody: what changes is what the page decides to offer, which
+         * depends on the phone reading it.
+         */
+        get("/join") {
+            call.respondBridgePage()
+        }
+
+        /**
+         * This table's own code, as vectors. Nothing is taken from the request
+         * but the address it arrived on, so there is no open encoder here for
+         * anybody on the hotspot to play with.
+         */
+        get("/qr.svg") {
+            val authority = call.request.headers["Host"] ?: "localhost:$DEFAULT_PORT"
+            val link = "http://$authority/join?room=${tableHost.table.roomCode}"
+            call.respondText(qrCode(link).toSvg(), ContentType.Image.SVG)
+        }
+
         /** The game. One socket per client, full state on every change. */
         webSocket("/ws") {
             tableHost.serve(WebSocketTransport(this))
@@ -115,5 +137,19 @@ fun Application.module(tableHost: TableHost) {
         staticResources("/", "web") {
             default("index.html")
         }
+    }
+}
+
+/**
+ * The bridge page lives with the client, as one more static file, so that the
+ * route and the file cannot drift apart.
+ */
+private suspend fun io.ktor.server.application.ApplicationCall.respondBridgePage() {
+    val page = TableServer::class.java.classLoader.getResourceAsStream("web/join.html")
+        ?.bufferedReader()?.use { it.readText() }
+    if (page == null) {
+        respondText("", ContentType.Text.Html)
+    } else {
+        respondText(page, ContentType.Text.Html)
     }
 }

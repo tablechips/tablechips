@@ -25,6 +25,10 @@ dependencies {
 
     // The app is a client of this same protocol, so the client side of the
     // socket ships with it rather than being written twice.
+    // Pure Java, Apache 2.0, no Play Services: the QR works on a phone with
+    // nothing installed but this app, which is the point of the whole bridge.
+    api(libs.zxing.core)
+
     api(libs.ktor.client.core)
     api(libs.ktor.client.cio)
     api(libs.ktor.client.websockets)

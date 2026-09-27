@@ -43,6 +43,7 @@ import io.github.victormico.tablechips.protocol.SetConfigCommand
 import io.github.victormico.tablechips.protocol.Sit
 import io.github.victormico.tablechips.protocol.StandUpAction
 import io.github.victormico.tablechips.protocol.TableConnection
+import io.github.victormico.tablechips.protocol.parseTableLink
 import io.github.victormico.tablechips.protocol.UndoCommand
 import kotlinx.coroutines.delay
 
@@ -109,6 +110,7 @@ private sealed interface Screen {
     data object Home : Screen
     data object Name : Screen
     data object Join : Screen
+    data object Scan : Screen
     data object Table : Screen
     data object Amount : Screen
     data object HostPanel : Screen
@@ -129,6 +131,7 @@ fun App(
 ) {
     val texts = appTexts()
     val hostStatus by HostController.status.collectAsStateWithLifecycle()
+    val incoming by IncomingLinks.link.collectAsStateWithLifecycle()
     val state by Session.state.collectAsStateWithLifecycle()
 
     var screen by remember { mutableStateOf<Screen>(Screen.Home) }
@@ -154,6 +157,16 @@ fun App(
     LaunchedEffect(state.table != null) {
         if (state.table != null && screen in listOf(Screen.Home, Screen.Name, Screen.Join)) {
             screen = Screen.Table
+        }
+    }
+    // A link from outside only fills the join screen in. What it carries was
+    // chosen by whoever made the code, so a person looks at it first.
+    LaunchedEffect(incoming) {
+        incoming?.let { link ->
+            address = link.address
+            addressError = null
+            screen = Screen.Join
+            IncomingLinks.consume()
         }
     }
     // One timer per move, so the undo offer expires without anything ticking.
@@ -238,7 +251,23 @@ fun App(
                         }
                     }
                 },
+                onScan = { screen = Screen.Scan },
                 onBack = { screen = Screen.Home },
+            )
+
+            Screen.Scan -> ScannerScreen(
+                onCode = { text ->
+                    val link = parseTableLink(text, io.github.victormico.tablechips.server.DEFAULT_PORT)
+                    if (link == null) {
+                        addressError = "unreadable"
+                    } else {
+                        address = link.address
+                        addressError = null
+                    }
+                    screen = Screen.Join
+                },
+                onType = { screen = Screen.Join },
+                onBack = { screen = Screen.Join },
             )
 
             Screen.Table -> TableScreen(

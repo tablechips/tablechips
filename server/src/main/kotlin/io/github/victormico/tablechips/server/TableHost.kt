@@ -45,6 +45,11 @@ import io.github.victormico.tablechips.core.TableState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -69,15 +74,36 @@ class TableHost(
 
     private class Connection(val transport: Transport) {
         var player: PlayerId? = null
+
+        /**
+         * Frames waiting to go out, in the order they were produced. A phone
+         * whose screen is off stops reading, and its queue must not hold up
+         * the rest of the table; once it is this far behind, the oldest frames
+         * are worth nothing anyway, because each state supersedes the last.
+         */
+        val outbox = Channel<String>(capacity = 64, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     }
 
     /** Serves one client until it goes away. */
-    suspend fun serve(transport: Transport) {
+    suspend fun serve(transport: Transport): Unit = coroutineScope {
         val connection = Connection(transport)
         mutex.withLock { connections += connection }
+        val writer = launch {
+            for (frame in connection.outbox) {
+                try {
+                    transport.send(frame)
+                } catch (failure: CancellationException) {
+                    throw failure
+                } catch (failure: Exception) {
+                    break // The socket is gone; the reader below will clean up.
+                }
+            }
+        }
         try {
             transport.onMessage { frame -> handle(connection, frame) }
         } finally {
+            connection.outbox.close()
+            writer.cancel()
             disconnect(connection)
         }
     }
@@ -86,11 +112,11 @@ class TableHost(
         val message = try {
             ProtocolJson.decodeFromString<ClientMessage>(frame)
         } catch (failure: Exception) {
-            connection.transport.trySend(ErrorMessage.of(ProtocolError.BAD_MESSAGE))
+            connection.queue(ErrorMessage.of(ProtocolError.BAD_MESSAGE))
             return
         }
         if (message.v != PROTOCOL_VERSION) {
-            connection.transport.trySend(ErrorMessage.of(ProtocolError.UNSUPPORTED_VERSION))
+            connection.queue(ErrorMessage.of(ProtocolError.UNSUPPORTED_VERSION))
             return
         }
         if (message is Join) {
@@ -99,12 +125,12 @@ class TableHost(
         }
         val player = connection.player
         if (player == null) {
-            connection.transport.trySend(ErrorMessage.of(ProtocolError.NOT_JOINED))
+            connection.queue(ErrorMessage.of(ProtocolError.NOT_JOINED))
             return
         }
         val command = message.toCommand(player)
         if (command == null) {
-            connection.transport.trySend(ErrorMessage.of(ProtocolError.BAD_MESSAGE))
+            connection.queue(ErrorMessage.of(ProtocolError.BAD_MESSAGE))
             return
         }
         execute(connection, command)
@@ -113,35 +139,34 @@ class TableHost(
     private suspend fun join(connection: Connection, message: Join) {
         val room = message.room
         if (room != null && !room.equals(table.roomCode, ignoreCase = true)) {
-            connection.transport.trySend(ErrorMessage.of(ProtocolError.WRONG_ROOM))
+            connection.queue(ErrorMessage.of(ProtocolError.WRONG_ROOM))
             return
         }
         // A client that brings an id keeps it, known to the table or not: that
         // is how a seat comes back after a reconnection. One that brings none
         // gets a fresh id and learns it from the state frame.
         val player = message.playerId ?: newId()
-        val broadcast = mutex.withLock {
+        mutex.withLock {
             when (val result = table.execute(JoinTable(player, message.name))) {
                 is CommandResult.Rejected -> {
-                    connection.transport.trySend(ErrorMessage.of(result.error))
+                    connection.queue(ErrorMessage.of(result.error))
                     return
                 }
 
                 is CommandResult.Accepted -> {
                     connection.player = player
                     table.setConnected(player, true)
-                    prepareBroadcast()
+                    broadcastLocked()
                 }
             }
         }
-        broadcast.deliver()
     }
 
     private suspend fun execute(connection: Connection, command: TableCommand) {
-        val broadcast = mutex.withLock {
+        mutex.withLock {
             when (val result = table.execute(command)) {
                 is CommandResult.Rejected -> {
-                    connection.transport.trySend(ErrorMessage.of(result.error))
+                    connection.queue(ErrorMessage.of(result.error))
                     return
                 }
 
@@ -149,62 +174,44 @@ class TableHost(
                     // Leaving frees the id: the same device joining again is a
                     // new player, not a ghost holding a seat.
                     if (command is LeaveTable) connection.player = null
-                    prepareBroadcast()
+                    broadcastLocked()
                 }
             }
         }
-        broadcast.deliver()
     }
 
     private suspend fun disconnect(connection: Connection) {
-        val broadcast = mutex.withLock {
+        mutex.withLock {
             connections -= connection
             val player = connection.player
             // A player with a second device open is still at the table.
             if (player != null && connections.none { it.player == player }) {
                 table.setConnected(player, false)
             }
-            prepareBroadcast()
+            broadcastLocked()
         }
-        broadcast.deliver()
     }
 
     /**
-     * Builds one frame per connection while holding the lock, so everybody sees
-     * the same revision, and sends them outside it, so one slow phone cannot
-     * hold up the table.
+     * Queues the whole state for everyone, while holding the lock.
+     *
+     * Queuing rather than sending is what keeps the order: two commands landing
+     * at once used to each send their own frames outside the lock, so a client
+     * could be handed an older revision after a newer one and show a table that
+     * had already moved on.
      */
-    private fun prepareBroadcast(): Broadcast {
+    private fun broadcastLocked() {
         val state = table.snapshot()
         val undoDepth = table.undoDepth
         _state.value = state
-        val frames = connections.mapNotNull { connection ->
-            val player = connection.player ?: return@mapNotNull null
-            connection.transport to ProtocolJson.encodeToString<ServerMessage>(
-                StateMessage(state = state, you = player, undoDepth = undoDepth),
-            )
-        }
-        return Broadcast(frames)
-    }
-
-    private class Broadcast(private val frames: List<Pair<Transport, String>>) {
-        suspend fun deliver() {
-            frames.forEach { (transport, frame) ->
-                try {
-                    transport.send(frame)
-                } catch (failure: Exception) {
-                    // The reader loop of that connection will notice and clean up.
-                }
-            }
+        connections.forEach { connection ->
+            val player = connection.player ?: return@forEach
+            connection.queue(StateMessage(state = state, you = player, undoDepth = undoDepth))
         }
     }
 
-    private suspend fun Transport.trySend(message: ServerMessage) {
-        try {
-            send(ProtocolJson.encodeToString(message))
-        } catch (failure: Exception) {
-            // Same as above: a dead connection is not this call's problem.
-        }
+    private fun Connection.queue(message: ServerMessage) {
+        outbox.trySend(ProtocolJson.encodeToString(message))
     }
 }
 

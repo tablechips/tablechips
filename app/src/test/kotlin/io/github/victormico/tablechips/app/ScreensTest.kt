@@ -29,6 +29,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
 
 /**
@@ -232,7 +234,7 @@ class ScreensTest {
         compose.setContent {
             JoinScreen(
                 name = "Víctor", address = "192.168.0.17", error = null,
-                onName = {}, onAddress = {}, onJoin = { joined = true }, onBack = {},
+                onName = {}, onAddress = {}, onJoin = { joined = true }, onScan = {}, onBack = {},
             )
         }
 
@@ -337,5 +339,38 @@ class ScreensTest {
 
         assertEquals(true, cancelled)
         assertEquals(true, confirmed)
+    }
+
+    @Test
+    fun `with nothing typed, scanning is what the join screen recommends`() {
+        var scanned = false
+        compose.setContent {
+            JoinScreen(
+                name = "Víctor", address = "", error = null,
+                onName = {}, onAddress = {}, onJoin = {}, onScan = { scanned = true }, onBack = {},
+            )
+        }
+
+        compose.onNodeWithText("Escanejar un codi").performClick()
+        // Typing is still right there, which is the rule that cannot be broken.
+        compose.onNodeWithText("Entrar a la taula").assertIsDisplayed()
+
+        assertEquals(true, scanned)
+    }
+
+    /**
+     * The code has to be drawn, not just computed: this is the picture a guest
+     * points a camera at, and it comes out of the same matrix the server puts
+     * in its SVG.
+     */
+    @Test
+    fun `the table's code renders`() {
+        compose.setContent {
+            io.github.victormico.tablechips.app.ui.QrCode(
+                text = "http://192.168.0.17:8080/join?room=48KB",
+                modifier = androidx.compose.ui.Modifier.size(180.dp),
+            )
+        }
+        compose.waitForIdle()
     }
 }

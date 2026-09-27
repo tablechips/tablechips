@@ -8,6 +8,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.BorderStroke
+import io.github.victormico.tablechips.protocol.qrCode
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -396,6 +397,45 @@ fun ConfirmDialog(
             Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                 SecondaryButton(cancel, onCancel, Modifier.weight(1f))
                 SecondaryButton(confirm, onConfirm, Modifier.weight(1f), danger = true)
+            }
+        }
+    }
+}
+
+/**
+ * A QR code, drawn rather than rendered to a bitmap. Square modules on the one
+ * light surface of the product: a rounded module is a module a cheap camera
+ * reads wrong in bad light, and a dark code is a code that will not scan at
+ * all across a table at night.
+ */
+@Composable
+fun QrCode(text: String, modifier: Modifier = Modifier, quietZone: Int = 3) {
+    val matrix = remember(text) { qrCode(text) }
+    Canvas(modifier) {
+        val side = matrix.size + quietZone * 2
+        val module = size.minDimension / side
+        val origin = androidx.compose.ui.geometry.Offset(
+            (size.width - module * side) / 2f,
+            (size.height - module * side) / 2f,
+        )
+        drawRect(
+            color = Refugi.text,
+            topLeft = origin,
+            size = androidx.compose.ui.geometry.Size(module * side, module * side),
+        )
+        // A hair of overlap, so no seam of background shows between modules.
+        val block = androidx.compose.ui.geometry.Size(module + .5f, module + .5f)
+        for (y in 0 until matrix.size) {
+            for (x in 0 until matrix.size) {
+                if (!matrix[x, y]) continue
+                drawRect(
+                    color = Refugi.bg,
+                    topLeft = androidx.compose.ui.geometry.Offset(
+                        origin.x + (x + quietZone) * module,
+                        origin.y + (y + quietZone) * module,
+                    ),
+                    size = block,
+                )
             }
         }
     }

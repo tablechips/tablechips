@@ -153,6 +153,14 @@
     <string name="leave_title">Leave the table?</string>
     <string name="leave_body">Your chips come out of the game. The table stays open for everybody else.</string>
 
+    <string name="scan_action">Scan a code</string>
+    <string name="scan_title">Scan the code</string>
+    <string name="scan_hint">Point at the code the host is showing</string>
+    <string name="scan_type_instead">Type the address</string>
+    <string name="scan_no_camera">Without camera permission there is no scanning. Type the address instead.</string>
+    <string name="scan_unreadable">That code is not a table</string>
+    <string name="host_show_code">Show this code</string>
+
     <!-- Foreground service notification -->
     <string name="notification_channel_name">Open table</string>
     <string name="notification_channel_description">Shown while this phone is hosting a table.</string>

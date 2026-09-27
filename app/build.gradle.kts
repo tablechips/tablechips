@@ -73,6 +73,12 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
 
+    // Reading a code off somebody else's screen. CameraX and zxing only: no
+    // Play Services anywhere near this, or the app could not be on F-Droid.
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+
     // No component library on purpose: the design system is drawn from
     // foundation primitives, so Material never enters the build.
     implementation(platform(libs.compose.bom))

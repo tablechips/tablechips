@@ -138,6 +138,14 @@
     <string name="leave_title">¿Salir de la mesa?</string>
     <string name="leave_body">Tus fichas salen del juego. La mesa sigue abierta para los demás.</string>
 
+    <string name="scan_action">Escanear un código</string>
+    <string name="scan_title">Escanea el código</string>
+    <string name="scan_hint">Apunta al código que muestra el anfitrión</string>
+    <string name="scan_type_instead">Escribir la dirección</string>
+    <string name="scan_no_camera">Sin permiso de cámara no se puede escanear. Escribe la dirección.</string>
+    <string name="scan_unreadable">Ese código no es de una mesa</string>
+    <string name="host_show_code">Enseña este código</string>
+
     <!-- Foreground service notification -->
     <string name="notification_channel_name">Mesa abierta</string>
     <string name="notification_channel_description">Se muestra mientras este móvil hace de anfitrión de una mesa.</string>

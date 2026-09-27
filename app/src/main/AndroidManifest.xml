@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Only to read a code off a screen. Nothing is recorded or kept. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
         android:allowBackup="false"
@@ -23,6 +28,33 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+              What the bridge page's intent URI launches. A custom scheme needs
+              no verification, which is the whole reason it exists here: a
+              verified App Link would need https and a file served from a
+              domain, and this is a phone with no internet.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="tablechips" />
+            </intent-filter>
+
+            <!--
+              The http link the QR itself carries. Deliberately without
+              autoVerify: it cannot be verified from a LAN address, and from
+              Android 12 an unverified filter no longer offers itself. It is
+              here for the few who turn on "open supported links" by hand, and
+              it costs nothing for everybody else. See docs/deeplinks.md.
+            -->
+            <intent-filter tools:ignore="AppLinkWarning">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" android:host="*" android:pathPrefix="/join" />
             </intent-filter>
         </activity>
 
@@ -45,11 +77,5 @@
                 android:value="@string/fgs_special_use_justification" />
         </service>
 
-        <!--
-          The intent filters that let a scanned link open the app (the custom
-          tablechips:// scheme and a non-verified http filter) arrive with the
-          link bridge. See docs/deeplinks.md for why they cannot be verified
-          App Links.
-        -->
     </application>
 </manifest>

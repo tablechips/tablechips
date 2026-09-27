@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,6 +35,7 @@ import io.github.victormico.tablechips.app.ui.Mark
 import io.github.victormico.tablechips.app.ui.Note
 import io.github.victormico.tablechips.app.ui.PlayerRow
 import io.github.victormico.tablechips.app.ui.PrimaryButton
+import io.github.victormico.tablechips.app.ui.QrCode
 import io.github.victormico.tablechips.app.ui.Refugi
 import io.github.victormico.tablechips.app.ui.SecondaryButton
 import io.github.victormico.tablechips.app.ui.TcText
@@ -159,6 +161,7 @@ fun JoinScreen(
     onName: (String) -> Unit,
     onAddress: (String) -> Unit,
     onJoin: () -> Unit,
+    onScan: () -> Unit,
     onBack: () -> Unit,
 ) {
     Frame(
@@ -170,11 +173,30 @@ fun JoinScreen(
             )
         },
         actions = {
-            PrimaryButton(
-                label = stringResource(R.string.join_action),
-                onClick = onJoin,
-                enabled = name.isNotBlank() && address.isNotBlank(),
-            )
+            // Scanning is the fast path and the interface says so, but only
+            // while there is nothing typed: the moment there is an address,
+            // the thing to do is go in with it.
+            if (address.isBlank()) {
+                PrimaryButton(stringResource(R.string.scan_action), onScan)
+                SecondaryButton(
+                    label = stringResource(R.string.join_action),
+                    onClick = onJoin,
+                    modifier = Modifier.fillMaxWidth(),
+                    height = 56.dp,
+                )
+            } else {
+                PrimaryButton(
+                    label = stringResource(R.string.join_action),
+                    onClick = onJoin,
+                    enabled = name.isNotBlank(),
+                )
+                SecondaryButton(
+                    label = stringResource(R.string.scan_action),
+                    onClick = onScan,
+                    modifier = Modifier.fillMaxWidth(),
+                    height = 56.dp,
+                )
+            }
         },
     ) {
         Caption(stringResource(R.string.join_name))
@@ -183,7 +205,11 @@ fun JoinScreen(
         Field(address, stringResource(R.string.join_address_hint), onAddress, numeric = true)
         error?.let {
             TcText(
-                if (it == "bad_address") stringResource(R.string.join_bad_address) else errorText(it),
+                when (it) {
+                    "bad_address" -> stringResource(R.string.join_bad_address)
+                    "unreadable" -> stringResource(R.string.scan_unreadable)
+                    else -> errorText(it)
+                },
                 Type.body,
                 color = Refugi.loss,
             )
@@ -237,6 +263,21 @@ fun ConnectionScreen(
             radius = 16.dp,
             padding = 16.dp,
         ) {
+            // The code is the fast way in, and the address underneath it is the
+            // one that always works. Both, always, never one or the other.
+            primary?.let { url ->
+                TcText(
+                    stringResource(R.string.host_show_code),
+                    Type.caption,
+                    modifier = Modifier.padding(bottom = 10.dp),
+                    color = Color(0xFF5A5048),
+                )
+                QrCode(
+                    text = url.trimEnd('/') + "/join?room=" + status.roomCode.orEmpty(),
+                    modifier = Modifier.fillMaxWidth().aspectRatio(1f)
+                        .padding(bottom = 12.dp),
+                )
+            }
             if (status.addresses.isEmpty()) {
                 TcText(stringResource(R.string.host_no_addresses), Type.body, color = Refugi.bg)
             }

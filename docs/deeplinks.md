@@ -59,10 +59,9 @@ project.
 4. The app has its own QR scanner, which skips all of the above and connects
    directly. **This is the fast path and the interface should say so.**
 
-## What gets declared in the manifest, and when
+## What is declared in the manifest
 
-These filters belong to the link bridge phase (F5), not before, and they are
-deliberately absent from the manifest until then:
+Both filters are in place, and neither is verified:
 
 - `tablechips://join?host=…&port=…&room=…` — the custom scheme, which is what
   the intent URI actually launches. Custom schemes need no verification.
@@ -74,6 +73,23 @@ carries a host, a port and a room code chosen by whoever produced the QR, so the
 app must treat all three as untrusted input and show the user what it is about
 to connect to.
 
+## What is built
+
+- The host shows the code on its connection screen, drawn from the same matrix
+  the server writes as SVG at `/qr.svg`. Square modules, medium error
+  correction, dark on the one light surface of the product.
+- The code carries `http://<ip>:<port>/join?room=XXXX`, which any scanner opens
+  in a browser.
+- `/join` serves the bridge page: on Android a brass button with the intent
+  URI, everywhere else the web client, and on both the address in plain text.
+  It is in the three languages and loads nothing from outside the phone.
+- The app scans a code itself, with CameraX and zxing — no Play Services, so
+  the app can still be on F-Droid. Scanning is offered first and typing the
+  address is always one tap away, including when the camera is refused.
+- Whatever arrives — scanned code, intent, typed address — lands in the join
+  screen for the player to look at before anything connects. A QR carries
+  whatever whoever printed it decided.
+
 ## What still has to be checked on real devices
 
 The acceptance criterion for F5 is this file, verified on two devices from
@@ -83,5 +99,6 @@ different manufacturers:
 - [ ] the fallback URL opens the web client when it is not
 - [ ] a scan from the system camera app, from Google Lens and from a third-party
       QR reader all reach the bridge page
+- [ ] the app's own scanner reads the code off another phone's screen
 - [ ] the bridge page is readable and usable on iOS Safari
 - [ ] nothing in the flow needs internet at any point

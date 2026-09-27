@@ -138,6 +138,14 @@
     <string name="leave_title">Marxar de la taula?</string>
     <string name="leave_body">Les teues fitxes surten del joc. La taula continua oberta per als altres.</string>
 
+    <string name="scan_action">Escanejar un codi</string>
+    <string name="scan_title">Escaneja el codi</string>
+    <string name="scan_hint">Apunta al codi que mostra l\'amfitrió</string>
+    <string name="scan_type_instead">Escriure l\'adreça</string>
+    <string name="scan_no_camera">Sense permís de càmera no es pot escanejar. Escriu l\'adreça.</string>
+    <string name="scan_unreadable">Aquest codi no és d\'una taula</string>
+    <string name="host_show_code">Ensenya aquest codi</string>
+
     <!-- Foreground service notification -->
     <string name="notification_channel_name">Taula oberta</string>
     <string name="notification_channel_description">Es mostra mentre aquest mòbil fa d\'amfitrió d\'una taula.</string>

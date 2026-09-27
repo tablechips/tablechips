@@ -2,6 +2,8 @@ package io.github.victormico.tablechips.app
 
 import android.Manifest
 import android.content.Intent
+import io.github.victormico.tablechips.protocol.parseTableLink
+import io.github.victormico.tablechips.server.DEFAULT_PORT
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -31,6 +33,7 @@ class MainActivity : ComponentActivity() {
         requestNotificationPermission()
         val prefs = Prefs(this)
         Session.attach(prefs)
+        readLink(intent)
         setContent {
             App(
                 prefs = prefs,
@@ -40,6 +43,22 @@ class MainActivity : ComponentActivity() {
                 onOpenInBrowser = { url: String -> openInBrowser(url) },
             )
         }
+    }
+
+    /**
+     * A scanned code lands here through the bridge page's intent, or through
+     * the http filter for whoever turned that on by hand. Either way it is
+     * only an offer: the join screen shows the address before anything
+     * connects to it.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        readLink(intent)
+    }
+
+    private fun readLink(intent: Intent?) {
+        val data = intent?.data?.toString() ?: return
+        parseTableLink(data, DEFAULT_PORT)?.let(IncomingLinks::offer)
     }
 
     override fun onResume() {
