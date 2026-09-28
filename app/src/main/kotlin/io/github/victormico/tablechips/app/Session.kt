@@ -40,6 +40,11 @@ class Prefs(context: Context) {
         get() = store.getString("lastAddress", null)
         set(value) = store.edit { putString("lastAddress", value) }
 
+    /** Whether amounts are counted chip by chip here rather than typed. */
+    var amountByChips: Boolean
+        get() = store.getBoolean("amountByChips", false)
+        set(value) = store.edit { putBoolean("amountByChips", value) }
+
     /**
      * The setup of the last table this phone opened. Whoever plays the same
      * game with the same people every week should not fill the form in again.

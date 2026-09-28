@@ -278,4 +278,9 @@
     <string name="bank_change">Cambiar</string>
     <string name="bank_give">Dásela</string>
     <string name="log_player_sat_back">se ha sentado en el puesto %1$s</string>
+    <string name="amount_by_number">Importe</string>
+    <string name="amount_by_chips">Fichas</string>
+    <string name="amount_clear">Borrar</string>
+    <string name="amount_chip_more">Una ficha de %1$s más</string>
+    <string name="amount_chip_less">Una ficha de %1$s menos</string>
 </resources>

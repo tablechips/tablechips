@@ -1,5 +1,15 @@
 package io.github.victormico.tablechips.app
 
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import io.github.victormico.tablechips.app.ui.Pills
+import io.github.victormico.tablechips.core.fewestChips
+import io.github.victormico.tablechips.core.total
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -67,6 +77,9 @@ fun AmountScreen(
     onType: (String) -> Unit,
     onSet: (Long) -> Unit,
     onBack: () -> Unit,
+    /** Counting chip by chip rather than typing the number. */
+    byChips: Boolean = false,
+    onByChips: (Boolean) -> Unit = {},
 ) {
     val value = typed.toLongOrNull() ?: 0L
     val rest = request.rest(value)
@@ -131,6 +144,20 @@ fun AmountScreen(
             }
         }
 
+        Pills(
+            options = listOf(
+                false to stringResource(R.string.amount_by_number),
+                true to stringResource(R.string.amount_by_chips),
+            ),
+            selected = byChips,
+            onSelect = onByChips,
+        )
+
+        if (byChips) {
+            ChipPad(value = value, max = request.max, onSet = onSet)
+            return@Frame
+        }
+
         Caption(stringResource(R.string.amount_quick))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             if (request.pot != null) {
@@ -172,6 +199,89 @@ fun AmountScreen(
                 }
             }
         }
+    }
+}
+
+/**
+ * The amount as chips pushed forward, one row per value: how many of each go
+ * in. It starts from the amount already there, in the fewest chips, because
+ * that is how a bet is pushed. The figure above is always the total, and it
+ * is the total that is confirmed: the app counts amounts, not chips.
+ */
+@Composable
+private fun ColumnScope.ChipPad(value: Long, max: Long?, onSet: (Long) -> Unit) {
+    // The rows are the truth while this pad is open; they start from whatever
+    // amount was there when it opened, and every tap writes the new total back.
+    var counts by remember { mutableStateOf(fewestChips(value)) }
+    if (counts.total() != value) counts = fewestChips(value)
+
+    fun change(chip: Long, by: Long) {
+        val next = counts.map { if (it.value == chip) it.copy(count = it.count + by) else it }
+        counts = next
+        onSet(next.total())
+    }
+
+    Column(
+        modifier = Modifier.weight(1f).fillMaxWidth().padding(bottom = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(7.dp),
+    ) {
+        counts.forEach { (chip, count) ->
+            val more = stringResource(R.string.amount_chip_more, chips(chip))
+            val less = stringResource(R.string.amount_chip_less, chips(chip))
+            Row(
+                modifier = Modifier.weight(1f).fillMaxWidth()
+                    .background(Refugi.surface, RoundedCornerShape(11.dp))
+                    .border(BorderStroke(1.dp, Refugi.line), RoundedCornerShape(11.dp))
+                    .padding(start = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Box(Modifier.size(28.dp, 6.dp).background(chipColour(chip), RoundedCornerShape(2.dp)))
+                TcText(chips(chip), Type.chips.copy(fontSize = 17.sp), modifier = Modifier.weight(1f))
+                ChipKey("\u2212", less, enabled = count > 0) { change(chip, -1) }
+                TcText(
+                    chips(count),
+                    Type.metric.copy(
+                        fontSize = 20.sp,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    ),
+                    color = if (count > 0) Refugi.text else Refugi.line,
+                    modifier = Modifier.width(40.dp).testTag("chip-count:$chip"),
+                )
+                ChipKey("+", more, enabled = max == null || value + chip <= max) { change(chip, 1) }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            Quick(stringResource(R.string.amount_clear), Modifier.weight(1f)) {
+                counts = fewestChips(0)
+                onSet(0)
+            }
+            if (max != null) {
+                Quick(stringResource(R.string.amount_all), Modifier.weight(1f), warn = true) {
+                    counts = fewestChips(max)
+                    onSet(max)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChipKey(label: String, description: String, enabled: Boolean, onClick: () -> Unit) {
+    ClickableSurface(
+        onClick = onClick,
+        modifier = Modifier.width(56.dp).fillMaxHeight().semantics { contentDescription = description },
+        enabled = enabled,
+        fill = Refugi.surfaceHigh,
+        border = null,
+        radius = 11.dp,
+        padding = 0.dp,
+    ) {
+        TcText(
+            label,
+            Type.metric.copy(fontSize = 22.sp),
+            color = if (enabled) Refugi.text else Refugi.line,
+        )
     }
 }
 

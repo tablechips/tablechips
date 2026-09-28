@@ -431,7 +431,7 @@ private fun ChipEdge(value: Long) {
     Box(Modifier.size(34.dp, 4.dp).background(chipColour(value), RoundedCornerShape(2.dp)))
 }
 
-private fun chipColour(value: Long): Color = when (value) {
+internal fun chipColour(value: Long): Color = when (value) {
     1L -> Refugi.chip1
     5L -> Refugi.chip5
     25L -> Refugi.chip25

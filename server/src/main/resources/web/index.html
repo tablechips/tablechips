@@ -226,6 +226,32 @@ button[disabled] { opacity: .4; cursor: default; }
 .pane > .amountCard, .pane > .quickBlock { flex: none; }
 .pane > .amountCard { position: sticky; top: -1px; z-index: 2; }
 .grid3.pad { flex: 1 1 auto; min-height: 0; grid-auto-rows: 1fr; }
+.amountMode > button { flex: 1; }
+/* Counting chip by chip: one row per value, taking the keypad's place and,
+   like it, giving up height before the figure does. */
+.chipPad { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 7px;
+           /* Rows keep a finger's height; on a short phone the pad scrolls
+              rather than slide its last row under the confirm button. */
+           overflow-y: auto; }
+.chipLine, .chipPad .row { flex-shrink: 0; }
+.chipLine { flex: 1 1 0; min-height: 44px; max-height: 64px; display: flex; align-items: center;
+            gap: 10px; padding-left: 14px; background: var(--surface); border: 1px solid var(--line);
+            border-radius: 11px; overflow: hidden; }
+.chipLine .sw { width: 28px; height: 6px; border-radius: 2px; flex: none; }
+.sw.v1 { background: var(--chip1); } .sw.v5 { background: var(--chip5); }
+.sw.v25 { background: var(--chip25); } .sw.v50 { background: var(--chip50); }
+.sw.v100 { background: var(--chip100); }
+.chipLine .v { flex: 1; font-family: var(--mono); font-weight: 500; font-size: 17px;
+               font-variant-numeric: tabular-nums; }
+.chipLine .c { width: 40px; text-align: center; font-family: var(--mono); font-weight: 600;
+               font-size: 20px; font-variant-numeric: tabular-nums; }
+.chipLine .c.zero { color: var(--line); }
+.chipLine button { width: 56px; align-self: stretch; border: 0; border-radius: 0;
+                   background: var(--surfaceHigh); color: var(--text); font-family: var(--mono);
+                   font-size: 22px; }
+.chipLine button:disabled { color: var(--line); }
+.chipPad .row { display: flex; gap: 8px; }
+.chipPad .row > .quick { flex: 1; }
 .quick { height: 52px; border-radius: 11px; font-size: 14px; padding: 0 6px; }
 .quick.n { font-family: var(--mono); font-size: 16px; }
 .quick.all { color: var(--warn); }
@@ -437,11 +463,13 @@ button[disabled] { opacity: .4; cursor: default; }
         <span class="v" id="restValue"></span>
       </div>
     </div>
-    <div class="quickBlock">
+    <div class="pills amountMode" id="amountMode"></div>
+    <div class="quickBlock" id="quickBlock">
       <div class="cap" style="margin-bottom:9px" data-i18n="amount.quick"></div>
       <div class="grid3" id="quick"></div>
     </div>
     <div class="grid3 pad" id="keypad"></div>
+    <div class="chipPad" id="chipPad" hidden></div>
   </div>
   <div class="actions">
     <div class="row">
@@ -623,6 +651,11 @@ const DICT = {
     "buyIn.confirm": "Fixar a",
     "newPot.name": "poso",
     "log.title": "Registre d'activitat", "log.short": "Registre", "log.back": "Tornar a la taula",
+    "amount.byNumber": "Import",
+    "amount.byChips": "Fitxes",
+    "amount.clear": "Esborrar",
+    "amount.chipMore": "Una fitxa de %s més",
+    "amount.chipLess": "Una fitxa de %s menys",
     "bank.take": "Agafar la banca",
     "bank.assign": "Assignar",
     "bank.change": "Canviar",
@@ -758,6 +791,11 @@ const DICT = {
     "buyIn.confirm": "Fijar en",
     "newPot.name": "bote",
     "log.title": "Registro de actividad", "log.short": "Registro", "log.back": "Volver a la mesa",
+    "amount.byNumber": "Importe",
+    "amount.byChips": "Fichas",
+    "amount.clear": "Borrar",
+    "amount.chipMore": "Una ficha de %s más",
+    "amount.chipLess": "Una ficha de %s menos",
     "bank.take": "Coger la banca",
     "bank.assign": "Asignar",
     "bank.change": "Cambiar",
@@ -895,6 +933,11 @@ const DICT = {
     "buyIn.confirm": "Set to",
     "newPot.name": "side pot",
     "log.title": "Activity log", "log.short": "Log", "log.back": "Back to the table",
+    "amount.byNumber": "Amount",
+    "amount.byChips": "Chips",
+    "amount.clear": "Clear",
+    "amount.chipMore": "One more %s chip",
+    "amount.chipLess": "One %s chip fewer",
     "bank.take": "Take the bank",
     "bank.assign": "Assign",
     "bank.change": "Change",
@@ -1573,6 +1616,7 @@ let untouched = false;
 
 function openAmount(next) {
   flow = next;
+  chipCounts = null;
   typed = next.initial === undefined ? "" : String(next.initial);
   untouched = typed !== "";
   showView("amount");
@@ -1651,8 +1695,91 @@ function renderAmount() {
   document.getElementById("amountOk").disabled =
     (rest && rest.bad) || (value <= 0 && !flow.allowZero);
 
-  renderQuick();
-  renderKeypad();
+  renderAmountMode();
+  if (byChips) {
+    renderChipPad();
+  } else {
+    renderQuick();
+    renderKeypad();
+  }
+}
+
+// ---------------------------------------------------------------- chip by chip
+
+// Whoever counts in chips keeps counting in chips: it is a way of playing.
+let byChips = store.get("amountByChips") === "1";
+// The rows are the truth while the pad is open; null means "start again from
+// the amount", in the fewest chips, which is how a bet is pushed.
+let chipCounts = null;
+
+/** The same as `fewestChips` in :core: largest first. */
+function fewestChips(amount) {
+  let rest = Math.max(0, amount);
+  return DENOMINATIONS.map((value) => {
+    const count = Math.floor(rest / value);
+    rest -= count * value;
+    return { value: value, count: count };
+  });
+}
+
+function chipTotal(counts) { return counts.reduce((sum, c) => sum + c.value * c.count, 0); }
+
+function renderAmountMode() {
+  const pills = [[false, "amount.byNumber"], [true, "amount.byChips"]].map(([value, key]) => {
+    const pill = el("button", byChips === value ? "on" : null, t(key));
+    pill.onclick = () => {
+      if (byChips === value) return;
+      byChips = value;
+      store.set("amountByChips", value ? "1" : "0");
+      chipCounts = null;
+      renderAmount();
+    };
+    return pill;
+  });
+  document.getElementById("amountMode").replaceChildren(...pills);
+  document.getElementById("quickBlock").hidden = byChips;
+  document.getElementById("keypad").hidden = byChips;
+  document.getElementById("chipPad").hidden = !byChips;
+}
+
+/**
+ * The amount as chips pushed forward, one row per value. The figure above is
+ * always the total, and it is the total that is confirmed: the app counts
+ * amounts, not chips.
+ */
+function renderChipPad() {
+  const value = amountValue();
+  if (!chipCounts || chipTotal(chipCounts) !== value) chipCounts = fewestChips(value);
+  const max = flow.max === undefined || flow.max === null ? null : flow.max;
+  const lines = chipCounts.map(({ value: chip, count }) => {
+    const line = el("div", "chipLine");
+    const less = el("button", null, "\u2212");
+    less.disabled = count === 0;
+    less.setAttribute("aria-label", t("amount.chipLess", fmt(chip)));
+    less.onclick = () => changeChip(chip, -1);
+    const more = el("button", null, "+");
+    more.disabled = max !== null && value + chip > max;
+    more.setAttribute("aria-label", t("amount.chipMore", fmt(chip)));
+    more.onclick = () => changeChip(chip, 1);
+    line.append(el("i", "sw v" + chip), el("span", "v", fmt(chip)), less,
+                el("span", "c" + (count ? "" : " zero"), fmt(count)), more);
+    return line;
+  });
+  const row = el("div", "row");
+  const clear = el("button", "quick rel", t("amount.clear"));
+  clear.onclick = () => { chipCounts = fewestChips(0); setAmount(0); };
+  row.append(clear);
+  if (max !== null) {
+    const all = el("button", "quick rel all", t("amount.all"));
+    all.onclick = () => { chipCounts = fewestChips(max); setAmount(max); };
+    row.append(all);
+  }
+  document.getElementById("chipPad").replaceChildren(...lines, row);
+}
+
+function changeChip(chip, by) {
+  chipCounts = chipCounts.map((c) => (c.value === chip ? { value: c.value, count: c.count + by } : c));
+  setAmount(chipTotal(chipCounts));
 }
 
 function renderQuick() {
@@ -1673,8 +1800,9 @@ function renderQuick() {
                set(t("amount.pot"), pot),
                set(t("amount.all"), flow.max || 0, "all"));
   } else {
-    nodes.push(add(500), set(t("amount.pot"), currentPot() ? currentPot().amount : 0),
-               set(t("amount.all"), flow.max || state.config.defaultBuyIn, "all"));
+    // No "pot" here: this is not a bet against a pot (a stake, a buy-in, a
+    // correction), and offering one where there is none sets a meaningless 0.
+    nodes.push(add(500), set(t("amount.all"), flow.max || state.config.defaultBuyIn, "all"));
   }
   document.getElementById("quick").replaceChildren(...nodes);
 }

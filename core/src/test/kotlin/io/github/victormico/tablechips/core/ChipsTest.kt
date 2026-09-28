@@ -61,4 +61,12 @@ class ChipsTest {
     fun `a negative stack is a bug, not a picture`() {
         assertFailsWith<IllegalArgumentException> { chipsIn(-1) }
     }
+
+    @Test
+    fun `a bet goes in as the fewest chips`() {
+        assertEquals(listOf(1L, 1, 0, 0, 0), fewestChips(150).map { it.count })
+        assertEquals(listOf(9L, 0, 0, 1, 0), fewestChips(905).map { it.count })
+        assertEquals(listOf(0L, 0, 1, 1, 3), fewestChips(33).map { it.count })
+        (0L..3_000L).forEach { assertEquals(it, fewestChips(it).total(), "for $it") }
+    }
 }

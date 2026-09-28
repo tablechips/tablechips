@@ -278,4 +278,9 @@
     <string name="bank_change">Canviar</string>
     <string name="bank_give">Dona-li-la</string>
     <string name="log_player_sat_back">s\'ha assegut al lloc %1$s</string>
+    <string name="amount_by_number">Import</string>
+    <string name="amount_by_chips">Fitxes</string>
+    <string name="amount_clear">Esborrar</string>
+    <string name="amount_chip_more">Una fitxa de %1$s més</string>
+    <string name="amount_chip_less">Una fitxa de %1$s menys</string>
 </resources>

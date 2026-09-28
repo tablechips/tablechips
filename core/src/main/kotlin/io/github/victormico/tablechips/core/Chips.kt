@@ -54,3 +54,21 @@ fun chipsIn(amount: Long): List<ChipCount> {
     }
     return DENOMINATIONS.map { ChipCount(it, counts.getValue(it)) }
 }
+
+/**
+ * An amount in the fewest chips, largest value first: how a bet is pushed.
+ * The stack keeps its change (see [chipsIn]); a bet of 150 goes in as a 100
+ * and a 50, not as thirty 5s. It is where chip-by-chip betting starts from.
+ */
+fun fewestChips(amount: Long): List<ChipCount> {
+    require(amount >= 0) { "a bet is never negative" }
+    var rest = amount
+    return DENOMINATIONS.map { value ->
+        val count = rest / value
+        rest -= count * value
+        ChipCount(value, count)
+    }
+}
+
+/** What a set of chips is worth. */
+fun List<ChipCount>.total(): Long = sumOf { it.value * it.count }

@@ -186,6 +186,8 @@ fun App(
     var rulesFrom by remember { mutableStateOf<Screen>(Screen.Table) }
     // Asking for a name comes before both creating and recovering a table.
     var recovering by remember { mutableStateOf(false) }
+    // Whoever counts in chips keeps counting in chips: it is a way of playing.
+    var byChips by remember { mutableStateOf(prefs.amountByChips) }
 
     // The host is a player at its own table, over localhost, exactly like a
     // guest over the hotspot. One code path, no special case.
@@ -491,6 +493,8 @@ fun App(
                     },
                     onSet = { value -> typed = value.coerceAtLeast(0).toString(); untouched = false },
                     onBack = { current.onCancel?.invoke() ?: back() },
+                    byChips = byChips,
+                    onByChips = { byChips = it; prefs.amountByChips = it },
                 )
             }
 

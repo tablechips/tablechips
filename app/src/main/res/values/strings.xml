@@ -293,4 +293,9 @@
     <string name="bank_change">Change</string>
     <string name="bank_give">Give it</string>
     <string name="log_player_sat_back">sat down at seat %1$s</string>
+    <string name="amount_by_number">Amount</string>
+    <string name="amount_by_chips">Chips</string>
+    <string name="amount_clear">Clear</string>
+    <string name="amount_chip_more">One more %1$s chip</string>
+    <string name="amount_chip_less">One %1$s chip fewer</string>
 </resources>

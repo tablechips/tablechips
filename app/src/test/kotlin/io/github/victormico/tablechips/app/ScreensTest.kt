@@ -783,4 +783,64 @@ class ScreensTest {
         compose.onNodeWithText("Agafar la banca").performClick()
         assertEquals(true, taken)
     }
+
+    private fun betRequest(max: Long?) = AmountRequest(
+        title = "Apostar", subtitle = "", confirm = "Apostar", max = max,
+        restLabel = "", rest = { it }, onConfirm = {},
+    )
+
+    /** Counting a bet chip by chip: the figure is always the total. */
+    @Test
+    fun `chips mode adds up the chips pushed forward`() {
+        var typed by mutableStateOf("")
+        compose.setContent {
+            AmountScreen(
+                request = betRequest(max = 905), typed = typed, untouched = false,
+                onType = {}, onSet = { typed = it.toString() }, onBack = {}, byChips = true,
+            )
+        }
+
+        compose.onNodeWithContentDescription("Una fitxa de 100 més").performClick()
+        compose.onNodeWithContentDescription("Una fitxa de 100 més").performClick()
+        compose.onNodeWithContentDescription("Una fitxa de 25 més").performClick()
+        compose.onNodeWithContentDescription("Una fitxa de 5 més").performClick()
+
+        assertEquals("230", typed)
+        compose.onNodeWithTag("chip-count:100").assertTextEquals("2")
+        compose.onNodeWithContentDescription("Una fitxa de 100 menys").performClick()
+        assertEquals("130", typed)
+    }
+
+    @Test
+    fun `a chip that would go past the stack cannot be added`() {
+        var typed by mutableStateOf("")
+        compose.setContent {
+            AmountScreen(
+                request = betRequest(max = 120), typed = typed, untouched = false,
+                onType = {}, onSet = { typed = it.toString() }, onBack = {}, byChips = true,
+            )
+        }
+
+        compose.onNodeWithContentDescription("Una fitxa de 100 més").performClick()
+        // 100 in, 20 left: another 100 or a 50 would bet chips that are not there.
+        compose.onNodeWithContentDescription("Una fitxa de 100 més").performClick()
+        compose.onNodeWithContentDescription("Una fitxa de 50 més").performClick()
+        assertEquals("100", typed)
+        compose.onNodeWithContentDescription("Una fitxa de 5 més").performClick()
+        assertEquals("105", typed)
+    }
+
+    @Test
+    fun `switching to chips starts from the amount, in the fewest chips`() {
+        compose.setContent {
+            AmountScreen(
+                request = betRequest(max = null), typed = "150", untouched = true,
+                onType = {}, onSet = {}, onBack = {}, byChips = true,
+            )
+        }
+
+        compose.onNodeWithTag("chip-count:100").assertTextEquals("1")
+        compose.onNodeWithTag("chip-count:50").assertTextEquals("1")
+        compose.onNodeWithTag("chip-count:5").assertTextEquals("0")
+    }
 }
