@@ -365,6 +365,7 @@ fun PlayerRow(
     strong: Boolean = false,
     dim: Boolean = false,
     tags: List<String> = emptyList(),
+    chipsColor: Color = Refugi.text,
 ) {
     Card(
         modifier = modifier.fillMaxWidth().alpha(if (dim) .72f else 1f),
@@ -384,7 +385,7 @@ fun PlayerRow(
                 maxLines = 1,
             )
             tags.forEach { TcText(it, Type.body, color = Refugi.text2) }
-            if (chips.isNotEmpty()) TcText(chips, Type.chips)
+            if (chips.isNotEmpty()) TcText(chips, Type.chips, color = chipsColor)
         }
     }
 }

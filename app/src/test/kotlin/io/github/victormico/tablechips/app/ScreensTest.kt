@@ -843,4 +843,26 @@ class ScreensTest {
         compose.onNodeWithTag("chip-count:50").assertTextEquals("1")
         compose.onNodeWithTag("chip-count:5").assertTextEquals("0")
     }
+
+    /**
+     * At a poker table the row shows what each player has pushed forward this
+     * round, not what they have behind.
+     */
+    @Test
+    fun `at poker the rows show each player's bet, not their stack`() {
+        compose.setContent {
+            TableScreen(
+                state = pokerState(), selectedPot = MAIN_POT, onSelectPot = {},
+                undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {},
+                onStand = {}, onSit = {},
+            )
+        }
+
+        // Heads-up blinds 10/20: Anna posted 10, Bru 20.
+        compose.onNodeWithText("Aposta".uppercase()).assertIsDisplayed()
+        compose.onNodeWithText("10").assertExists()
+        compose.onNodeWithText("20").assertExists()
+        // Anna's 990 behind is hers to know, not the table's.
+        compose.onNodeWithText("990").assertDoesNotExist()
+    }
 }

@@ -195,22 +195,35 @@ fun TableScreen(
         }
 
         val seated = table.players.filter { it.seat != null }.sortedBy { it.seat }
+        // At a poker table what matters about the others is what they have
+        // pushed forward this round, not what they have behind: that is the
+        // number the row shows, in the brass of chips in play.
+        val poker = table.config.mode == GameMode.POKER
         Row(verticalAlignment = Alignment.Bottom) {
             Caption(stringResource(R.string.player_at_table))
             Box(Modifier.weight(1f))
-            TcText(chips(seated.size.toLong()), Type.caption, color = Refugi.text2)
+            if (poker) {
+                Caption(stringResource(R.string.poker_bet_column))
+            } else {
+                TcText(chips(seated.size.toLong()), Type.caption, color = Refugi.text2)
+            }
         }
         seated.forEach { player ->
             PlayerRow(
                 name = player.name,
-                chips = chips(player.stack),
+                chips = when {
+                    !poker -> chips(player.stack)
+                    player.roundBet > 0 -> chips(player.roundBet)
+                    else -> "\u2014"
+                },
+                chipsColor = if (poker && player.roundBet > 0) Refugi.accent else if (poker) Refugi.text2 else Refugi.text,
                 dot = when {
                     player.id == state.you -> Refugi.accent
                     player.connected -> Refugi.gain
                     else -> Refugi.line
                 },
                 strong = player.id == state.you,
-                dim = !player.connected,
+                dim = !player.connected || (poker && player.folded),
                 tags = buildList {
                     if (player.isHost) add(stringResource(R.string.host_role))
                     if (table.banker == player.id) add(stringResource(R.string.bank_title))

@@ -119,6 +119,8 @@ body {
 .stackNum { font-family: var(--mono); font-weight: 600; --figure: 72px;
             font-size: calc(var(--figure) * var(--fit, 1)); line-height: 1;
             letter-spacing: -.03em; font-variant-numeric: tabular-nums; margin-top: 6px; }
+.pchips.bet { color: var(--accent); }
+.pchips.nobet { color: var(--text2); }
 .chipRow { display: flex; gap: 8px; margin-top: 16px; align-items: flex-end; }
 .chipCol { flex: 1; display: flex; flex-direction: column; align-items: center; min-width: 0; }
 .chipPile { height: 40px; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; }
@@ -734,7 +736,7 @@ const DICT = {
     "bank.pays": "La natural paga", "bank.stakeTitle": "Quant apostes?",
     "poker.call": "Igualar %s", "poker.bet": "Apostar", "poker.raise": "Pujar",
     "poker.fold": "Retirar-se", "poker.folded": "Estàs fora d'aquesta mà",
-    "poker.toCall": "Per igualar", "poker.newHand": "Mà nova",
+    "poker.toCall": "Per igualar", "poker.betColumn": "Aposta", "poker.newHand": "Mà nova",
     "poker.closeRound": "Tancar la ronda", "poker.split": "Dividir el pot",
     "poker.blinds": "Cegues", "poker.blindsSub": "Escriu la cega gran: la petita és la meitat", "poker.blindsNow": "%s / %s · toca per canviar-les",
     "poker.button": "Repartidor", "poker.sidePot": "Pot lateral %s",
@@ -875,7 +877,7 @@ const DICT = {
     "bank.pays": "La natural paga", "bank.stakeTitle": "¿Cuánto apuestas?",
     "poker.call": "Igualar %s", "poker.bet": "Apostar", "poker.raise": "Subir",
     "poker.fold": "Retirarse", "poker.folded": "Estás fuera de esta mano",
-    "poker.toCall": "Para igualar", "poker.newHand": "Mano nueva",
+    "poker.toCall": "Para igualar", "poker.betColumn": "Apuesta", "poker.newHand": "Mano nueva",
     "poker.closeRound": "Cerrar la ronda", "poker.split": "Dividir el bote",
     "poker.blinds": "Ciegas", "poker.blindsSub": "Escribe la ciega grande: la pequeña es la mitad", "poker.blindsNow": "%s / %s · toca para cambiarlas",
     "poker.button": "Repartidor", "poker.sidePot": "Bote lateral %s",
@@ -1016,7 +1018,7 @@ const DICT = {
     "bank.pays": "A natural pays", "bank.stakeTitle": "How much do you stake?",
     "poker.call": "Call %s", "poker.bet": "Bet", "poker.raise": "Raise",
     "poker.fold": "Fold", "poker.folded": "You are out of this hand",
-    "poker.toCall": "To call", "poker.newHand": "New hand",
+    "poker.toCall": "To call", "poker.betColumn": "Bet", "poker.newHand": "New hand",
     "poker.closeRound": "Close the round", "poker.split": "Split the pot",
     "poker.blinds": "Blinds", "poker.blindsSub": "Type the big blind: the small one is half of it", "poker.blindsNow": "%s / %s · tap to change them",
     "poker.button": "Dealer", "poker.sidePot": "Side pot %s",
@@ -1461,7 +1463,7 @@ function renderSeats() {
 
   const head = el("div", "rowsCap");
   head.append(el("span", "cap", t("player.atTable")),
-              el("span", "cap", fmt(seatedPlayers().length)));
+              el("span", "cap", mode === "poker" ? t("poker.betColumn") : fmt(seatedPlayers().length)));
   document.getElementById("tableRows").replaceChildren(head, ...rows);
 }
 
@@ -1478,7 +1480,15 @@ function seatRow(seat, who) {
     else if (who.stack === 0 && who.committed > 0) row.append(el("span", "ptag bad", t("poker.allIn")));
   }
   if (!who.connected) row.append(el("span", "ptag bad", t("player.gone")));
-  row.append(el("span", "pchips", fmt(who.stack)));
+  // At a poker table what matters about the others is what they have pushed
+  // forward this round, not what they have behind.
+  if (mode === "poker") {
+    const bet = who.roundBet || 0;
+    row.append(el("span", "pchips" + (bet > 0 ? " bet" : " nobet"), bet > 0 ? fmt(bet) : "\u2014"));
+    if (who.folded) row.classList.add("dim");
+  } else {
+    row.append(el("span", "pchips", fmt(who.stack)));
+  }
   return row;
 }
 

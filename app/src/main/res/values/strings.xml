@@ -298,4 +298,5 @@
     <string name="amount_clear">Clear</string>
     <string name="amount_chip_more">One more %1$s chip</string>
     <string name="amount_chip_less">One %1$s chip fewer</string>
+    <string name="poker_bet_column">Bet</string>
 </resources>
