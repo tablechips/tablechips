@@ -1811,6 +1811,7 @@ function openBet() {
 function openRebuy() {
   openAmount({
     title: t("rebuy.title"), sub: ["rebuy.sub", num(fmt(mine().stack))],
+    dealt: true,
     confirm: t("rebuy.confirm"), initial: state.config.defaultBuyIn,
     rest: (value) => ({ label: t("amount.resulting"), value: mine().stack + value }),
     run: (value) => act({ type: "rebuy", amount: value })
@@ -1826,6 +1827,7 @@ function askBuyIn(seat) {
   }
   openAmount({
     title: t("sit.title"),
+    dealt: true,
     sub: ["sit.sub", num(seat === null ? "\u2014" : fmt(seat + 1)),
           num(fmt(state.config.defaultBuyIn))],
     confirm: t("sit.confirm"), initial: state.config.defaultBuyIn, allowZero: true,
@@ -1868,7 +1870,8 @@ function renderAmount() {
 // Whoever counts in chips keeps counting in chips: it is a way of playing.
 let byChips = store.get("amountByChips") === "1";
 // The rows are the truth while the pad is open; null means "start again from
-// the amount", in the fewest chips, which is how a bet is pushed.
+// the amount", in the fewest chips, which is how a bet is pushed — or, for a
+// buy-in (`flow.dealt`), the way the chips are dealt: five of each.
 let chipCounts = null;
 // A new amount opens the pad at its top, with the biggest chip in view. It is
 // reset on the first draw rather than when the flow opens: the view is still
@@ -1884,6 +1887,8 @@ function fewestChips(amount) {
     return { value: value, count: count };
   });
 }
+
+function padChips(amount) { return flow.dealt ? chipsIn(amount) : fewestChips(amount); }
 
 function chipTotal(counts) { return counts.reduce((sum, c) => sum + c.value * c.count, 0); }
 
@@ -1912,7 +1917,7 @@ function renderAmountMode() {
  */
 function renderChipPad() {
   const value = amountValue();
-  if (!chipCounts || chipTotal(chipCounts) !== value) chipCounts = fewestChips(value);
+  if (!chipCounts || chipTotal(chipCounts) !== value) chipCounts = padChips(value);
   const max = flow.max === undefined || flow.max === null ? null : flow.max;
   const lines = chipCounts.map(({ value: chip, count }) => {
     const line = el("div", "chipLine");
@@ -1930,11 +1935,11 @@ function renderChipPad() {
   });
   const row = el("div", "row");
   const clear = el("button", "quick rel", t("amount.clear"));
-  clear.onclick = () => { chipCounts = fewestChips(0); setAmount(0); };
+  clear.onclick = () => { chipCounts = padChips(0); setAmount(0); };
   row.append(clear);
   if (max !== null) {
     const all = el("button", "quick rel all", t("amount.all"));
-    all.onclick = () => { chipCounts = fewestChips(max); setAmount(max); };
+    all.onclick = () => { chipCounts = padChips(max); setAmount(max); };
     row.append(all);
   }
   const pad = document.getElementById("chipPad");
@@ -2547,6 +2552,7 @@ document.getElementById("newPotBtn").onclick = () =>
   hostCommand({ type: "create_pot", name: t("newPot.name") });
 document.getElementById("buyInBtn").onclick = () => openAmount({
   title: t("buyIn.title"), sub: t("buyIn.sub"), confirm: t("buyIn.confirm"),
+  dealt: true,
   initial: state.config.defaultBuyIn, allowZero: true,
   rest: (value) => ({ label: t("hostPanel.buyIn"), value: value }),
   run: (value) => hostCommand({

@@ -8,6 +8,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import io.github.victormico.tablechips.app.ui.Pills
+import io.github.victormico.tablechips.core.ChipCount
+import io.github.victormico.tablechips.core.chipsIn
 import io.github.victormico.tablechips.core.fewestChips
 import io.github.victormico.tablechips.core.total
 import androidx.compose.foundation.BorderStroke
@@ -58,6 +60,12 @@ data class AmountRequest(
     /** What the balance line says while the amount is under [min]. */
     val minLabel: String? = null,
     val allowZero: Boolean = false,
+    /**
+     * The amount is chips handed out by the bank, a buy-in, rather than
+     * chips pushed forward: counting by chips starts from the deal, five of
+     * each, instead of the fewest chips.
+     */
+    val dealt: Boolean = false,
     /** The pot, when the shortcuts should offer half of it and all of it. */
     val pot: Long? = null,
     val restLabel: String,
@@ -166,7 +174,7 @@ fun AmountScreen(
         )
 
         if (byChips) {
-            ChipPad(value = value, max = request.max, onSet = onSet)
+            ChipPad(value = value, max = request.max, dealt = request.dealt, onSet = onSet)
             return@Frame
         }
 
@@ -217,15 +225,16 @@ fun AmountScreen(
 /**
  * The amount as chips pushed forward, one row per value: how many of each go
  * in. It starts from the amount already there, in the fewest chips, because
- * that is how a bet is pushed. The figure above is always the total, and it
+ * that is how a bet is pushed — or, for a buy-in, the way the chips are dealt. The figure above is always the total, and it
  * is the total that is confirmed: the app counts amounts, not chips.
  */
 @Composable
-private fun ColumnScope.ChipPad(value: Long, max: Long?, onSet: (Long) -> Unit) {
+private fun ColumnScope.ChipPad(value: Long, max: Long?, dealt: Boolean, onSet: (Long) -> Unit) {
+    val breakdown: (Long) -> List<ChipCount> = if (dealt) ::chipsIn else ::fewestChips
     // The rows are the truth while this pad is open; they start from whatever
     // amount was there when it opened, and every tap writes the new total back.
-    var counts by remember { mutableStateOf(fewestChips(value)) }
-    if (counts.total() != value) counts = fewestChips(value)
+    var counts by remember { mutableStateOf(breakdown(value)) }
+    if (counts.total() != value) counts = breakdown(value)
 
     fun change(chip: Long, by: Long) {
         val next = counts.map { if (it.value == chip) it.copy(count = it.count + by) else it }
@@ -265,12 +274,12 @@ private fun ColumnScope.ChipPad(value: Long, max: Long?, onSet: (Long) -> Unit) 
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             Quick(stringResource(R.string.amount_clear), Modifier.weight(1f)) {
-                counts = fewestChips(0)
+                counts = breakdown(0)
                 onSet(0)
             }
             if (max != null) {
                 Quick(stringResource(R.string.amount_all), Modifier.weight(1f), warn = true) {
-                    counts = fewestChips(max)
+                    counts = breakdown(max)
                     onSet(max)
                 }
             }

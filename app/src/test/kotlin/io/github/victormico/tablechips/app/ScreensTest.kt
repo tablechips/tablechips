@@ -849,6 +849,21 @@ class ScreensTest {
         compose.onNodeWithTag("chip-count:5").assertTextEquals("0")
     }
 
+    /** A buy-in is chips handed out, so it counts as the deal: five of each. */
+    @Test
+    fun `a buy-in in chips starts from the deal, not the fewest chips`() {
+        compose.setContent {
+            AmountScreen(
+                request = betRequest(max = null).copy(dealt = true), typed = "905", untouched = true,
+                onType = {}, onSet = {}, onBack = {}, byChips = true,
+            )
+        }
+
+        listOf(100L, 50L, 25L, 5L, 1L).forEach { chip ->
+            compose.onNodeWithTag("chip-count:$chip").assertTextEquals("5")
+        }
+    }
+
     /**
      * At a poker table the row shows what each player has pushed forward this
      * round, not what they have behind.
