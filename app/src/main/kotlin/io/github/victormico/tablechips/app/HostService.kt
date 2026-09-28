@@ -12,6 +12,8 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import io.github.victormico.tablechips.core.TableConfig
+import io.github.victormico.tablechips.protocol.ProtocolJson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -43,7 +45,7 @@ class HostService : Service() {
         // opening an empty table over it.
         val resume = intent == null || intent.getBooleanExtra(EXTRA_RESUME, false)
         scope.launch {
-            HostController.start(resume = resume)
+            HostController.start(resume = resume, config = intent.tableConfig())
             if (HostController.isRunning) {
                 updateNotification()
                 HostController.observeTable()
@@ -138,11 +140,21 @@ class HostService : Service() {
         private const val NOTIFICATION_ID = 1
         const val ACTION_STOP = "io.github.victormico.tablechips.STOP"
         private const val EXTRA_RESUME = "resume"
+        private const val EXTRA_CONFIG = "config"
 
-        fun start(context: Context, resume: Boolean = false) {
-            context.startForegroundService(
-                Intent(context, HostService::class.java).putExtra(EXTRA_RESUME, resume),
-            )
+        /**
+         * The config chosen on the setup screen, as JSON: the same encoding the
+         * ledger uses, so there is one way to write a config down, not two.
+         */
+        private fun Intent?.tableConfig(): TableConfig =
+            this?.getStringExtra(EXTRA_CONFIG)
+                ?.let { runCatching { ProtocolJson.decodeFromString<TableConfig>(it) }.getOrNull() }
+                ?: TableConfig()
+
+        fun start(context: Context, resume: Boolean = false, config: TableConfig? = null) {
+            val intent = Intent(context, HostService::class.java).putExtra(EXTRA_RESUME, resume)
+            config?.let { intent.putExtra(EXTRA_CONFIG, ProtocolJson.encodeToString(it)) }
+            context.startForegroundService(intent)
         }
 
         fun stop(context: Context) {

@@ -30,6 +30,7 @@ import io.github.victormico.tablechips.app.ui.Card
 import io.github.victormico.tablechips.app.ui.ClickableSurface
 import io.github.victormico.tablechips.app.ui.Frame
 import io.github.victormico.tablechips.app.ui.Note
+import io.github.victormico.tablechips.app.ui.Pills
 import io.github.victormico.tablechips.app.ui.Refugi
 import io.github.victormico.tablechips.app.ui.SecondaryButton
 import io.github.victormico.tablechips.app.ui.TcText
@@ -382,37 +383,6 @@ private fun HandCard(player: Player, mode: GameMode, onSettle: (Player, HandOutc
     }
 }
 
-/** A row of choices where exactly one is on. */
-@Composable
-private fun <T> Pills(options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth()
-            .background(Refugi.surface, RoundedCornerShape(9.dp))
-            .border(BorderStroke(1.dp, Refugi.line), RoundedCornerShape(9.dp))
-            .padding(3.dp),
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
-    ) {
-        options.forEach { (value, label) ->
-            val on = value == selected
-            ClickableSurface(
-                onClick = { onSelect(value) },
-                modifier = Modifier.weight(1f).height(38.dp),
-                fill = if (on) Refugi.accent else Color.Transparent,
-                border = Color.Transparent,
-                radius = 7.dp,
-                padding = 2.dp,
-                contentAlignment = Alignment.Center,
-            ) {
-                TcText(
-                    label,
-                    Type.secondary.copy(fontSize = 13.sp),
-                    color = if (on) Refugi.onAccent else Refugi.text2,
-                    maxLines = 1,
-                )
-            }
-        }
-    }
-}
 
 /**
  * The log settles arguments and takes moves back. Undo has no depth limit: at

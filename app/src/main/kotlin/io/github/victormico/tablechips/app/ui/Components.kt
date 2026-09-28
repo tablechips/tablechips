@@ -32,6 +32,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -135,10 +137,12 @@ fun SecondaryButton(
     borderless: Boolean = false,
     height: Dp = 60.dp,
     style: TextStyle = Type.secondary,
+    enabled: Boolean = true,
 ) {
     ClickableSurface(
         onClick = onClick,
         modifier = modifier.height(height),
+        enabled = enabled,
         // Neither warn nor loss ever fills a button: they are text and border,
         // so the primary action differs in shape and not merely in hue.
         fill = if (borderless) Refugi.bg else if (warn) Refugi.surfaceHigh else Refugi.surface,
@@ -156,6 +160,7 @@ fun SecondaryButton(
             TcText(
                 label, style,
                 color = when {
+                    !enabled -> Refugi.line
                     danger -> Refugi.loss
                     warn -> Refugi.warn
                     borderless -> Refugi.text2
@@ -316,6 +321,21 @@ fun MenuButton(onClick: () -> Unit) {
     }
 }
 
+/** The rules of the game, one tap from the table, in the shape of the menu button. */
+@Composable
+fun HelpButton(label: String, onClick: () -> Unit) {
+    ClickableSurface(
+        onClick = onClick,
+        modifier = Modifier.size(32.dp).semantics { contentDescription = label },
+        fill = Refugi.bg,
+        border = Refugi.line,
+        radius = 8.dp,
+        padding = 0.dp,
+    ) {
+        TcText("?", Type.secondary.copy(fontSize = 15.sp), color = Refugi.text2)
+    }
+}
+
 /** A block of advice that stays put: informative, never a passing toast. */
 @Composable
 fun Note(text: String, color: Color = Refugi.warn, border: Color = Refugi.lineAccent) {
@@ -435,6 +455,38 @@ fun QrCode(text: String, modifier: Modifier = Modifier, quietZone: Int = 3) {
                         origin.y + (y + quietZone) * module,
                     ),
                     size = block,
+                )
+            }
+        }
+    }
+}
+
+/** A row of choices where exactly one is on. */
+@Composable
+fun <T> Pills(options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth()
+            .background(Refugi.surface, RoundedCornerShape(9.dp))
+            .border(BorderStroke(1.dp, Refugi.line), RoundedCornerShape(9.dp))
+            .padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        options.forEach { (value, label) ->
+            val on = value == selected
+            ClickableSurface(
+                onClick = { onSelect(value) },
+                modifier = Modifier.weight(1f).height(38.dp),
+                fill = if (on) Refugi.accent else Color.Transparent,
+                border = Color.Transparent,
+                radius = 7.dp,
+                padding = 2.dp,
+                contentAlignment = Alignment.Center,
+            ) {
+                TcText(
+                    label,
+                    Type.secondary.copy(fontSize = 13.sp),
+                    color = if (on) Refugi.onAccent else Refugi.text2,
+                    maxLines = 1,
                 )
             }
         }

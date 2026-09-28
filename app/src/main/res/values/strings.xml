@@ -254,4 +254,39 @@
     <string name="log_player_folded">folded</string>
     <string name="log_round_closed">end of the round</string>
     <string name="log_pots_split">the pot splits into %1$s</string>
+
+    <!-- Setting a table up -->
+    <string name="setup_title">New table</string>
+    <string name="setup_sub">All of it can be changed later from the host panel.</string>
+    <string name="setup_open">Open the table</string>
+    <string name="setup_seats">Seats</string>
+    <string name="setup_buy_in_now">%1$s · tap to change it</string>
+    <string name="setup_fewer_seats">One seat fewer</string>
+    <string name="setup_more_seats">One seat more</string>
+
+    <!-- The rules of the game -->
+    <string name="rules_title">Rules of the game</string>
+    <string name="rules_how">How is it played?</string>
+    <string name="rules_play">How it is played</string>
+    <string name="rules_count">How the app counts it</string>
+    <string name="rules_people">What you decide</string>
+    <string name="rules_table">This table</string>
+    <string name="rules_buy_in">Buy-in: %1$s</string>
+    <string name="rules_seats">Seats: %1$s</string>
+    <string name="rules_natural">A natural pays %1$s</string>
+    <string name="rules_blinds">Blinds %1$s / %2$s</string>
+    <string name="rules_no_blinds">No blinds</string>
+    <string name="rules_manual_play">The table does not know which game you are playing: it only counts chips. It works for any game with betting — canari, truc, mus, monte — and for every game without a mode of its own.</string>
+    <string name="rules_manual_count">Everyone bets into the pot from their own phone. The host gives the pot to whoever won it, whole or in parts, and can open more pots. A pot nobody takes stays on the table for the next hand.</string>
+    <string name="rules_manual_people">The rules, the turns and who wins each hand. The app only writes down what the host says, and anything can be undone from the log.</string>
+    <string name="rules_seven_half_play">Played with a 40-card Spanish deck. Number cards are worth their number and the face cards (sota, caballo, rey) half a point. Each player draws to get as close to seven and a half as possible without going over, playing alone against the bank.</string>
+    <string name="rules_seven_half_count">Whoever does not hold the bank stakes before the deal. When the hand is over, the host settles each stake: wins (the bank pays the same again), loses (the stake goes to the bank), push (the stake comes back) or seven and a half (the bank pays what this table says). The bank changes hands from the panel.</string>
+    <string name="rules_seven_half_people">Who holds the bank and when it passes on, which hand counts as a seven and a half, and who takes a tie: in many places the bank does, and then the button to press is Loses.</string>
+    <string name="rules_blackjack_play">Each player tries to get as close to 21 as possible without going over. Face cards are worth 10, an ace 1 or 11, the rest their number. An ace and a ten-card as the first two cards is a blackjack. Everyone plays against the bank.</string>
+    <string name="rules_blackjack_count">Whoever does not hold the bank stakes before the deal; doubling is staking the same amount again. When the hand is over, the host settles each stake: wins, loses, push or blackjack (the bank pays what this table says). A split hand is settled in two parts.</string>
+    <string name="rules_blackjack_people">When the bank stands, whether doubling and splitting are allowed, and who won each hand. The house rules are yours to set.</string>
+    <string name="rules_poker_play">Texas hold\'em: each player gets two cards and five are shared, dealt in three rounds. There is a round of betting before and after each, and the best five-card hand wins.</string>
+    <string name="rules_poker_count">New hand moves the dealer and posts the blinds. The big button says exactly what a call costs. Between rounds, the host closes the round. If somebody goes all-in with fewer chips, Split the pot separates the pots each player can win, and the host awards them one by one.</string>
+    <string name="rules_poker_people">Whose turn it is, when you may check, and who wins the hand. The app counts the chips; the game is yours.</string>
+    <string name="common_back">Back</string>
 </resources>

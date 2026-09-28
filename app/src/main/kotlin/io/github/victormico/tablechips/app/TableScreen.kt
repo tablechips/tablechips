@@ -27,6 +27,7 @@ import io.github.victormico.tablechips.app.ui.Caption
 import io.github.victormico.tablechips.app.ui.Card
 import io.github.victormico.tablechips.app.ui.ClickableSurface
 import io.github.victormico.tablechips.app.ui.Frame
+import io.github.victormico.tablechips.app.ui.HelpButton
 import io.github.victormico.tablechips.app.ui.Mark
 import io.github.victormico.tablechips.app.ui.MenuButton
 import io.github.victormico.tablechips.app.ui.Note
@@ -55,6 +56,7 @@ fun TableScreen(
     undoable: String?,
     onUndo: () -> Unit,
     onMenu: () -> Unit,
+    onRules: () -> Unit = {},
     onBet: () -> Unit,
     onRebuy: () -> Unit,
     onStand: () -> Unit,
@@ -80,6 +82,7 @@ fun TableScreen(
                 if (state.isHost) {
                     TcText(stringResource(R.string.host_role).uppercase(), Type.caption, color = Refugi.gain)
                 }
+                HelpButton(stringResource(R.string.rules_title), onRules)
                 MenuButton(onMenu)
             }
         },

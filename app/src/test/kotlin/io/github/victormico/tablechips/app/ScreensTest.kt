@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -22,6 +23,7 @@ import io.github.victormico.tablechips.core.TableConfig
 import io.github.victormico.tablechips.core.AwardPot
 import io.github.victormico.tablechips.core.GameMode
 import io.github.victormico.tablechips.core.HandOutcome
+import io.github.victormico.tablechips.core.Payout
 import io.github.victormico.tablechips.core.PlaceStake
 import io.github.victormico.tablechips.core.SetBanker
 import io.github.victormico.tablechips.core.StartHand
@@ -266,7 +268,7 @@ class ScreensTest {
         compose.setContent {
             App(
                 prefs = prefs,
-                onStartHost = { started = true },
+                onStartHost = { _, _ -> started = true },
                 onStopHost = {},
                 onDiscardSaved = {},
                 onShare = {},
@@ -284,14 +286,15 @@ class ScreensTest {
     }
 
     @Test
-    fun `with a name already known, creating a table starts the host`() {
+    fun `creating a table asks how it is set up, then opens it with that`() {
         val prefs = Prefs(androidx.test.core.app.ApplicationProvider.getApplicationContext())
         prefs.name = "Víctor"
-        var started = false
+        prefs.lastConfig = null
+        var opened: Pair<Boolean, TableConfig?>? = null
         compose.setContent {
             App(
                 prefs = prefs,
-                onStartHost = { started = true },
+                onStartHost = { resume, config -> opened = resume to config },
                 onStopHost = {},
                 onDiscardSaved = {},
                 onShare = {},
@@ -301,8 +304,94 @@ class ScreensTest {
 
         compose.onNodeWithText("Crear una taula").performClick()
         compose.waitForIdle()
+        // Nothing opens until the setup has been seen.
+        assertEquals(null, opened)
+        compose.onNodeWithText("Nova taula").assertIsDisplayed()
 
-        assertEquals(true, started)
+        compose.onNodeWithText("Blackjack").performClick()
+        compose.onNodeWithText("Obrir la taula").performClick()
+        compose.waitForIdle()
+
+        val (resume, config) = opened!!
+        assertEquals(false, resume)
+        assertEquals(GameMode.BLACKJACK, config!!.mode)
+        assertEquals(Payout(3, 2), config.naturalPays)
+        // And the next table starts from this one.
+        assertEquals(GameMode.BLACKJACK, prefs.lastConfig!!.mode)
+    }
+
+    @Test
+    fun `the setup shows each game's own setting and nothing else`() {
+        var config by mutableStateOf(TableConfig(defaultBuyIn = 1000))
+        compose.setContent {
+            SetupScreen(
+                config = config, starting = false, onConfig = { config = it },
+                onBuyIn = {}, onBlinds = {}, onRules = {}, onOpen = {}, onBack = {},
+            )
+        }
+
+        compose.onNodeWithText("La natural paga".uppercase()).assertDoesNotExist()
+        compose.onNodeWithText("Set i mig").performClick()
+        compose.onNodeWithText("La natural paga".uppercase()).assertIsDisplayed()
+        assertEquals(Payout(2, 1), config.naturalPays)
+
+        compose.onNodeWithText("Pòquer").performClick()
+        compose.onNodeWithText("La natural paga".uppercase()).assertDoesNotExist()
+        // A fiftieth of the buy-in, as a starting point shown right there.
+        compose.onNodeWithText("10 / 20 · toca per canviar-les").performScrollTo().assertIsDisplayed()
+        assertEquals(20L, config.bigBlind)
+
+        compose.onNodeWithContentDescription("Un lloc menys").performScrollTo().performClick()
+        assertEquals(9, config.seatCount)
+    }
+
+    @Test
+    fun `the seats stop where a table stops`() {
+        var config by mutableStateOf(TableConfig(seatCount = 2))
+        compose.setContent {
+            SetupScreen(
+                config = config, starting = false, onConfig = { config = it },
+                onBuyIn = {}, onBlinds = {}, onRules = {}, onOpen = {}, onBack = {},
+            )
+        }
+
+        compose.onNodeWithContentDescription("Un lloc menys").performScrollTo().performClick()
+        assertEquals(2, config.seatCount)
+    }
+
+    /**
+     * The part that is nowhere else in the app: what the people at the table
+     * decide and the app does not. With this table's numbers, not generic ones.
+     */
+    @Test
+    fun `the rules say how the game is counted and what is left to the table`() {
+        compose.setContent {
+            RulesScreen(
+                config = TableConfig(mode = GameMode.BLACKJACK, naturalPays = Payout(3, 2), defaultBuyIn = 500),
+                onBack = {},
+            )
+        }
+
+        compose.onNodeWithText("Regles del joc").assertIsDisplayed()
+        compose.onNodeWithText("Blackjack").assertIsDisplayed()
+        compose.onNodeWithText("Què decidiu vosaltres".uppercase()).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("La natural paga 3:2").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Compra per defecte: 500").assertExists()
+    }
+
+    @Test
+    fun `the table carries a question mark that opens the rules`() {
+        var asked = false
+        compose.setContent {
+            TableScreen(
+                state = playing(), selectedPot = MAIN_POT, onSelectPot = {},
+                undoable = null, onUndo = {}, onMenu = {}, onRules = { asked = true },
+                onBet = {}, onRebuy = {}, onStand = {}, onSit = {},
+            )
+        }
+
+        compose.onNodeWithContentDescription("Regles del joc").performClick()
+        assertEquals(true, asked)
     }
 
     /**

@@ -49,6 +49,8 @@ data class AmountRequest(
     val restLabel: String,
     val rest: (Long) -> Long,
     val onConfirm: (Long) -> Unit,
+    /** Where cancelling goes, when it is not back to the table. */
+    val onCancel: (() -> Unit)? = null,
 )
 
 /**

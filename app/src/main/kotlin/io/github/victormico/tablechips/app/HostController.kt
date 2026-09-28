@@ -75,13 +75,18 @@ object HostController {
      * interrupted, keeping its room code, its chips and its log; the players'
      * phones reconnect on their own and find their seats waiting.
      */
-    suspend fun start(preferredPort: Int = DEFAULT_PORT, resume: Boolean = false) {
+    suspend fun start(
+        preferredPort: Int = DEFAULT_PORT,
+        resume: Boolean = false,
+        /** What a fresh table opens with. A resumed one keeps what its ledger says. */
+        config: TableConfig = TableConfig(),
+    ) {
         if (isRunning) return
         _status.value = _status.value.copy(starting = true, failure = null)
         val ledger = if (resume) saved() else null
         val restored = ledger?.let { runCatching { Table.restore(it) }.getOrNull() }
         val host = TableHost(
-            table = restored ?: Table(_status.value.roomCode ?: newRoomCode(), TableConfig()),
+            table = restored ?: Table(_status.value.roomCode ?: newRoomCode(), config),
             store = store,
         )
         val roomCode = host.table.roomCode

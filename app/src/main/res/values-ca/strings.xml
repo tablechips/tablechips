@@ -239,4 +239,39 @@
     <string name="log_player_folded">s\'ha retirat</string>
     <string name="log_round_closed">fi de la ronda</string>
     <string name="log_pots_split">el pot es divideix en %1$s</string>
+
+    <!-- Preparar una taula -->
+    <string name="setup_title">Nova taula</string>
+    <string name="setup_sub">Tot es pot canviar després des del panell d\'amfitrió.</string>
+    <string name="setup_open">Obrir la taula</string>
+    <string name="setup_seats">Llocs</string>
+    <string name="setup_buy_in_now">%1$s · toca per canviar-la</string>
+    <string name="setup_fewer_seats">Un lloc menys</string>
+    <string name="setup_more_seats">Un lloc més</string>
+
+    <!-- Les regles del joc -->
+    <string name="rules_title">Regles del joc</string>
+    <string name="rules_how">Com es juga?</string>
+    <string name="rules_play">Com es juga</string>
+    <string name="rules_count">Com ho compta l\'app</string>
+    <string name="rules_people">Què decidiu vosaltres</string>
+    <string name="rules_table">Aquesta taula</string>
+    <string name="rules_buy_in">Compra per defecte: %1$s</string>
+    <string name="rules_seats">Llocs: %1$s</string>
+    <string name="rules_natural">La natural paga %1$s</string>
+    <string name="rules_blinds">Cegues %1$s / %2$s</string>
+    <string name="rules_no_blinds">Sense cegues</string>
+    <string name="rules_manual_play">La taula no sap a quin joc jugueu: només compta fitxes. Serveix per a qualsevol joc amb aposta —canari, truc, mus, muntet— i per a tots els que no tenen mode propi.</string>
+    <string name="rules_manual_count">Cadascú aposta al pot des del seu mòbil. L\'amfitrió dona el pot a qui l\'ha guanyat, sencer o a parts, i pot obrir pots nous. Un pot que ningú no s\'endú es queda a la taula per a la mà següent.</string>
+    <string name="rules_manual_people">Les regles, els torns i qui guanya cada mà. L\'app només anota el que diu l\'amfitrió, i tot es pot desfer des del registre.</string>
+    <string name="rules_seven_half_play">Es juga amb baralla espanyola de 40 cartes. Les cartes de número valen el seu número i les figures (sota, cavall i rei), mig punt. Cadascú demana cartes per acostar-se a set i mig sense passar-se\'n, i juga sol contra la banca.</string>
+    <string name="rules_seven_half_count">Qui no té la banca aposta abans de repartir. Quan acaba la mà, l\'amfitrió resol cada aposta: guanya (la banca paga el mateix), perd (l\'aposta és per a la banca), empat (torna l\'aposta) o set i mig (la banca paga el que marca aquesta taula). La banca canvia de mans des del panell.</string>
+    <string name="rules_seven_half_people">Qui té la banca i quan passa, quina jugada compta com a set i mig, i qui s\'endú l\'empat: a molts llocs, la banca, i llavors el botó que cal prémer és «Perd».</string>
+    <string name="rules_blackjack_play">Cadascú intenta acostar-se a 21 sense passar-se\'n. Les figures valen 10, l\'as 1 o 11, i la resta el seu número. Un as i una carta de 10 com a primeres cartes és blackjack. Tothom juga contra la banca.</string>
+    <string name="rules_blackjack_count">Qui no té la banca aposta abans de repartir; doblar és tornar a apostar la mateixa quantitat. Quan acaba la mà, l\'amfitrió resol cada aposta: guanya, perd, empat o blackjack (la banca paga el que marca aquesta taula). Una mà separada es resol en dues parts.</string>
+    <string name="rules_blackjack_people">Quan es planta la banca, si es pot doblar o separar, i qui ha guanyat cada mà. Les regles de la casa les poseu vosaltres.</string>
+    <string name="rules_poker_play">Texas hold\'em: cadascú rep dues cartes i n\'hi ha cinc de comunes, que surten en tres tongades. Hi ha una ronda d\'apostes abans i després de cada tongada, i guanya la millor jugada de cinc cartes.</string>
+    <string name="rules_poker_count">«Mà nova» mou el repartidor i posa les cegues. El botó gran diu exactament quant costa igualar. Entre tongades, l\'amfitrió tanca la ronda. Si algú va all-in amb menys fitxes, «Dividir el pot» separa els pots que pot guanyar cadascú, i l\'amfitrió els dona un a un.</string>
+    <string name="rules_poker_people">De qui és el torn, quan es pot passar i qui guanya la mà. L\'app compta les fitxes; el joc el porteu vosaltres.</string>
+    <string name="common_back">Enrere</string>
 </resources>

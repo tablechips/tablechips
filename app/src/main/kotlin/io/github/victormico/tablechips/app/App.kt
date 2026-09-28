@@ -31,6 +31,7 @@ import io.github.victormico.tablechips.app.ui.Type
 import io.github.victormico.tablechips.app.ui.chips
 import io.github.victormico.tablechips.core.Player
 import io.github.victormico.tablechips.core.PotId
+import io.github.victormico.tablechips.core.TableConfig
 import io.github.victormico.tablechips.core.MAIN_POT
 import io.github.victormico.tablechips.protocol.Action
 import io.github.victormico.tablechips.protocol.AdjustStackCommand
@@ -137,6 +138,8 @@ private sealed interface Screen {
     data object Scan : Screen
     data object Table : Screen
     data object Amount : Screen
+    data object Setup : Screen
+    data object Rules : Screen
     data object HostPanel : Screen
     data object Seats : Screen
     data object Log : Screen
@@ -149,8 +152,11 @@ private const val UNDO_WINDOW_MILLIS = 30_000L
 @Composable
 fun App(
     prefs: Prefs,
-    /** Opens the table, picking a saved game back up when asked to. */
-    onStartHost: (resume: Boolean) -> Unit,
+    /**
+     * Opens the table: a saved game picked back up, or a fresh one with the
+     * config from the setup screen.
+     */
+    onStartHost: (resume: Boolean, config: TableConfig?) -> Unit,
     onStopHost: () -> Unit,
     onDiscardSaved: () -> Unit,
     onShare: (String) -> Unit,
@@ -174,6 +180,11 @@ fun App(
     var untouched by remember { mutableStateOf(false) }
     var tick by remember { mutableIntStateOf(0) }
     var asking by remember { mutableStateOf<Ask?>(null) }
+    // The table being set up, starting from how the last one was.
+    var setup by remember { mutableStateOf(prefs.lastConfig ?: TableConfig()) }
+    var rulesFrom by remember { mutableStateOf<Screen>(Screen.Table) }
+    // Asking for a name comes before both creating and recovering a table.
+    var recovering by remember { mutableStateOf(false) }
 
     // The host is a player at its own table, over localhost, exactly like a
     // guest over the hotspot. One code path, no special case.
@@ -183,7 +194,7 @@ fun App(
         }
     }
     LaunchedEffect(state.table != null) {
-        if (state.table != null && screen in listOf(Screen.Home, Screen.Name, Screen.Join)) {
+        if (state.table != null && screen in listOf(Screen.Home, Screen.Name, Screen.Join, Screen.Setup)) {
             screen = Screen.Table
         }
     }
@@ -220,6 +231,11 @@ fun App(
         screen = if (state.table != null) Screen.Table else Screen.Home
     }
 
+    fun openTable() {
+        prefs.lastConfig = setup
+        onStartHost(false, setup)
+    }
+
     fun closeTable() {
         onStopHost()
         Session.disconnect()
@@ -238,11 +254,13 @@ fun App(
                 tableOpen = hostStatus.running,
                 abandoned = abandoned,
                 onCreate = {
-                    if (name.isBlank()) screen = Screen.Name
-                    else if (abandoned != null) asking = Ask.DiscardSaved
-                    else onStartHost(false)
+                    recovering = false
+                    screen = if (name.isBlank()) Screen.Name else Screen.Setup
                 },
-                onRecover = { if (name.isBlank()) screen = Screen.Name else onStartHost(true) },
+                onRecover = {
+                    recovering = true
+                    if (name.isBlank()) screen = Screen.Name else onStartHost(true, null)
+                },
                 onReturn = {
                     // The table is up; this only takes a seat at it again.
                     Session.connect(
@@ -263,7 +281,10 @@ fun App(
             Screen.Name -> NameScreen(
                 name = name,
                 onName = { name = it },
-                onDone = { prefs.name = name.trim(); onStartHost(abandoned != null) },
+                onDone = {
+                    prefs.name = name.trim()
+                    if (recovering) onStartHost(true, null) else screen = Screen.Setup
+                },
                 onBack = { screen = Screen.Home },
             )
 
@@ -304,6 +325,60 @@ fun App(
                 onBack = { screen = Screen.Join },
             )
 
+            Screen.Setup -> SetupScreen(
+                config = setup,
+                starting = hostStatus.starting,
+                failed = hostStatus.failure != null,
+                onConfig = { setup = it },
+                onBuyIn = {
+                    openAmount(
+                        AmountRequest(
+                            title = texts.hostPanelBuyIn,
+                            subtitle = texts.buyInSub,
+                            confirm = texts.buyInConfirm,
+                            initial = setup.defaultBuyIn,
+                            allowZero = true,
+                            restLabel = texts.hostPanelBuyIn,
+                            rest = { it },
+                            onConfirm = { amount ->
+                                setup = setup.copy(defaultBuyIn = amount)
+                                screen = Screen.Setup
+                            },
+                            onCancel = { screen = Screen.Setup },
+                        ),
+                    )
+                },
+                onBlinds = {
+                    openAmount(
+                        AmountRequest(
+                            title = texts.pokerBlinds,
+                            subtitle = texts.pokerBlindsSub,
+                            confirm = texts.buyInConfirm,
+                            initial = setup.bigBlind.takeIf { it > 0 },
+                            allowZero = true,
+                            restLabel = texts.pokerBlinds,
+                            rest = { it / 2 },
+                            onConfirm = { amount ->
+                                setup = setup.copy(bigBlind = amount, smallBlind = amount / 2)
+                                screen = Screen.Setup
+                            },
+                            onCancel = { screen = Screen.Setup },
+                        ),
+                    )
+                },
+                onRules = { rulesFrom = Screen.Setup; screen = Screen.Rules },
+                // Opening a new table over an interrupted one throws that one
+                // away, so it is asked about here, at the last moment, and not
+                // before the setup: backing out must not have cost anything.
+                onOpen = { if (abandoned != null) asking = Ask.DiscardSaved else openTable() },
+                onBack = { screen = Screen.Home },
+            )
+
+            Screen.Rules -> RulesScreen(
+                config = if (rulesFrom == Screen.Setup) setup else table?.config ?: setup,
+                onBack = { screen = rulesFrom },
+            )
+
             Screen.Table -> TableScreen(
                 state = state,
                 selectedPot = selectedPot,
@@ -311,6 +386,7 @@ fun App(
                 undoable = undoable?.let { entry -> table?.let { logLine(entry, it) } },
                 onUndo = { Session.act(HostCommandMessage(UndoCommand)) },
                 onMenu = { menuOpen = true },
+                onRules = { rulesFrom = Screen.Table; screen = Screen.Rules },
                 onBet = {
                     val me = state.me ?: return@TableScreen
                     val pot = table?.pots?.firstOrNull { it.id == selectedPot }?.amount ?: 0
@@ -406,7 +482,7 @@ fun App(
                         }
                     },
                     onSet = { value -> typed = value.coerceAtLeast(0).toString(); untouched = false },
-                    onBack = { back() },
+                    onBack = { current.onCancel?.invoke() ?: back() },
                 )
             }
 
@@ -577,7 +653,7 @@ fun App(
                 body = stringResource(R.string.discard_body),
                 confirm = stringResource(R.string.discard_confirm),
                 cancel = stringResource(R.string.common_cancel),
-                onConfirm = { asking = null; onDiscardSaved(); onStartHost(false) },
+                onConfirm = { asking = null; onDiscardSaved(); openTable() },
                 onCancel = { asking = null },
             )
 

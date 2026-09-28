@@ -3,8 +3,10 @@ package io.github.victormico.tablechips.app
 import android.content.Context
 import androidx.core.content.edit
 import io.github.victormico.tablechips.core.PlayerId
+import io.github.victormico.tablechips.core.TableConfig
 import io.github.victormico.tablechips.protocol.ClientMessage
 import io.github.victormico.tablechips.protocol.ClientState
+import io.github.victormico.tablechips.protocol.ProtocolJson
 import io.github.victormico.tablechips.protocol.TableClient
 import io.github.victormico.tablechips.protocol.TableConnection
 import kotlinx.coroutines.CoroutineScope
@@ -18,8 +20,9 @@ import kotlinx.coroutines.launch
 
 /**
  * What this device remembers between sessions: who you are, and where the last
- * table was. Three keys, so plain preferences rather than a datastore. The
- * ledger is a different matter and lives in its own file, next to this one.
+ * table was, and how it was set up. A handful of keys, so plain preferences
+ * rather than a datastore. The ledger is a different matter and lives in its
+ * own file, next to this one.
  */
 class Prefs(context: Context) {
     private val store = context.applicationContext.getSharedPreferences("tablechips", Context.MODE_PRIVATE)
@@ -36,6 +39,15 @@ class Prefs(context: Context) {
     var lastAddress: String?
         get() = store.getString("lastAddress", null)
         set(value) = store.edit { putString("lastAddress", value) }
+
+    /**
+     * The setup of the last table this phone opened. Whoever plays the same
+     * game with the same people every week should not fill the form in again.
+     */
+    var lastConfig: TableConfig?
+        get() = store.getString("lastConfig", null)
+            ?.let { runCatching { ProtocolJson.decodeFromString<TableConfig>(it) }.getOrNull() }
+        set(value) = store.edit { putString("lastConfig", value?.let { ProtocolJson.encodeToString(it) }) }
 
     fun forgetIdentity() {
         store.edit { remove("playerId") }

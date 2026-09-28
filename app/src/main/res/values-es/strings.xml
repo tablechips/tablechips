@@ -239,4 +239,39 @@
     <string name="log_player_folded">se ha retirado</string>
     <string name="log_round_closed">fin de la ronda</string>
     <string name="log_pots_split">el bote se divide en %1$s</string>
+
+    <!-- Preparar una mesa -->
+    <string name="setup_title">Nueva mesa</string>
+    <string name="setup_sub">Todo se puede cambiar después desde el panel de anfitrión.</string>
+    <string name="setup_open">Abrir la mesa</string>
+    <string name="setup_seats">Puestos</string>
+    <string name="setup_buy_in_now">%1$s · toca para cambiarla</string>
+    <string name="setup_fewer_seats">Un puesto menos</string>
+    <string name="setup_more_seats">Un puesto más</string>
+
+    <!-- Las reglas del juego -->
+    <string name="rules_title">Reglas del juego</string>
+    <string name="rules_how">¿Cómo se juega?</string>
+    <string name="rules_play">Cómo se juega</string>
+    <string name="rules_count">Cómo lo cuenta la app</string>
+    <string name="rules_people">Qué decidís vosotros</string>
+    <string name="rules_table">Esta mesa</string>
+    <string name="rules_buy_in">Compra por defecto: %1$s</string>
+    <string name="rules_seats">Puestos: %1$s</string>
+    <string name="rules_natural">La natural paga %1$s</string>
+    <string name="rules_blinds">Ciegas %1$s / %2$s</string>
+    <string name="rules_no_blinds">Sin ciegas</string>
+    <string name="rules_manual_play">La mesa no sabe a qué juego jugáis: solo cuenta fichas. Sirve para cualquier juego con apuesta —julepe, truc, mus, monte— y para todos los que no tienen modo propio.</string>
+    <string name="rules_manual_count">Cada uno apuesta al bote desde su móvil. El anfitrión da el bote a quien lo ha ganado, entero o a partes, y puede abrir botes nuevos. Un bote que nadie se lleva se queda en la mesa para la mano siguiente.</string>
+    <string name="rules_manual_people">Las reglas, los turnos y quién gana cada mano. La app solo apunta lo que dice el anfitrión, y todo se puede deshacer desde el registro.</string>
+    <string name="rules_seven_half_play">Se juega con baraja española de 40 cartas. Las cartas de número valen su número y las figuras (sota, caballo y rey), medio punto. Cada uno pide cartas para acercarse a siete y media sin pasarse, y juega solo contra la banca.</string>
+    <string name="rules_seven_half_count">Quien no tiene la banca apuesta antes de repartir. Cuando acaba la mano, el anfitrión resuelve cada apuesta: gana (la banca paga lo mismo), pierde (la apuesta es para la banca), empate (vuelve la apuesta) o siete y media (la banca paga lo que marca esta mesa). La banca cambia de manos desde el panel.</string>
+    <string name="rules_seven_half_people">Quién tiene la banca y cuándo pasa, qué jugada cuenta como siete y media, y quién se lleva el empate: en muchos sitios, la banca, y entonces el botón que hay que pulsar es «Pierde».</string>
+    <string name="rules_blackjack_play">Cada uno intenta acercarse a 21 sin pasarse. Las figuras valen 10, el as 1 u 11, y el resto su número. Un as y una carta de 10 como primeras cartas es blackjack. Todos juegan contra la banca.</string>
+    <string name="rules_blackjack_count">Quien no tiene la banca apuesta antes de repartir; doblar es volver a apostar la misma cantidad. Cuando acaba la mano, el anfitrión resuelve cada apuesta: gana, pierde, empate o blackjack (la banca paga lo que marca esta mesa). Una mano separada se resuelve en dos partes.</string>
+    <string name="rules_blackjack_people">Cuándo se planta la banca, si se puede doblar o separar, y quién ha ganado cada mano. Las reglas de la casa las ponéis vosotros.</string>
+    <string name="rules_poker_play">Texas hold\'em: cada uno recibe dos cartas y hay cinco comunes, que salen en tres tandas. Hay una ronda de apuestas antes y después de cada tanda, y gana la mejor jugada de cinco cartas.</string>
+    <string name="rules_poker_count">«Mano nueva» mueve el repartidor y pone las ciegas. El botón grande dice exactamente cuánto cuesta igualar. Entre tandas, el anfitrión cierra la ronda. Si alguien va all-in con menos fichas, «Dividir el bote» separa los botes que puede ganar cada uno, y el anfitrión los da uno a uno.</string>
+    <string name="rules_poker_people">De quién es el turno, cuándo se puede pasar y quién gana la mano. La app cuenta las fichas; el juego lo lleváis vosotros.</string>
+    <string name="common_back">Atrás</string>
 </resources>
