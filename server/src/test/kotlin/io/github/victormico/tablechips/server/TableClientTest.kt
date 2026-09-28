@@ -170,6 +170,31 @@ class TableClientTest {
         assertEquals(300, state.me!!.stack)
     }
 
+    /**
+     * A reconnection repeats the join, name included. If the client kept the
+     * name it joined with, every dropped connection would quietly rename the
+     * player back to it.
+     */
+    @Test
+    fun `a new name survives the connection dropping`() = runBlocking {
+        val anna = client().also { it.join("Anna") }
+        val id = anna.await { it.me != null }.you!!
+        anna.rename("Anna Bel")
+        anna.await { it.me?.name == "Anna Bel" }
+
+        // The host's server goes away and comes back on the same port.
+        server.stop()
+        anna.await { it.connection != Connection.ONLINE }
+        server = TableServer(tableHost, preferredPort = port)
+        server.start()
+        anna.await { it.connection == Connection.ONLINE }
+        // Give the repeated join time to land before looking.
+        kotlinx.coroutines.delay(500)
+
+        assertEquals("Anna Bel", tableHost.table.snapshot().player(id)!!.name)
+        assertTrue(tableHost.table.snapshot().log.none { it.args["name"] == "Anna" && it.key == "log.player_renamed" })
+    }
+
     @Test
     fun `the client waits for a table that is not there yet`() = runBlocking {
         val connection = TableConnection(TableConnection.webSocketUrl("127.0.0.1", 1))

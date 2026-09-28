@@ -627,6 +627,23 @@ insecable del separador de milers és gairebé invisible dins d'Instrument Sans 
 un fill propi, mai concatenada, que és el que el handoff ja exigeix per al botó
 primari.
 
+**La pila vista de cantell ara és el valor de debò** (#4). El handoff la
+volia decorativa («no cal que siga exacta respecte del recompte real»), i
+jugant es va veure que enganya: qui la mira espera que siguen les seues fitxes.
+Ara és una columna per valor d'una capsa real —100, 50, 25, 5 i 1—, amb el
+valor i el nombre de fitxes escrits a sota, i la pila es descompon com la
+tindria un jugador: fins a cinc de cada fitxa petita, que és el que dona un
+repartiment, i la resta en la més grossa (`chipsIn`, a `:core`). La compra per
+defecte passa a ser cinc de cada, 905.
+
+Els colors de mostra del handoff (5 llautó, 25 `gain`, 100 `loss`) no s'han
+seguit: sobre la targeta de la pila, al costat del guany o la pèrdua, una fitxa
+de 100 en `loss` es llegiria com a diners perduts. Les fitxes tenen tokens
+propis amb els colors d'una capsa real, més foscos que `gain` i `loss`: ivori
+`#E6DCCB` (1), vermell `#9E4436` (5), verd `#4F7D55` (25), blau `#4D6F8F` (50)
+i or apagat `#8E7040` (100). La de 100 seria negra, però el negre desapareix
+sobre la targeta fosca i en quedava només un contorn buit.
+
 **Les fonts van empaquetades**: `third_party/fonts/` conserva els originals i
 les llicències OFL. Al client web s'incrusten en base64 dins del fitxer únic
 (79 kB) i a l'app van a `res/font/`. Cap `<link>` ni cap petició externa.

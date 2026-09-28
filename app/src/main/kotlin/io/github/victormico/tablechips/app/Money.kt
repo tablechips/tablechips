@@ -2,6 +2,7 @@ package io.github.victormico.tablechips.app
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
+import io.github.victormico.tablechips.core.GameMode
 import io.github.victormico.tablechips.core.LogEntry
 import io.github.victormico.tablechips.core.Player
 import io.github.victormico.tablechips.core.Pot
@@ -41,6 +42,13 @@ fun errorText(code: String): String = stringResource(
         "not_joined" -> R.string.error_not_joined
         "wrong_room" -> R.string.error_wrong_room
         "kicked" -> R.string.error_kicked
+        "wrong_mode" -> R.string.error_wrong_mode
+        "no_banker" -> R.string.error_no_banker
+        "banker_cannot_bet" -> R.string.error_banker_cannot_bet
+        "no_stake" -> R.string.error_no_stake
+        "nothing_to_split" -> R.string.error_nothing_to_split
+        "not_enough_players" -> R.string.error_not_enough_players
+        "below_call" -> R.string.error_below_call
         "table_closed" -> R.string.error_table_closed
         "seat_transferred" -> R.string.error_seat_transferred
         else -> R.string.error_no_table
@@ -49,8 +57,37 @@ fun errorText(code: String): String = stringResource(
 
 /** A pot's own name, or the one this language gives the main pot. */
 @Composable
-fun potName(pot: Pot): String =
-    pot.name ?: if (pot.id.value == "main") stringResource(R.string.pot_main) else pot.id.value
+fun potName(pot: Pot): String = when {
+    pot.name != null -> pot.name!!
+    pot.id.value == "main" -> stringResource(R.string.pot_main)
+    pot.id.value.startsWith("side-") ->
+        stringResource(R.string.poker_side_pot, pot.id.value.removePrefix("side-"))
+    else -> pot.id.value
+}
+
+/** What this table calls the game it is playing. */
+@Composable
+fun modeName(mode: GameMode): String = stringResource(
+    when (mode) {
+        GameMode.MANUAL -> R.string.mode_manual
+        GameMode.SEVEN_HALF -> R.string.mode_seven_half
+        GameMode.BLACKJACK -> R.string.mode_blackjack
+        GameMode.POKER -> R.string.mode_poker
+    },
+)
+
+/**
+ * What a hand that beats the bank outright is called here. The word is the
+ * game's, and it is the one on the button the host presses.
+ */
+@Composable
+fun naturalName(mode: GameMode): String = stringResource(
+    when (mode) {
+        GameMode.BLACKJACK -> R.string.bank_natural_blackjack
+        GameMode.SEVEN_HALF -> R.string.bank_natural_seven_half
+        else -> R.string.bank_natural
+    },
+)
 
 /** One line of the activity log, with the actor in front of it. */
 @Composable
@@ -68,6 +105,7 @@ fun logLine(entry: LogEntry, table: TableState): String {
         "log.player_joined" -> stringResource(R.string.log_player_joined)
         "log.player_renamed" -> stringResource(R.string.log_player_renamed, entry.args["name"].orEmpty())
         "log.player_sat" -> stringResource(R.string.log_player_sat, entry.args["seat"].orEmpty(), amount)
+        "log.player_sat_back" -> stringResource(R.string.log_player_sat_back, entry.args["seat"].orEmpty())
         "log.player_stood_up" -> stringResource(R.string.log_player_stood_up)
         "log.player_left" -> stringResource(R.string.log_player_left)
         "log.rebuy" -> stringResource(R.string.log_rebuy, amount)
@@ -78,6 +116,18 @@ fun logLine(entry: LogEntry, table: TableState): String {
         "log.stack_added" -> stringResource(R.string.log_stack_added, amount)
         "log.stack_removed" -> stringResource(R.string.log_stack_removed, amount)
         "log.player_kicked" -> stringResource(R.string.log_player_kicked)
+        "log.banker_changed" -> stringResource(R.string.log_banker_changed)
+        "log.banker_cleared" -> stringResource(R.string.log_banker_cleared)
+        "log.stake_placed" -> stringResource(R.string.log_stake_placed, amount)
+        "log.stake_returned" -> stringResource(R.string.log_stake_returned, amount)
+        "log.hand_won" -> stringResource(R.string.log_hand_won, amount)
+        "log.hand_lost" -> stringResource(R.string.log_hand_lost, amount)
+        "log.hand_push" -> stringResource(R.string.log_hand_push)
+        "log.hand_natural" -> stringResource(R.string.log_hand_natural, amount)
+        "log.hand_started" -> stringResource(R.string.log_hand_started, entry.args["seat"].orEmpty())
+        "log.player_folded" -> stringResource(R.string.log_player_folded)
+        "log.round_closed" -> stringResource(R.string.log_round_closed)
+        "log.pots_split" -> stringResource(R.string.log_pots_split, entry.args["count"].orEmpty())
         "log.seat_transferred" -> stringResource(R.string.log_seat_transferred)
         else -> entry.key
     }
@@ -91,8 +141,10 @@ private fun potNameOf(pot: Pot): String = potName(pot)
 fun logDelta(entry: LogEntry): Long {
     val amount = entry.args["amount"]?.toLongOrNull() ?: return 0
     return when (entry.key) {
-        "log.bet", "log.stack_removed", "log.transfer" -> -amount
-        "log.rebuy", "log.pot_awarded", "log.stack_added" -> amount
+        "log.bet", "log.stack_removed", "log.transfer", "log.stake_placed", "log.hand_lost" -> -amount
+        "log.rebuy", "log.pot_awarded", "log.stack_added", "log.stake_returned",
+        "log.hand_won", "log.hand_natural",
+        -> amount
         else -> 0
     }
 }

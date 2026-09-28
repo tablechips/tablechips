@@ -31,16 +31,29 @@ import io.github.victormico.tablechips.app.ui.Type
 import io.github.victormico.tablechips.app.ui.chips
 import io.github.victormico.tablechips.core.Player
 import io.github.victormico.tablechips.core.PotId
+import io.github.victormico.tablechips.core.GameMode
+import io.github.victormico.tablechips.core.TableConfig
+import io.github.victormico.tablechips.core.TableState
 import io.github.victormico.tablechips.core.MAIN_POT
 import io.github.victormico.tablechips.protocol.Action
 import io.github.victormico.tablechips.protocol.AdjustStackCommand
 import io.github.victormico.tablechips.protocol.AwardPotCommand
 import io.github.victormico.tablechips.protocol.BetAction
+import io.github.victormico.tablechips.protocol.CancelStakeAction
+import io.github.victormico.tablechips.protocol.CloseRoundCommand
+import io.github.victormico.tablechips.protocol.FoldAction
 import io.github.victormico.tablechips.protocol.CreatePotCommand
 import io.github.victormico.tablechips.protocol.HostCommandMessage
 import io.github.victormico.tablechips.protocol.KickCommand
 import io.github.victormico.tablechips.protocol.RebuyAction
+import io.github.victormico.tablechips.protocol.SetBankerCommand
 import io.github.victormico.tablechips.protocol.SetConfigCommand
+import io.github.victormico.tablechips.protocol.SettleCommand
+import io.github.victormico.tablechips.protocol.SharePotCommand
+import io.github.victormico.tablechips.protocol.SplitPotsCommand
+import io.github.victormico.tablechips.protocol.StakeAction
+import io.github.victormico.tablechips.protocol.StartHandCommand
+import io.github.victormico.tablechips.protocol.TakeBankAction
 import io.github.victormico.tablechips.protocol.Sit
 import io.github.victormico.tablechips.protocol.StandUpAction
 import io.github.victormico.tablechips.protocol.TableConnection
@@ -62,6 +75,14 @@ private class AppTexts(
     val amountResulting: String,
     val betSub: String,
     val betTitle: String,
+    val bankStake: String,
+    val bankStakeTitle: String,
+    val pokerBlinds: String,
+    val pokerRaise: String,
+    val pokerRaiseSub: String,
+    val pokerRaiseMin: String,
+    val pokerBetTotal: String,
+    val pokerBlindsSub: String,
     val buyInConfirm: String,
     val buyInSub: String,
     val giveTitle: String,
@@ -87,6 +108,14 @@ private fun appTexts(): AppTexts = AppTexts(
     amountResulting = stringResource(R.string.amount_resulting),
     betSub = stringResource(R.string.bet_sub),
     betTitle = stringResource(R.string.bet_title),
+    bankStake = stringResource(R.string.bank_stake),
+    bankStakeTitle = stringResource(R.string.bank_stake_title),
+    pokerBlinds = stringResource(R.string.poker_blinds),
+    pokerRaise = stringResource(R.string.poker_raise),
+    pokerRaiseSub = stringResource(R.string.poker_raise_sub),
+    pokerRaiseMin = stringResource(R.string.poker_raise_min),
+    pokerBetTotal = stringResource(R.string.poker_bet_total),
+    pokerBlindsSub = stringResource(R.string.poker_blinds_sub),
     buyInConfirm = stringResource(R.string.buy_in_confirm),
     buyInSub = stringResource(R.string.buy_in_sub),
     giveTitle = stringResource(R.string.give_title),
@@ -121,6 +150,9 @@ private sealed interface Screen {
     data object Scan : Screen
     data object Table : Screen
     data object Amount : Screen
+    data object Setup : Screen
+    data object Rename : Screen
+    data object Rules : Screen
     data object HostPanel : Screen
     data object Seats : Screen
     data object Log : Screen
@@ -133,8 +165,11 @@ private const val UNDO_WINDOW_MILLIS = 30_000L
 @Composable
 fun App(
     prefs: Prefs,
-    /** Opens the table, picking a saved game back up when asked to. */
-    onStartHost: (resume: Boolean) -> Unit,
+    /**
+     * Opens the table: a saved game picked back up, or a fresh one with the
+     * config from the setup screen.
+     */
+    onStartHost: (resume: Boolean, config: TableConfig?) -> Unit,
     onStopHost: () -> Unit,
     onDiscardSaved: () -> Unit,
     onShare: (String) -> Unit,
@@ -158,6 +193,13 @@ fun App(
     var untouched by remember { mutableStateOf(false) }
     var tick by remember { mutableIntStateOf(0) }
     var asking by remember { mutableStateOf<Ask?>(null) }
+    // The table being set up, starting from how the last one was.
+    var setup by remember { mutableStateOf(prefs.lastConfig ?: TableConfig()) }
+    var rulesFrom by remember { mutableStateOf<Screen>(Screen.Table) }
+    // Asking for a name comes before both creating and recovering a table.
+    var recovering by remember { mutableStateOf(false) }
+    // Whoever counts in chips keeps counting in chips: it is a way of playing.
+    var byChips by remember { mutableStateOf(prefs.amountByChips) }
 
     // The host is a player at its own table, over localhost, exactly like a
     // guest over the hotspot. One code path, no special case.
@@ -167,7 +209,7 @@ fun App(
         }
     }
     LaunchedEffect(state.table != null) {
-        if (state.table != null && screen in listOf(Screen.Home, Screen.Name, Screen.Join)) {
+        if (state.table != null && screen in listOf(Screen.Home, Screen.Name, Screen.Join, Screen.Setup)) {
             screen = Screen.Table
         }
     }
@@ -193,6 +235,15 @@ fun App(
         lastEntry?.takeIf { System.currentTimeMillis() - it.at < UNDO_WINDOW_MILLIS }
     }
 
+    // The pot the screens act on: the one picked, until it has been given
+    // away; then the next one that still holds chips, so a host handing out
+    // side pots never has to go and find the next one.
+    val livePot = table?.let { t ->
+        (t.pots.firstOrNull { it.id == selectedPot && it.amount > 0 }
+            ?: t.pots.firstOrNull { it.amount > 0 }
+            ?: t.pots.firstOrNull { it.id == selectedPot })?.id
+    } ?: selectedPot
+
     fun openAmount(next: AmountRequest) {
         request = next
         typed = next.initial?.toString().orEmpty()
@@ -202,6 +253,13 @@ fun App(
 
     fun back() {
         screen = if (state.table != null) Screen.Table else Screen.Home
+    }
+
+    fun openTable() {
+        name = name.trim()
+        prefs.name = name
+        prefs.lastConfig = setup
+        onStartHost(false, setup)
     }
 
     fun closeTable() {
@@ -221,12 +279,15 @@ fun App(
                 canResume = prefs.lastAddress != null,
                 tableOpen = hostStatus.running,
                 abandoned = abandoned,
+                // The name is asked on the setup screen itself, with the rest.
                 onCreate = {
-                    if (name.isBlank()) screen = Screen.Name
-                    else if (abandoned != null) asking = Ask.DiscardSaved
-                    else onStartHost(false)
+                    recovering = false
+                    screen = Screen.Setup
                 },
-                onRecover = { if (name.isBlank()) screen = Screen.Name else onStartHost(true) },
+                onRecover = {
+                    recovering = true
+                    if (name.isBlank()) screen = Screen.Name else onStartHost(true, null)
+                },
                 onReturn = {
                     // The table is up; this only takes a seat at it again.
                     Session.connect(
@@ -247,8 +308,27 @@ fun App(
             Screen.Name -> NameScreen(
                 name = name,
                 onName = { name = it },
-                onDone = { prefs.name = name.trim(); onStartHost(abandoned != null) },
+                onDone = {
+                    prefs.name = name.trim()
+                    if (recovering) onStartHost(true, null) else screen = Screen.Setup
+                },
                 onBack = { screen = Screen.Home },
+                confirm = stringResource(if (recovering) R.string.home_recover else R.string.home_create),
+            )
+
+            Screen.Rename -> NameScreen(
+                name = name,
+                onName = { name = it },
+                onDone = {
+                    name = name.trim()
+                    Session.rename(name)
+                    screen = Screen.Table
+                },
+                onBack = {
+                    name = prefs.name.orEmpty()
+                    screen = Screen.Table
+                },
+                confirm = stringResource(R.string.common_save),
             )
 
             Screen.Join -> JoinScreen(
@@ -288,16 +368,75 @@ fun App(
                 onBack = { screen = Screen.Join },
             )
 
+            Screen.Setup -> SetupScreen(
+                config = setup,
+                starting = hostStatus.starting,
+                failed = hostStatus.failure != null,
+                name = name,
+                onName = { name = it },
+                onConfig = { setup = it },
+                onBuyIn = {
+                    openAmount(
+                        AmountRequest(
+                            title = texts.hostPanelBuyIn,
+                            subtitle = texts.buyInSub,
+                            confirm = texts.buyInConfirm,
+                            initial = setup.defaultBuyIn,
+                            dealt = true,
+                            allowZero = true,
+                            restLabel = texts.hostPanelBuyIn,
+                            rest = { it },
+                            onConfirm = { amount ->
+                                setup = setup.copy(defaultBuyIn = amount)
+                                screen = Screen.Setup
+                            },
+                            onCancel = { screen = Screen.Setup },
+                        ),
+                    )
+                },
+                onBlinds = {
+                    openAmount(
+                        AmountRequest(
+                            title = texts.pokerBlinds,
+                            subtitle = texts.pokerBlindsSub,
+                            confirm = texts.buyInConfirm,
+                            initial = setup.bigBlind.takeIf { it > 0 },
+                            allowZero = true,
+                            restLabel = texts.pokerBlinds,
+                            rest = { it / 2 },
+                            onConfirm = { amount ->
+                                setup = setup.copy(bigBlind = amount, smallBlind = amount / 2)
+                                screen = Screen.Setup
+                            },
+                            onCancel = { screen = Screen.Setup },
+                        ),
+                    )
+                },
+                onRules = { rulesFrom = Screen.Setup; screen = Screen.Rules },
+                // Opening a new table over an interrupted one throws that one
+                // away, so it is asked about here, at the last moment, and not
+                // before the setup: backing out must not have cost anything.
+                onOpen = { if (abandoned != null) asking = Ask.DiscardSaved else openTable() },
+                onBack = { screen = Screen.Home },
+            )
+
+            Screen.Rules -> RulesScreen(
+                config = if (rulesFrom == Screen.Setup) setup else table?.config ?: setup,
+                onBack = { screen = rulesFrom },
+            )
+
             Screen.Table -> TableScreen(
                 state = state,
-                selectedPot = selectedPot,
+                selectedPot = livePot,
                 onSelectPot = { selectedPot = it },
                 undoable = undoable?.let { entry -> table?.let { logLine(entry, it) } },
                 onUndo = { Session.act(HostCommandMessage(UndoCommand)) },
                 onMenu = { menuOpen = true },
+                onRules = { rulesFrom = Screen.Table; screen = Screen.Rules },
                 onBet = {
                     val me = state.me ?: return@TableScreen
-                    val pot = table?.pots?.firstOrNull { it.id == selectedPot }?.amount ?: 0
+                    val pot = table?.pots?.firstOrNull { it.id == livePot }?.amount ?: 0
+                    val poker = table?.config?.mode == GameMode.POKER
                     openAmount(
                         AmountRequest(
                             title = texts.betTitle,
@@ -305,10 +444,17 @@ fun App(
                             confirm = texts.actionBet,
                             max = me.stack,
                             pot = pot,
-                            restLabel = texts.amountRemaining,
-                            rest = { me.stack - it },
+                            poker = if (poker) {
+                                PokerSizes(table!!.config.bigBlind, table.currentBet, me.roundBet, raise = false)
+                            } else {
+                                null
+                            },
+                            // At poker, what matters is where the bet leaves you
+                            // against the others; the stack is in the subtitle.
+                            restLabel = if (poker) texts.pokerBetTotal else texts.amountRemaining,
+                            rest = { if (poker) me.roundBet + it else me.stack - it },
                             onConfirm = { amount ->
-                                Session.act(Action(BetAction(amount, selectedPot)))
+                                Session.act(Action(BetAction(amount, livePot)))
                                 back()
                             },
                         ),
@@ -322,6 +468,7 @@ fun App(
                             subtitle = texts.betSub.format(chips(me.stack)),
                             confirm = texts.rebuyConfirm,
                             initial = table?.config?.defaultBuyIn,
+                            dealt = true,
                             restLabel = texts.amountResulting,
                             rest = { me.stack + it },
                             onConfirm = { amount ->
@@ -331,14 +478,69 @@ fun App(
                         ),
                     )
                 },
-                onStand = { Session.act(Action(StandUpAction)) },
+                onStake = {
+                    val me = state.me ?: return@TableScreen
+                    openAmount(
+                        AmountRequest(
+                            title = texts.bankStakeTitle,
+                            subtitle = texts.betSub.format(chips(me.stack)),
+                            confirm = texts.bankStake,
+                            max = me.stack,
+                            restLabel = texts.amountRemaining,
+                            rest = { me.stack - it },
+                            onConfirm = { amount ->
+                                Session.act(Action(StakeAction(amount)))
+                                back()
+                            },
+                        ),
+                    )
+                },
+                onCancelStake = { Session.act(Action(CancelStakeAction)) },
+                onTakeBank = { Session.act(Action(TakeBankAction)) },
+                // A call goes into the pot being played for, not into whichever
+                // side pot the screen happens to be showing.
+                onCall = { amount -> Session.act(Action(BetAction(amount, MAIN_POT))) },
+                onFold = { Session.act(Action(FoldAction)) },
+                // A raise starts from the call — those chips go in either way —
+                // and is only a raise once it goes over it.
+                onRaise = { owed ->
+                    val me = state.me ?: return@TableScreen
+                    openAmount(
+                        AmountRequest(
+                            title = texts.pokerRaise,
+                            subtitle = texts.pokerRaiseSub.format(chips(owed)),
+                            confirm = texts.pokerRaise,
+                            initial = owed,
+                            min = owed + 1,
+                            minLabel = texts.pokerRaiseMin,
+                            max = me.stack,
+                            pot = table?.pots?.sumOf { it.amount },
+                            poker = table?.let {
+                                PokerSizes(it.config.bigBlind, it.currentBet, me.roundBet, raise = true)
+                            },
+                            restLabel = texts.pokerBetTotal,
+                            rest = { me.roundBet + it },
+                            onConfirm = { amount ->
+                                Session.act(Action(BetAction(amount, MAIN_POT)))
+                                back()
+                            },
+                        ),
+                    )
+                },
                 onSit = {
+                    // Back from the bar with chips, sit straight down with them;
+                    // otherwise with what the table deals.
+                    val back = (state.me?.stack ?: 0) > 0
+                    Session.act(Sit(seat = null, buyIn = if (back) 0 else null))
+                },
+                onSitOther = {
                     openAmount(
                         AmountRequest(
                             title = texts.sitTitle,
                             subtitle = texts.sitSub.format(chips(table?.config?.defaultBuyIn ?: 0)),
                             confirm = texts.sitConfirm,
                             initial = table?.config?.defaultBuyIn,
+                            dealt = true,
                             allowZero = true,
                             restLabel = texts.amountResulting,
                             rest = { it },
@@ -349,6 +551,9 @@ fun App(
                         ),
                     )
                 },
+                onCloseRound = { Session.act(HostCommandMessage(CloseRoundCommand)) },
+                onAwardPot = { pendingSplit = null; screen = Screen.HostPanel },
+                onNewHand = { Session.act(HostCommandMessage(StartHandCommand)) },
             )
 
             Screen.Amount -> if (request == null) back() else request?.let { current ->
@@ -368,22 +573,31 @@ fun App(
                         }
                     },
                     onSet = { value -> typed = value.coerceAtLeast(0).toString(); untouched = false },
-                    onBack = { back() },
+                    onBack = { current.onCancel?.invoke() ?: back() },
+                    byChips = byChips,
+                    onByChips = { byChips = it; prefs.amountByChips = it },
                 )
             }
 
             Screen.HostPanel -> HostPanelScreen(
                 state = state,
-                selectedPot = selectedPot,
+                selectedPot = livePot,
+                onSelectPot = { selectedPot = it; pendingSplit = null },
                 pendingSplit = pendingSplit,
                 onAward = { player, part ->
                     Session.act(
-                        HostCommandMessage(AwardPotCommand(player.id, selectedPot, part)),
+                        HostCommandMessage(AwardPotCommand(player.id, livePot, part)),
                     )
                     pendingSplit = null
+                    if (part == null && handOverAfter(table, livePot)) screen = Screen.Table
+                },
+                onShare = { winners ->
+                    Session.act(HostCommandMessage(SharePotCommand(winners.map { it.id }, livePot)))
+                    pendingSplit = null
+                    if (handOverAfter(table, livePot)) screen = Screen.Table
                 },
                 onSplit = {
-                    val pot = table?.pots?.firstOrNull { it.id == selectedPot }?.amount ?: 0
+                    val pot = table?.pots?.firstOrNull { it.id == livePot }?.amount ?: 0
                     openAmount(
                         AmountRequest(
                             title = texts.splitTitle,
@@ -438,6 +652,7 @@ fun App(
                             subtitle = texts.buyInSub,
                             confirm = texts.buyInConfirm,
                             initial = config.defaultBuyIn,
+                            dealt = true,
                             allowZero = true,
                             restLabel = texts.hostPanelBuyIn,
                             rest = { it },
@@ -451,6 +666,48 @@ fun App(
                     )
                 },
                 onSeats = { screen = Screen.Seats },
+                onBanker = { player -> Session.act(HostCommandMessage(SetBankerCommand(player?.id))) },
+                onSettle = { player, outcome ->
+                    Session.act(HostCommandMessage(SettleCommand(player.id, outcome)))
+                },
+                onMode = { mode ->
+                    val config = table?.config ?: return@HostPanelScreen
+                    Session.act(HostCommandMessage(SetConfigCommand(config.copy(mode = mode))))
+                },
+                onNaturalPays = { pays ->
+                    val config = table?.config ?: return@HostPanelScreen
+                    Session.act(HostCommandMessage(SetConfigCommand(config.copy(naturalPays = pays))))
+                },
+                onNewHand = { Session.act(HostCommandMessage(StartHandCommand)) },
+                onCloseRound = { Session.act(HostCommandMessage(CloseRoundCommand)) },
+                onSplitPots = { Session.act(HostCommandMessage(SplitPotsCommand)) },
+                onBlinds = {
+                    val config = table?.config ?: return@HostPanelScreen
+                    openAmount(
+                        AmountRequest(
+                            title = texts.pokerBlinds,
+                            subtitle = texts.pokerBlindsSub,
+                            confirm = texts.buyInConfirm,
+                            initial = config.bigBlind.takeIf { it > 0 },
+                            allowZero = true,
+                            restLabel = texts.pokerBlinds,
+                            rest = { it / 2 },
+                            onConfirm = { amount ->
+                                // One number to type: the big blind. The small
+                                // one is half of it, as at any table that does
+                                // not say otherwise.
+                                Session.act(
+                                    HostCommandMessage(
+                                        SetConfigCommand(
+                                            config.copy(bigBlind = amount, smallBlind = amount / 2),
+                                        ),
+                                    ),
+                                )
+                                screen = Screen.HostPanel
+                            },
+                        ),
+                    )
+                },
                 onLog = { screen = Screen.Log },
                 onClose = if (hostStatus.running) ({ asking = Ask.CloseTable }) else null,
                 onBack = { screen = Screen.Table },
@@ -497,7 +754,7 @@ fun App(
                 body = stringResource(R.string.discard_body),
                 confirm = stringResource(R.string.discard_confirm),
                 cancel = stringResource(R.string.common_cancel),
-                onConfirm = { asking = null; onDiscardSaved(); onStartHost(false) },
+                onConfirm = { asking = null; onDiscardSaved(); openTable() },
                 onCancel = { asking = null },
             )
 
@@ -555,9 +812,12 @@ fun App(
             TableMenu(
                 hosting = hostStatus.running,
                 isHost = state.isHost,
+                seated = state.seated,
+                onStand = { menuOpen = false; Session.act(Action(StandUpAction)) },
                 onConnection = { menuOpen = false; screen = Screen.Connection },
                 onHostPanel = { menuOpen = false; screen = Screen.HostPanel },
                 onLog = { menuOpen = false; screen = Screen.Log },
+                onRename = { menuOpen = false; screen = Screen.Rename },
                 onLeave = {
                     menuOpen = false
                     asking = Ask.Leave
@@ -567,6 +827,15 @@ fun App(
         }
     }
 }
+
+/**
+ * Whether giving away the whole of [pot] ends the hand: nothing else left in
+ * any pot. The host is then done here and goes back to the table, where the
+ * next hand has already been dealt.
+ */
+private fun handOverAfter(table: TableState?, pot: PotId): Boolean =
+    table != null && table.config.mode == GameMode.POKER &&
+        table.pots.none { it.id != pot && it.amount > 0 }
 
 /** Host correction, in either direction, through the same amount screen. */
 private fun adjustRequest(
@@ -596,9 +865,12 @@ private fun adjustRequest(
 private fun TableMenu(
     hosting: Boolean,
     isHost: Boolean,
+    seated: Boolean,
+    onStand: () -> Unit,
     onConnection: () -> Unit,
     onHostPanel: () -> Unit,
     onLog: () -> Unit,
+    onRename: () -> Unit,
     onLeave: () -> Unit,
     onClose: () -> Unit,
 ) {
@@ -614,6 +886,8 @@ private fun TableMenu(
                 }
                 if (isHost) MenuItem(stringResource(R.string.host_panel_title), onHostPanel)
                 MenuItem(stringResource(R.string.log_title), onLog)
+                MenuItem(stringResource(R.string.menu_rename), onRename)
+                if (seated) MenuItem(stringResource(R.string.action_stand), onStand)
                 MenuItem(stringResource(R.string.action_leave), onLeave, Refugi.loss)
                 MenuItem(stringResource(R.string.common_cancel), onClose, Refugi.text2)
             }

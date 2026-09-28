@@ -1,6 +1,9 @@
 package io.github.victormico.tablechips.server
 
 import io.github.victormico.tablechips.core.AdjustStack
+import io.github.victormico.tablechips.core.CancelStake
+import io.github.victormico.tablechips.core.CloseRound
+import io.github.victormico.tablechips.core.Fold
 import io.github.victormico.tablechips.core.AwardPot
 import io.github.victormico.tablechips.core.CommandResult
 import io.github.victormico.tablechips.core.CreatePot
@@ -8,12 +11,18 @@ import io.github.victormico.tablechips.core.JoinTable
 import io.github.victormico.tablechips.core.KickPlayer
 import io.github.victormico.tablechips.core.LeaveTable
 import io.github.victormico.tablechips.core.PlaceBet
+import io.github.victormico.tablechips.core.PlaceStake
 import io.github.victormico.tablechips.core.PlayerId
 import io.github.victormico.tablechips.core.Rebuy
 import io.github.victormico.tablechips.core.Rename
+import io.github.victormico.tablechips.core.SetBanker
 import io.github.victormico.tablechips.core.SetConfig
+import io.github.victormico.tablechips.core.SettleHand
 import io.github.victormico.tablechips.core.SitDown
+import io.github.victormico.tablechips.core.SharePot
+import io.github.victormico.tablechips.core.SplitPots
 import io.github.victormico.tablechips.core.StandUp
+import io.github.victormico.tablechips.core.StartHand
 import io.github.victormico.tablechips.core.Table
 import io.github.victormico.tablechips.core.TableCommand
 import io.github.victormico.tablechips.core.TransferChips
@@ -24,6 +33,9 @@ import io.github.victormico.tablechips.protocol.Action
 import io.github.victormico.tablechips.protocol.AdjustStackCommand
 import io.github.victormico.tablechips.protocol.AwardPotCommand
 import io.github.victormico.tablechips.protocol.BetAction
+import io.github.victormico.tablechips.protocol.CancelStakeAction
+import io.github.victormico.tablechips.protocol.CloseRoundCommand
+import io.github.victormico.tablechips.protocol.FoldAction
 import io.github.victormico.tablechips.protocol.ClientMessage
 import io.github.victormico.tablechips.protocol.CreatePotCommand
 import io.github.victormico.tablechips.protocol.ErrorMessage
@@ -40,7 +52,14 @@ import io.github.victormico.tablechips.protocol.ProtocolJson
 import io.github.victormico.tablechips.protocol.RebuyAction
 import io.github.victormico.tablechips.protocol.RenameAction
 import io.github.victormico.tablechips.protocol.ServerMessage
+import io.github.victormico.tablechips.protocol.SetBankerCommand
 import io.github.victormico.tablechips.protocol.SetConfigCommand
+import io.github.victormico.tablechips.protocol.SettleCommand
+import io.github.victormico.tablechips.protocol.SharePotCommand
+import io.github.victormico.tablechips.protocol.SplitPotsCommand
+import io.github.victormico.tablechips.protocol.StakeAction
+import io.github.victormico.tablechips.protocol.StartHandCommand
+import io.github.victormico.tablechips.protocol.TakeBankAction
 import io.github.victormico.tablechips.protocol.Sit
 import io.github.victormico.tablechips.protocol.StandUpAction
 import io.github.victormico.tablechips.protocol.StateMessage
@@ -266,15 +285,25 @@ internal fun ClientMessage.toCommand(actor: PlayerId): TableCommand? = when (thi
         is RebuyAction -> Rebuy(actor, action.amount)
         is TransferAction -> TransferChips(actor, action.to, action.amount)
         is RenameAction -> Rename(actor, action.name)
+        is StakeAction -> PlaceStake(actor, action.amount)
+        CancelStakeAction -> CancelStake(actor)
+        TakeBankAction -> SetBanker(actor, actor)
+        FoldAction -> Fold(actor)
         StandUpAction -> StandUp(actor)
     }
 
     is HostCommandMessage -> when (val command = command) {
         is AwardPotCommand -> AwardPot(actor, command.to, command.pot, command.amount)
+        is SharePotCommand -> SharePot(actor, command.winners, command.pot)
         is AdjustStackCommand -> AdjustStack(actor, command.player, command.delta)
         is CreatePotCommand -> CreatePot(actor, command.name)
         is SetConfigCommand -> SetConfig(actor, command.config)
         is KickCommand -> KickPlayer(actor, command.player)
+        is SetBankerCommand -> SetBanker(actor, command.player)
+        is SettleCommand -> SettleHand(actor, command.player, command.outcome, command.amount)
+        StartHandCommand -> StartHand(actor)
+        CloseRoundCommand -> CloseRound(actor)
+        SplitPotsCommand -> SplitPots(actor)
         is TransferSeatCommand -> TransferSeat(actor, command.from, command.to)
         UndoCommand -> UndoLast(actor)
     }

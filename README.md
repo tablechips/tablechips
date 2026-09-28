@@ -128,8 +128,14 @@ Phases, as laid out in the plan:
 - [x] **F5 — Link bridge.** The host shows a code, `/join` bridges to the app
       or to the browser, and the app scans one itself — with no Play Services,
       so F-Droid stays possible. See [docs/deeplinks.md](docs/deeplinks.md).
-- [ ] **F6 — Robustness.** Reconnection, seat recovery, persistence, kicking.
-- [ ] **F7 — Modes.** Blackjack, then poker.
+- [x] **F6 — Robustness.** The ledger is written to storage after every accepted
+      command, so a table survives the death of the process hosting it; the host
+      can throw somebody out or hand a seat over, and closing the table tells
+      everybody before the door shuts.
+- [x] **F7 — Modes.** 7½ and blackjack as bank games — a stake out of the stack
+      and a payout out of the bank, at a house ratio — and poker with a moving
+      button, blinds, call amounts and side pots. Whose turn it is stays with
+      the people at the table.
 - [ ] **F8 — Release.** F-Droid metadata, reproducible builds.
 
 The acceptance criteria that need real devices and real people are not ticked
@@ -148,6 +154,12 @@ off by a test suite:
 - **F5** — the checklist in `docs/deeplinks.md`, on two phones from different
   manufacturers. What a code carries and what a scanner reads back out of it is
   a JVM test; what a particular phone's camera app does with it is not.
+- **F6** — kill the host app mid-game and pick the table back up. The ledger
+  round trip, the restart and a browser reconnecting to a restarted host are
+  covered on the JVM and in a real browser; a phone actually killed by Android
+  for memory is not.
+- **F7** — a night of each game with real people, who are the only ones who can
+  say whether the host's four buttons are the right four.
 
 ## Decisions worth not reopening
 
@@ -159,6 +171,9 @@ off by a test suite:
 - **No Termux.** The embedded server avoids native arm64 binaries, gets a
   supported lifecycle, and spares everyone a terminal.
 - **No card dealing.** Play with a real deck.
+- **Not every game gets a mode.** Which ones do, and why the manual mode covers
+  the rest, is argued game by game in
+  [docs/primitives-i-jocs.md](docs/primitives-i-jocs.md).
 - **No online mode.** It would turn a local tool into an operated service, with
   the availability, abuse and risk profile that implies.
 

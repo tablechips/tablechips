@@ -10,3 +10,6 @@ captures/
 
 # Built apks handed over for testing, never committed.
 *.apk
+
+# Kotlin tooling scratch, not part of the build.
+.kotlin/

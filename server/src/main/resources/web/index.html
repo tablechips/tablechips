@@ -40,6 +40,14 @@
   --loss: #CC5B42;
   --warn: #EBC15E;
   --onAccent: #14110E;
+  /* Chips, as in the app's theme: darker than gain and loss so a red 5 does not
+     read as money lost, and the 100 a dull gold, because black vanishes on a
+     dark card and leaves a hollow outline. */
+  --chip1: #E6DCCB;
+  --chip5: #9E4436;
+  --chip25: #4F7D55;
+  --chip50: #4D6F8F;
+  --chip100: #8E7040;
 
   --sans: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
@@ -111,9 +119,23 @@ body {
 .stackNum { font-family: var(--mono); font-weight: 600; --figure: 72px;
             font-size: calc(var(--figure) * var(--fit, 1)); line-height: 1;
             letter-spacing: -.03em; font-variant-numeric: tabular-nums; margin-top: 6px; }
-.bars { display: flex; gap: 4px; margin-top: 14px; }
-.bars > div { flex: 1; height: 10px; border-radius: 3px; background: var(--surfaceHigh);
-              border: 1px solid var(--lineStrong); }
+.pchips.bet { color: var(--accent); }
+.pchips.nobet { color: var(--text2); }
+.chipRow { display: flex; gap: 8px; margin-top: 16px; align-items: flex-end; }
+.chipCol { flex: 1; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.chipPile { height: 40px; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; }
+.chipPile > i { display: block; width: 34px; height: 4px; border-radius: 2px; }
+.chipPile > i.v1 { background: var(--chip1); }
+.chipPile > i.v5 { background: var(--chip5); }
+.chipPile > i.v25 { background: var(--chip25); }
+.chipPile > i.v50 { background: var(--chip50); }
+.chipPile > i.v100 { background: var(--chip100); }
+.chipPile > i.none { background: none; box-shadow: inset 0 0 0 1px var(--line); }
+.chipCol .cv { margin-top: 6px; font-family: var(--mono); font-weight: 500; font-size: 12px;
+               font-variant-numeric: tabular-nums; }
+.chipCol .cc { font-family: var(--mono); font-size: 11px; color: var(--text2);
+               font-variant-numeric: tabular-nums; }
+.chipCol.empty .cv, .chipCol.empty .cc { color: var(--line); }
 
 .metrics { display: flex; gap: 12px; }
 .metric { flex: 1; padding: 14px 16px 16px; text-align: start;
@@ -164,6 +186,9 @@ button[disabled] { opacity: .4; cursor: default; }
 .primary .n { font-family: var(--mono); font-weight: 600; font-size: 19px;
               font-variant-numeric: tabular-nums; }
 .secondary { height: 60px; font-size: 16px; flex: 1; }
+/* flex: 1 shares a row between buttons; in a column it would squash the one
+   button there to nothing, so there it keeps its own height. */
+.actions > .secondary, .rows > .secondary { flex: none; }
 .danger { border-color: var(--lineDanger); color: var(--loss); }
 .iconBtn { width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 10px;
            display: flex; align-items: center; justify-content: center; flex: none; padding: 0; }
@@ -172,6 +197,19 @@ button[disabled] { opacity: .4; cursor: default; }
 .dots { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line);
         display: flex; align-items: center; justify-content: center; gap: 2.5px; padding: 0; }
 .dots > i { width: 3px; height: 3px; border-radius: 50%; background: var(--text2); display: block; }
+.dots.help { color: var(--text2); font-size: 15px; font-weight: 600; margin-inline-end: 8px; }
+.ruleCard { background: var(--surface); border: 1px solid var(--line); border-radius: 11px;
+            padding: 12px 14px; font-size: 15px; line-height: 1.4; text-wrap: pretty; }
+.ruleCard.strong { border-color: var(--lineAccent); }
+.handRow { display: flex; gap: 12px; padding-top: 10px; }
+.handRow .rank { width: 20px; flex: none; font-family: var(--mono); font-size: 14px; color: var(--text2); }
+.handRow .hn { font-weight: 600; font-size: 15px; }
+.handRow .hd { font-size: 13px; color: var(--text2); }
+.cards { display: flex; gap: 7px; padding: 3px 0; font-family: var(--mono); font-size: 15px; }
+.cards .red { color: var(--loss); }
+.handNotes { display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.4; }
+.ruleCard.values { font-family: var(--mono); font-size: 14px; line-height: 1.6;
+                   font-variant-numeric: tabular-nums; }
 
 /* ---------------------------------------------------------------- amount */
 .amountCard { border-color: var(--accent); padding: 18px 20px; }
@@ -197,6 +235,32 @@ button[disabled] { opacity: .4; cursor: default; }
 .pane > .amountCard, .pane > .quickBlock { flex: none; }
 .pane > .amountCard { position: sticky; top: -1px; z-index: 2; }
 .grid3.pad { flex: 1 1 auto; min-height: 0; grid-auto-rows: 1fr; }
+.amountMode > button { flex: 1; }
+/* Counting chip by chip: one row per value, taking the keypad's place and,
+   like it, giving up height before the figure does. */
+.chipPad { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 7px;
+           /* Rows keep a finger's height; on a short phone the pad scrolls
+              rather than slide its last row under the confirm button. */
+           overflow-y: auto; }
+.chipLine, .chipPad .row { flex-shrink: 0; }
+.chipLine { flex: 1 1 0; min-height: 44px; max-height: 64px; display: flex; align-items: center;
+            gap: 10px; padding-left: 14px; background: var(--surface); border: 1px solid var(--line);
+            border-radius: 11px; overflow: hidden; }
+.chipLine .sw { width: 28px; height: 6px; border-radius: 2px; flex: none; }
+.sw.v1 { background: var(--chip1); } .sw.v5 { background: var(--chip5); }
+.sw.v25 { background: var(--chip25); } .sw.v50 { background: var(--chip50); }
+.sw.v100 { background: var(--chip100); }
+.chipLine .v { flex: 1; font-family: var(--mono); font-weight: 500; font-size: 17px;
+               font-variant-numeric: tabular-nums; }
+.chipLine .c { width: 40px; text-align: center; font-family: var(--mono); font-weight: 600;
+               font-size: 20px; font-variant-numeric: tabular-nums; }
+.chipLine .c.zero { color: var(--line); }
+.chipLine button { width: 56px; align-self: stretch; border: 0; border-radius: 0;
+                   background: var(--surfaceHigh); color: var(--text); font-family: var(--mono);
+                   font-size: 22px; }
+.chipLine button:disabled { color: var(--line); }
+.chipPad .row { display: flex; gap: 8px; }
+.chipPad .row > .quick { flex: 1; }
 .quick { height: 52px; border-radius: 11px; font-size: 14px; padding: 0 6px; }
 .quick.n { font-family: var(--mono); font-size: 16px; }
 .quick.all { color: var(--warn); }
@@ -218,6 +282,9 @@ button[disabled] { opacity: .4; cursor: default; }
             font-size: 16px; display: flex; align-items: center;
             justify-content: space-between; gap: 10px; padding: 0 15px; width: 100%; }
 .awardBtn .g { font-family: var(--mono); font-weight: 600; font-size: 16px; color: var(--gain); }
+.awardBtn.picked { background: var(--surface); border-color: var(--accent); color: var(--accent); }
+.hostHand { display: flex; gap: 9px; }
+.hostHand > .secondary { height: 52px; font-size: 14px; }
 .hrow { display: flex; align-items: center; gap: 9px; padding: 11px 12px;
         background: var(--surface); border: 1px solid var(--line); border-radius: 11px; }
 .hrow .who { flex: 1; min-width: 0; }
@@ -229,6 +296,12 @@ button[disabled] { opacity: .4; cursor: default; }
 .rowBtn { height: 48px; padding: 0 13px; border-radius: 10px; background: var(--surfaceHigh);
           font-size: 13px; flex: none; }
 .rowBtn.want { border-color: var(--lineAccent); color: var(--warn); }
+.handCard { background: var(--surface); border: 1px solid var(--lineAccent); border-radius: 11px;
+            padding: 11px 12px; display: flex; flex-direction: column; gap: 9px; }
+.handCard .hrow { background: none; border: 0; padding: 0; }
+.handBtns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.handBtns .rowBtn { width: 100%; height: 44px; padding: 0 6px; }
+.pills { flex-wrap: wrap; }
 
 .undoCard { background: var(--surfaceHigh); border: 1px solid var(--lineAccent); border-radius: 13px;
             padding: 14px 15px; display: flex; align-items: center; gap: 12px; }
@@ -351,6 +424,7 @@ button[disabled] { opacity: .4; cursor: default; }
     <span class="headTitle" id="tableName"></span>
     <span style="flex:1"></span>
     <span class="role" id="tableRole" hidden data-i18n="host.role"></span>
+    <button class="dots help" id="rulesBtn" aria-label="rules">?</button>
     <button class="dots" id="menuBtn" aria-label="menu"><i></i><i></i><i></i></button>
   </div>
   <div class="scroll">
@@ -365,15 +439,11 @@ button[disabled] { opacity: .4; cursor: default; }
         <span class="num" id="myNet" style="font-weight:600;font-size:13px"></span>
       </div>
       <div class="stackNum" id="myStack">0</div>
-      <div class="bars">
-        <div style="border-left:4px solid var(--accent)"></div>
-        <div style="border-left:4px solid var(--gain)"></div>
-        <div style="border-left:4px solid var(--gain)"></div>
-        <div style="border-left:4px solid var(--loss)"></div>
-      </div>
+      <div class="chipRow" id="myChips"></div>
     </div>
 
     <div class="metrics" id="pots"></div>
+    <div class="hostHand" id="hostHand" hidden></div>
 
     <div class="undoCard" id="undoBar" hidden>
       <div class="txt">
@@ -406,11 +476,13 @@ button[disabled] { opacity: .4; cursor: default; }
         <span class="v" id="restValue"></span>
       </div>
     </div>
-    <div class="quickBlock">
+    <div class="pills amountMode" id="amountMode"></div>
+    <div class="quickBlock" id="quickBlock">
       <div class="cap" style="margin-bottom:9px" data-i18n="amount.quick"></div>
       <div class="grid3" id="quick"></div>
     </div>
     <div class="grid3 pad" id="keypad"></div>
+    <div class="chipPad" id="chipPad" hidden></div>
   </div>
   <div class="actions">
     <div class="row">
@@ -437,21 +509,44 @@ button[disabled] { opacity: .4; cursor: default; }
         <span class="cap" id="awardCap" data-i18n="hostPanel.awardPot"></span>
         <span class="v num" id="awardPot">0</span>
       </div>
+      <div class="pills" id="awardPots" style="margin-top:11px" hidden></div>
+      <div class="s" id="tieHint" style="margin-top:13px;color:var(--text2)" hidden
+           data-i18n="hostPanel.tieHint"></div>
       <div class="rows" id="awardRows" style="margin-top:13px"></div>
-      <div class="row" style="display:flex;gap:7px;margin-top:7px">
+      <div class="row" id="awardTools" style="display:flex;gap:7px;margin-top:7px">
         <button class="secondary" style="height:52px;font-size:14px" id="splitBtn"
                 data-i18n="hostPanel.split"></button>
+        <button class="secondary" style="height:52px;font-size:14px" id="tieBtn"
+                data-i18n="hostPanel.tie"></button>
         <button class="secondary" style="height:52px;font-size:14px" id="newPotBtn"
                 data-i18n="hostPanel.newPot"></button>
       </div>
+      <div class="row" id="tieTools" style="display:flex;gap:7px;margin-top:7px" hidden>
+        <button class="secondary" style="height:52px;font-size:14px" id="tieCancel"
+                data-i18n="common.cancel"></button>
+        <button class="secondary" style="height:52px;font-size:14px" id="tieOk"></button>
+      </div>
+    </div>
+    <div class="rows" id="pokerBlock" hidden>
+      <div class="cap" data-i18n="mode.poker"></div>
+      <div class="rows" id="pokerRows"></div>
     </div>
     <div class="rows">
       <div class="cap" data-i18n="hostPanel.players"></div>
       <div class="rows" id="hostRows"></div>
     </div>
+    <div class="rows" id="handsBlock" hidden>
+      <div class="cap" data-i18n="bank.hands"></div>
+      <div class="rows" id="handRows"></div>
+    </div>
     <div class="rows">
       <div class="cap" id="seatsCap" data-i18n="seats.title"></div>
       <div class="rows" id="seatRows"></div>
+    </div>
+    <div class="rows">
+      <div class="cap" data-i18n="game.title"></div>
+      <div class="pills" id="modePills"></div>
+      <div class="rows" id="gameSettings"></div>
     </div>
     <div class="rows">
       <div class="cap" data-i18n="hostPanel.buyIn"></div>
@@ -489,10 +584,53 @@ button[disabled] { opacity: .4; cursor: default; }
   </div>
 </section>
 
+<section class="view" id="v-rules">
+  <div class="head">
+    <button class="iconBtn" id="rulesBack" aria-label="back"><span class="back"></span></button>
+    <div class="headStack">
+      <div class="t" data-i18n="rules.title"></div>
+      <div class="s" id="rulesSub"></div>
+    </div>
+  </div>
+  <div class="scroll" style="gap:8px">
+    <div class="cap" data-i18n="rules.play"></div>
+    <div class="ruleCard" id="rulesPlay"></div>
+    <div class="rows" id="rulesHands" hidden></div>
+    <div class="cap" data-i18n="rules.count"></div>
+    <div class="ruleCard" id="rulesCount"></div>
+    <div class="cap" data-i18n="rules.people"></div>
+    <div class="ruleCard strong" id="rulesPeople"></div>
+    <div class="cap" data-i18n="rules.table"></div>
+    <div class="ruleCard values" id="rulesValues"></div>
+  </div>
+  <div class="actions">
+    <button class="secondary" style="width:100%" id="rulesDone" data-i18n="log.back"></button>
+  </div>
+</section>
+
+<section class="view" id="v-name">
+  <div class="head">
+    <button class="iconBtn" id="nameBack" aria-label="back"><span class="back"></span></button>
+    <div class="headStack">
+      <div class="t" data-i18n="name.title"></div>
+      <div class="s" data-i18n="name.sub"></div>
+    </div>
+  </div>
+  <div class="scroll">
+    <input class="field" type="text" id="renameField" maxlength="24" autocomplete="nickname"
+           enterkeyhint="done" data-i18n-placeholder="join.name">
+  </div>
+  <div class="actions">
+    <button class="primary" id="renameSave" data-i18n="common.save"></button>
+  </div>
+</section>
+
 <div class="menu" id="menu" hidden>
   <div class="menuCard">
     <button id="mHost" data-i18n="hostPanel.title"></button>
     <button id="mLog" data-i18n="log.title"></button>
+    <button id="mRename" data-i18n="menu.rename"></button>
+    <button id="mStand" data-i18n="action.stand"></button>
     <div class="langRow">
       <span class="cap" data-i18n="menu.language"></span>
       <div class="pills" id="menuLangs"></div>
@@ -533,7 +671,7 @@ const DICT = {
     "table.free": "lliure",
     "table.free_seats.one": "%s lloc lliure", "table.free_seats.other": "%s llocs lliures",
     "sit.action": "Seure a la taula", "sit.title": "Compra inicial",
-    "sit.sub": "Lloc %s · compra per defecte %s", "sit.confirm": "Seure amb",
+    "sit.sub": "Lloc %s · compra per defecte %s", "sit.confirm": "Seure amb", "sit.back": "Tornar a seure amb", "sit.other": "Altre import",
     "action.bet": "Apostar", "action.rebuy": "Comprar més", "action.stand": "Aixecar-se",
     "leave.action": "Marxar de la taula",
     "leave.confirm": "Vols deixar la taula i traure les teues fitxes del joc?",
@@ -545,6 +683,8 @@ const DICT = {
     "hostPanel.title": "Panell d'amfitrió", "hostPanel.awardPot": "Assignar el pot",
     "hostPanel.awardPart": "Repartir %s", "hostPanel.wins": "%s guanya el pot",
     "hostPanel.split": "Repartir", "hostPanel.newPot": "Pot nou",
+    "hostPanel.tie": "Empat", "hostPanel.tieHint": "Toca els jugadors que han empatat",
+    "hostPanel.tieConfirm": "Repartir entre %s",
     "hostPanel.players": "Jugadors", "hostPanel.give": "Donar", "hostPanel.take": "Llevar",
     "hostPanel.noChips": "%s · sense fitxes",
     "hostPanel.buyIn": "Compra per defecte", "hostPanel.buyInNow": "Ara: %s · toca per canviar-la",
@@ -556,6 +696,73 @@ const DICT = {
     "buyIn.confirm": "Fixar a",
     "newPot.name": "poso",
     "log.title": "Registre d'activitat", "log.short": "Registre", "log.back": "Tornar a la taula",
+    "hands.title": "Ordre de les jugades",
+    "hands.sub": "De la més alta a la més baixa",
+    "hands.ties": "Desempats",
+    "hand.royal_flush": "Escala reial",
+    "hand.royal_flush.desc": "A, K, Q, J i 10 del mateix pal",
+    "hand.straight_flush": "Escala de color",
+    "hand.straight_flush.desc": "Cinc cartes seguides del mateix pal",
+    "hand.four_kind": "Pòquer",
+    "hand.four_kind.desc": "Quatre cartes del mateix valor",
+    "hand.full_house": "Full",
+    "hand.full_house.desc": "Un trio i una parella",
+    "hand.flush": "Color",
+    "hand.flush.desc": "Cinc cartes del mateix pal",
+    "hand.straight": "Escala",
+    "hand.straight.desc": "Cinc cartes seguides, de pals diferents",
+    "hand.three_kind": "Trio",
+    "hand.three_kind.desc": "Tres cartes del mateix valor",
+    "hand.two_pair": "Doble parella",
+    "hand.two_pair.desc": "Dues parelles",
+    "hand.pair": "Parella",
+    "hand.pair.desc": "Dues cartes del mateix valor",
+    "hand.high_card": "Carta alta",
+    "hand.high_card.desc": "Cap de les anteriors: mana la carta més alta",
+    "hands.note1": "Compten les cinc millors cartes entre les dues teues i les cinc comunes.",
+    "hands.note2": "Amb la mateixa jugada guanya la més alta: primer la parella, el trio o l'escala, i després, carta a carta, la resta.",
+    "hands.note3": "Al full mana el trio: 8-8-8-K-K guanya 7-7-7-A-A.",
+    "hands.note4": "L'as és la carta més alta, però també obre l'escala més baixa: A-2-3-4-5. Una escala no dona la volta: Q-K-A-2-3 no ho és.",
+    "hands.note5": "Els pals no tenen ordre: dues jugades iguals es reparteixen el pot.",
+    "poker.raiseSub": "Per igualar calen %s: la pujada ha de passar-ne",
+    "poker.raiseMin": "Mínim per pujar",
+    "error.below_call": "Cal igualar l'aposta com a mínim",
+    "menu.rename": "Canviar el nom",
+    "common.save": "Desar",
+    "name.title": "Com et dius?",
+    "name.sub": "És el nom que veuran a la taula",
+    "amount.byNumber": "Import",
+    "amount.byChips": "Fitxes",
+    "amount.clear": "Esborrar",
+    "amount.chipMore": "Una fitxa de %s més",
+    "amount.chipLess": "Una fitxa de %s menys",
+    "bank.take": "Agafar la banca",
+    "bank.assign": "Assignar",
+    "bank.change": "Canviar",
+    "bank.give": "Dona-li-la",
+    "log.player_sat_back": "s'ha assegut al lloc %{seat}",
+    "rules.title": "Regles del joc",
+    "rules.play": "Com es juga",
+    "rules.count": "Com ho compta l'app",
+    "rules.people": "Què decidiu vosaltres",
+    "rules.table": "Aquesta taula",
+    "rules.buyIn": "Compra per defecte: %s",
+    "rules.seats": "Llocs: %s",
+    "rules.natural": "La natural paga %s",
+    "rules.blinds": "Cegues %s / %s",
+    "rules.noBlinds": "Sense cegues",
+    "rules.manual.play": "La taula no sap a quin joc jugueu: només compta fitxes. Serveix per a qualsevol joc amb aposta —canari, truc, mus, muntet— i per a tots els que no tenen mode propi.",
+    "rules.manual.count": "Cadascú aposta al pot des del seu mòbil. L'amfitrió dona el pot a qui l'ha guanyat, sencer o a parts, i pot obrir pots nous. Un pot que ningú no s'endú es queda a la taula per a la mà següent.",
+    "rules.manual.people": "Les regles, els torns i qui guanya cada mà. L'app només anota el que diu l'amfitrió, i tot es pot desfer des del registre.",
+    "rules.seven_half.play": "Es juga amb baralla espanyola de 40 cartes. Les cartes de número valen el seu número i les figures (sota, cavall i rei), mig punt. Cadascú demana cartes per acostar-se a set i mig sense passar-se'n, i juga sol contra la banca.",
+    "rules.seven_half.count": "Qui no té la banca aposta abans de repartir. Quan acaba la mà, l'amfitrió resol cada aposta: guanya (la banca paga el mateix), perd (l'aposta és per a la banca), empat (torna l'aposta) o set i mig (la banca paga el que marca aquesta taula). Qui vulga la banca l'agafa mentre està lliure; passar-la a una altra persona es fa des del panell d'amfitrió.",
+    "rules.seven_half.people": "Qui té la banca i quan passa, quina jugada compta com a set i mig, i qui s'endú l'empat: a molts llocs, la banca, i llavors el botó que cal prémer és «Perd».",
+    "rules.blackjack.play": "Cadascú intenta acostar-se a 21 sense passar-se'n. Les figures valen 10, l'as 1 o 11, i la resta el seu número. Un as i una carta de 10 com a primeres cartes és blackjack. Tothom juga contra la banca.",
+    "rules.blackjack.count": "Qui no té la banca aposta abans de repartir; doblar és tornar a apostar la mateixa quantitat. Quan acaba la mà, l'amfitrió resol cada aposta: guanya, perd, empat o blackjack (la banca paga el que marca aquesta taula). Una mà separada es resol en dues parts.",
+    "rules.blackjack.people": "Quan es planta la banca, si es pot doblar o separar, i qui ha guanyat cada mà. Les regles de la casa les poseu vosaltres.",
+    "rules.poker.play": "Texas hold'em: cadascú rep dues cartes i n'hi ha cinc de comunes, que surten en tres tongades. Hi ha una ronda d'apostes abans i després de cada tongada, i guanya la millor jugada de cinc cartes.",
+    "rules.poker.count": "«Mà nova» mou el repartidor i posa les cegues. El botó gran diu exactament quant costa igualar. Entre tongades, l'amfitrió tanca la ronda. Si algú va all-in amb menys fitxes, «Dividir el pot» separa els pots que pot guanyar cadascú, i l'amfitrió els dona un a un. Quan s'ha donat tot el pot, la mà següent comença sola. Si tothom es retira menys un, el pot és seu sense que ningú hagi de fer res. En un empat, «Empat» reparteix el pot a parts iguals.",
+    "rules.poker.people": "De qui és el torn, quan es pot passar i qui guanya la mà. L'app compta les fitxes; el joc el porteu vosaltres.",
     "log.undo": "Desfer", "log.sub": "%s moviments",
     "undo.window": "Es pot desfer",
     "undo.always": "Es pot desfer sempre, tirant enrere",
@@ -588,7 +795,47 @@ const DICT = {
     "error.not_joined": "Primer has d'entrar a la taula",
     "error.wrong_room": "Aquest codi és d'una altra taula",
     "error.kicked": "L'amfitrió t'ha llevat el lloc",
-    modes: { manual: { "pot": "Pot", "pot.main": "pot" } }
+    "error.wrong_mode": "Això no es fa en aquest joc",
+    "error.no_banker": "Encara no hi ha ningú amb la banca",
+    "error.banker_cannot_bet": "Qui té la banca no aposta",
+    "error.no_stake": "No hi ha cap aposta per resoldre",
+    "error.nothing_to_split": "Aquest pot no s'ha de dividir",
+    "error.not_enough_players": "Falta gent per començar",
+    "mode.manual": "Manual", "mode.seven_half": "Set i mig",
+    "mode.blackjack": "Blackjack", "mode.poker": "Pòquer",
+    "game.title": "Joc", "game.sub": "%s · canvia'l quan vulgues",
+    "bank.title": "La banca", "bank.none": "Ningú", "bank.you": "Tens la banca",
+    "bank.youSub": "Els altres juguen contra tu. Resol cada mà des del panell.",
+    "bank.holder": "Banca: %s",
+    "bank.yourStake": "La teua aposta", "bank.stake": "Apostar",
+    "bank.cancel": "Retirar l'aposta", "bank.hands": "Mans per resoldre",
+    "bank.noHands": "Encara no ha apostat ningú",
+    "bank.win": "Guanya", "bank.lose": "Perd", "bank.push": "Empat", "bank.natural": "Natural",
+    "bank.pays": "La natural paga", "bank.stakeTitle": "Quant apostes?",
+    "poker.call": "Igualar %s", "poker.bet": "Apostar", "poker.raise": "Pujar",
+    "poker.fold": "Retirar-se", "poker.folded": "Estàs fora d'aquesta mà",
+    "poker.toCall": "Per igualar", "poker.betColumn": "Aposta", "poker.newHand": "Mà nova",
+    "poker.closeRound": "Tancar la ronda", "poker.split": "Dividir el pot",
+    "poker.award": "Donar el pot", "poker.betTotal": "La teva aposta quedaria en",
+    "poker.blinds": "Cegues", "poker.blindsSub": "Escriu la cega gran: la petita és la meitat", "poker.blindsNow": "%s / %s · toca per canviar-les",
+    "poker.button": "Repartidor", "poker.sidePot": "Pot lateral %s",
+    "poker.onlyEligible": "Només qui hi juga pot endur-se aquest pot",
+    "poker.foldedTag": "retirat", "poker.allIn": "all-in",
+    "log.banker_changed": "ha agafat la banca", "log.banker_cleared": "la banca queda lliure",
+    "log.stake_placed": "ha apostat %{amount}", "log.stake_returned": "ha retirat %{amount}",
+    "log.hand_won": "ha guanyat %{amount} a la banca",
+    "log.hand_lost": "ha perdut %{amount} contra la banca",
+    "log.hand_push": "empat amb la banca",
+    "log.hand_natural": "natural! ha guanyat %{amount}",
+    "log.hand_started": "mà nova · repartidor al lloc %{seat}",
+    "log.player_folded": "s'ha retirat", "log.round_closed": "fi de la ronda",
+    "log.pots_split": "el pot es divideix en %{count}",
+    modes: {
+      manual: { "pot": "Pot", "pot.main": "pot" },
+      seven_half: { "bank.natural": "Set i mig", "pot": "Pot", "pot.main": "pot" },
+      blackjack: { "bank.natural": "Blackjack", "pot": "Pot", "pot.main": "pot" },
+      poker: { "pot": "Pot", "pot.main": "pot principal", "action.bet": "Apostar" }
+    }
   },
   es: {
     "home.tagline": "Fichas para partidas presenciales. Sin internet, sin cuentas.",
@@ -602,7 +849,7 @@ const DICT = {
     "table.free": "libre",
     "table.free_seats.one": "%s puesto libre", "table.free_seats.other": "%s puestos libres",
     "sit.action": "Sentarse a la mesa", "sit.title": "Compra inicial",
-    "sit.sub": "Puesto %s · compra por defecto %s", "sit.confirm": "Sentarse con",
+    "sit.sub": "Puesto %s · compra por defecto %s", "sit.confirm": "Sentarse con", "sit.back": "Volver a sentarse con", "sit.other": "Otro importe",
     "action.bet": "Apostar", "action.rebuy": "Comprar más", "action.stand": "Levantarse",
     "leave.action": "Salir de la mesa",
     "leave.confirm": "¿Quieres dejar la mesa y sacar tus fichas del juego?",
@@ -614,6 +861,8 @@ const DICT = {
     "hostPanel.title": "Panel de anfitrión", "hostPanel.awardPot": "Asignar el bote",
     "hostPanel.awardPart": "Repartir %s", "hostPanel.wins": "%s gana el bote",
     "hostPanel.split": "Repartir", "hostPanel.newPot": "Bote nuevo",
+    "hostPanel.tie": "Empate", "hostPanel.tieHint": "Toca a los jugadores que han empatado",
+    "hostPanel.tieConfirm": "Repartir entre %s",
     "hostPanel.players": "Jugadores", "hostPanel.give": "Dar", "hostPanel.take": "Quitar",
     "hostPanel.noChips": "%s · sin fichas",
     "hostPanel.buyIn": "Compra por defecto", "hostPanel.buyInNow": "Ahora: %s · toca para cambiarla",
@@ -625,6 +874,73 @@ const DICT = {
     "buyIn.confirm": "Fijar en",
     "newPot.name": "bote",
     "log.title": "Registro de actividad", "log.short": "Registro", "log.back": "Volver a la mesa",
+    "hands.title": "Orden de las jugadas",
+    "hands.sub": "De la más alta a la más baja",
+    "hands.ties": "Desempates",
+    "hand.royal_flush": "Escalera real",
+    "hand.royal_flush.desc": "A, K, Q, J y 10 del mismo palo",
+    "hand.straight_flush": "Escalera de color",
+    "hand.straight_flush.desc": "Cinco cartas seguidas del mismo palo",
+    "hand.four_kind": "Póquer",
+    "hand.four_kind.desc": "Cuatro cartas del mismo valor",
+    "hand.full_house": "Full",
+    "hand.full_house.desc": "Un trío y una pareja",
+    "hand.flush": "Color",
+    "hand.flush.desc": "Cinco cartas del mismo palo",
+    "hand.straight": "Escalera",
+    "hand.straight.desc": "Cinco cartas seguidas, de palos distintos",
+    "hand.three_kind": "Trío",
+    "hand.three_kind.desc": "Tres cartas del mismo valor",
+    "hand.two_pair": "Doble pareja",
+    "hand.two_pair.desc": "Dos parejas",
+    "hand.pair": "Pareja",
+    "hand.pair.desc": "Dos cartas del mismo valor",
+    "hand.high_card": "Carta alta",
+    "hand.high_card.desc": "Ninguna de las anteriores: manda la carta más alta",
+    "hands.note1": "Cuentan las cinco mejores cartas entre tus dos y las cinco comunes.",
+    "hands.note2": "Con la misma jugada gana la más alta: primero la pareja, el trío o la escalera, y después, carta a carta, el resto.",
+    "hands.note3": "En el full manda el trío: 8-8-8-K-K gana a 7-7-7-A-A.",
+    "hands.note4": "El as es la carta más alta, pero también abre la escalera más baja: A-2-3-4-5. Una escalera no da la vuelta: Q-K-A-2-3 no lo es.",
+    "hands.note5": "Los palos no tienen orden: dos jugadas iguales se reparten el bote.",
+    "poker.raiseSub": "Para igualar hacen falta %s: la subida tiene que pasar de ahí",
+    "poker.raiseMin": "Mínimo para subir",
+    "error.below_call": "Hay que igualar la apuesta como mínimo",
+    "menu.rename": "Cambiar el nombre",
+    "common.save": "Guardar",
+    "name.title": "¿Cómo te llamas?",
+    "name.sub": "Es el nombre que verán en la mesa",
+    "amount.byNumber": "Importe",
+    "amount.byChips": "Fichas",
+    "amount.clear": "Borrar",
+    "amount.chipMore": "Una ficha de %s más",
+    "amount.chipLess": "Una ficha de %s menos",
+    "bank.take": "Coger la banca",
+    "bank.assign": "Asignar",
+    "bank.change": "Cambiar",
+    "bank.give": "Dásela",
+    "log.player_sat_back": "se ha sentado en el puesto %{seat}",
+    "rules.title": "Reglas del juego",
+    "rules.play": "Cómo se juega",
+    "rules.count": "Cómo lo cuenta la app",
+    "rules.people": "Qué decidís vosotros",
+    "rules.table": "Esta mesa",
+    "rules.buyIn": "Compra por defecto: %s",
+    "rules.seats": "Puestos: %s",
+    "rules.natural": "La natural paga %s",
+    "rules.blinds": "Ciegas %s / %s",
+    "rules.noBlinds": "Sin ciegas",
+    "rules.manual.play": "La mesa no sabe a qué juego jugáis: solo cuenta fichas. Sirve para cualquier juego con apuesta —julepe, truc, mus, monte— y para todos los que no tienen modo propio.",
+    "rules.manual.count": "Cada uno apuesta al bote desde su móvil. El anfitrión da el bote a quien lo ha ganado, entero o a partes, y puede abrir botes nuevos. Un bote que nadie se lleva se queda en la mesa para la mano siguiente.",
+    "rules.manual.people": "Las reglas, los turnos y quién gana cada mano. La app solo apunta lo que dice el anfitrión, y todo se puede deshacer desde el registro.",
+    "rules.seven_half.play": "Se juega con baraja española de 40 cartas. Las cartas de número valen su número y las figuras (sota, caballo y rey), medio punto. Cada uno pide cartas para acercarse a siete y media sin pasarse, y juega solo contra la banca.",
+    "rules.seven_half.count": "Quien no tiene la banca apuesta antes de repartir. Cuando acaba la mano, el anfitrión resuelve cada apuesta: gana (la banca paga lo mismo), pierde (la apuesta es para la banca), empate (vuelve la apuesta) o siete y media (la banca paga lo que marca esta mesa). Quien quiera la banca la coge mientras está libre; pasarla a otra persona se hace desde el panel de anfitrión.",
+    "rules.seven_half.people": "Quién tiene la banca y cuándo pasa, qué jugada cuenta como siete y media, y quién se lleva el empate: en muchos sitios, la banca, y entonces el botón que hay que pulsar es «Pierde».",
+    "rules.blackjack.play": "Cada uno intenta acercarse a 21 sin pasarse. Las figuras valen 10, el as 1 u 11, y el resto su número. Un as y una carta de 10 como primeras cartas es blackjack. Todos juegan contra la banca.",
+    "rules.blackjack.count": "Quien no tiene la banca apuesta antes de repartir; doblar es volver a apostar la misma cantidad. Cuando acaba la mano, el anfitrión resuelve cada apuesta: gana, pierde, empate o blackjack (la banca paga lo que marca esta mesa). Una mano separada se resuelve en dos partes.",
+    "rules.blackjack.people": "Cuándo se planta la banca, si se puede doblar o separar, y quién ha ganado cada mano. Las reglas de la casa las ponéis vosotros.",
+    "rules.poker.play": "Texas hold'em: cada uno recibe dos cartas y hay cinco comunes, que salen en tres tandas. Hay una ronda de apuestas antes y después de cada tanda, y gana la mejor jugada de cinco cartas.",
+    "rules.poker.count": "«Mano nueva» mueve el repartidor y pone las ciegas. El botón grande dice exactamente cuánto cuesta igualar. Entre tandas, el anfitrión cierra la ronda. Si alguien va all-in con menos fichas, «Dividir el bote» separa los botes que puede ganar cada uno, y el anfitrión los da uno a uno. Cuando se ha dado todo el bote, la mano siguiente empieza sola. Si todos se retiran menos uno, el bote es suyo sin que nadie tenga que hacer nada. En un empate, «Empate» reparte el bote a partes iguales.",
+    "rules.poker.people": "De quién es el turno, cuándo se puede pasar y quién gana la mano. La app cuenta las fichas; el juego lo lleváis vosotros.",
     "log.undo": "Deshacer", "log.sub": "%s movimientos",
     "undo.window": "Se puede deshacer",
     "undo.always": "Se puede deshacer siempre, hacia atrás",
@@ -658,7 +974,47 @@ const DICT = {
     "error.not_joined": "Primero entra en la mesa",
     "error.wrong_room": "Ese código es de otra mesa",
     "error.kicked": "El anfitrión te ha quitado el puesto",
-    modes: { manual: { "pot": "Bote", "pot.main": "bote" } }
+    "error.wrong_mode": "Eso no se hace en este juego",
+    "error.no_banker": "Todavía no hay nadie con la banca",
+    "error.banker_cannot_bet": "Quien tiene la banca no apuesta",
+    "error.no_stake": "No hay ninguna apuesta que resolver",
+    "error.nothing_to_split": "Este bote no hay que dividirlo",
+    "error.not_enough_players": "Falta gente para empezar",
+    "mode.manual": "Manual", "mode.seven_half": "Siete y media",
+    "mode.blackjack": "Blackjack", "mode.poker": "Póquer",
+    "game.title": "Juego", "game.sub": "%s · cámbialo cuando quieras",
+    "bank.title": "La banca", "bank.none": "Nadie", "bank.you": "Tienes la banca",
+    "bank.youSub": "Los demás juegan contra ti. Resuelve cada mano desde el panel.",
+    "bank.holder": "Banca: %s",
+    "bank.yourStake": "Tu apuesta", "bank.stake": "Apostar",
+    "bank.cancel": "Retirar la apuesta", "bank.hands": "Manos por resolver",
+    "bank.noHands": "Todavía no ha apostado nadie",
+    "bank.win": "Gana", "bank.lose": "Pierde", "bank.push": "Empate", "bank.natural": "Natural",
+    "bank.pays": "La natural paga", "bank.stakeTitle": "¿Cuánto apuestas?",
+    "poker.call": "Igualar %s", "poker.bet": "Apostar", "poker.raise": "Subir",
+    "poker.fold": "Retirarse", "poker.folded": "Estás fuera de esta mano",
+    "poker.toCall": "Para igualar", "poker.betColumn": "Apuesta", "poker.newHand": "Mano nueva",
+    "poker.closeRound": "Cerrar la ronda", "poker.split": "Dividir el bote",
+    "poker.award": "Dar el bote", "poker.betTotal": "Tu apuesta quedaría en",
+    "poker.blinds": "Ciegas", "poker.blindsSub": "Escribe la ciega grande: la pequeña es la mitad", "poker.blindsNow": "%s / %s · toca para cambiarlas",
+    "poker.button": "Repartidor", "poker.sidePot": "Bote lateral %s",
+    "poker.onlyEligible": "Solo quien sigue en la mano puede llevarse este bote",
+    "poker.foldedTag": "retirado", "poker.allIn": "all-in",
+    "log.banker_changed": "ha cogido la banca", "log.banker_cleared": "la banca queda libre",
+    "log.stake_placed": "ha apostado %{amount}", "log.stake_returned": "ha retirado %{amount}",
+    "log.hand_won": "ha ganado %{amount} a la banca",
+    "log.hand_lost": "ha perdido %{amount} contra la banca",
+    "log.hand_push": "empate con la banca",
+    "log.hand_natural": "¡natural! ha ganado %{amount}",
+    "log.hand_started": "mano nueva · repartidor en el puesto %{seat}",
+    "log.player_folded": "se ha retirado", "log.round_closed": "fin de la ronda",
+    "log.pots_split": "el bote se divide en %{count}",
+    modes: {
+      manual: { "pot": "Bote", "pot.main": "bote" },
+      seven_half: { "bank.natural": "Siete y media", "pot": "Bote", "pot.main": "bote" },
+      blackjack: { "bank.natural": "Blackjack", "pot": "Bote", "pot.main": "bote" },
+      poker: { "pot": "Bote", "pot.main": "bote principal", "action.bet": "Apostar" }
+    }
   },
   en: {
     "home.tagline": "Chips for in-person games. No internet, no accounts.",
@@ -672,7 +1028,7 @@ const DICT = {
     "table.free": "free",
     "table.free_seats.one": "%s free seat", "table.free_seats.other": "%s free seats",
     "sit.action": "Take a seat", "sit.title": "Buy-in",
-    "sit.sub": "Seat %s · table default %s", "sit.confirm": "Sit with",
+    "sit.sub": "Seat %s · table default %s", "sit.confirm": "Sit with", "sit.back": "Sit back down with", "sit.other": "Other amount",
     "action.bet": "Bet", "action.rebuy": "Buy more", "action.stand": "Stand up",
     "leave.action": "Leave the table",
     "leave.confirm": "Leave the table and take your chips out of the game?",
@@ -684,6 +1040,8 @@ const DICT = {
     "hostPanel.title": "Host panel", "hostPanel.awardPot": "Award the pot",
     "hostPanel.awardPart": "Give out %s", "hostPanel.wins": "%s wins the pot",
     "hostPanel.split": "Split", "hostPanel.newPot": "New pot",
+    "hostPanel.tie": "Tie", "hostPanel.tieHint": "Tap the players who tied",
+    "hostPanel.tieConfirm": "Share between %s",
     "hostPanel.players": "Players", "hostPanel.give": "Give", "hostPanel.take": "Take",
     "hostPanel.noChips": "%s · no chips",
     "hostPanel.buyIn": "Default buy-in", "hostPanel.buyInNow": "Now: %s · tap to change it",
@@ -696,6 +1054,73 @@ const DICT = {
     "buyIn.confirm": "Set to",
     "newPot.name": "side pot",
     "log.title": "Activity log", "log.short": "Log", "log.back": "Back to the table",
+    "hands.title": "Hand rankings",
+    "hands.sub": "From the highest to the lowest",
+    "hands.ties": "Ties",
+    "hand.royal_flush": "Royal flush",
+    "hand.royal_flush.desc": "A, K, Q, J and 10 of the same suit",
+    "hand.straight_flush": "Straight flush",
+    "hand.straight_flush.desc": "Five cards in a row of the same suit",
+    "hand.four_kind": "Four of a kind",
+    "hand.four_kind.desc": "Four cards of the same rank",
+    "hand.full_house": "Full house",
+    "hand.full_house.desc": "Three of a kind and a pair",
+    "hand.flush": "Flush",
+    "hand.flush.desc": "Five cards of the same suit",
+    "hand.straight": "Straight",
+    "hand.straight.desc": "Five cards in a row, of mixed suits",
+    "hand.three_kind": "Three of a kind",
+    "hand.three_kind.desc": "Three cards of the same rank",
+    "hand.two_pair": "Two pair",
+    "hand.two_pair.desc": "Two different pairs",
+    "hand.pair": "One pair",
+    "hand.pair.desc": "Two cards of the same rank",
+    "hand.high_card": "High card",
+    "hand.high_card.desc": "None of the above: the highest card plays",
+    "hands.note1": "The best five cards count, out of your two and the five shared.",
+    "hands.note2": "With the same hand the higher one wins: first the pair, the three or the straight, then card by card the rest.",
+    "hands.note3": "In a full house the three decide: 8-8-8-K-K beats 7-7-7-A-A.",
+    "hands.note4": "The ace is the highest card, but it also starts the lowest straight: A-2-3-4-5. A straight does not wrap: Q-K-A-2-3 is not one.",
+    "hands.note5": "Suits have no order: two equal hands split the pot.",
+    "poker.raiseSub": "To call it takes %s: a raise goes over that",
+    "poker.raiseMin": "Lowest raise",
+    "error.below_call": "You have to at least call",
+    "menu.rename": "Change your name",
+    "common.save": "Save",
+    "name.title": "What is your name?",
+    "name.sub": "It is the name the table will see",
+    "amount.byNumber": "Amount",
+    "amount.byChips": "Chips",
+    "amount.clear": "Clear",
+    "amount.chipMore": "One more %s chip",
+    "amount.chipLess": "One %s chip fewer",
+    "bank.take": "Take the bank",
+    "bank.assign": "Assign",
+    "bank.change": "Change",
+    "bank.give": "Give it",
+    "log.player_sat_back": "sat down at seat %{seat}",
+    "rules.title": "Rules of the game",
+    "rules.play": "How it is played",
+    "rules.count": "How the app counts it",
+    "rules.people": "What you decide",
+    "rules.table": "This table",
+    "rules.buyIn": "Buy-in: %s",
+    "rules.seats": "Seats: %s",
+    "rules.natural": "A natural pays %s",
+    "rules.blinds": "Blinds %s / %s",
+    "rules.noBlinds": "No blinds",
+    "rules.manual.play": "The table does not know which game you are playing: it only counts chips. It works for any game with betting — canari, truc, mus, monte — and for every game without a mode of its own.",
+    "rules.manual.count": "Everyone bets into the pot from their own phone. The host gives the pot to whoever won it, whole or in parts, and can open more pots. A pot nobody takes stays on the table for the next hand.",
+    "rules.manual.people": "The rules, the turns and who wins each hand. The app only writes down what the host says, and anything can be undone from the log.",
+    "rules.seven_half.play": "Played with a 40-card Spanish deck. Number cards are worth their number and the face cards (sota, caballo, rey) half a point. Each player draws to get as close to seven and a half as possible without going over, playing alone against the bank.",
+    "rules.seven_half.count": "Whoever does not hold the bank stakes before the deal. When the hand is over, the host settles each stake: wins (the bank pays the same again), loses (the stake goes to the bank), push (the stake comes back) or seven and a half (the bank pays what this table says). Whoever wants the bank takes it while it is free; handing it to somebody else is done from the host panel.",
+    "rules.seven_half.people": "Who holds the bank and when it passes on, which hand counts as a seven and a half, and who takes a tie: in many places the bank does, and then the button to press is Loses.",
+    "rules.blackjack.play": "Each player tries to get as close to 21 as possible without going over. Face cards are worth 10, an ace 1 or 11, the rest their number. An ace and a ten-card as the first two cards is a blackjack. Everyone plays against the bank.",
+    "rules.blackjack.count": "Whoever does not hold the bank stakes before the deal; doubling is staking the same amount again. When the hand is over, the host settles each stake: wins, loses, push or blackjack (the bank pays what this table says). A split hand is settled in two parts.",
+    "rules.blackjack.people": "When the bank stands, whether doubling and splitting are allowed, and who won each hand. The house rules are yours to set.",
+    "rules.poker.play": "Texas hold'em: each player gets two cards and five are shared, dealt in three rounds. There is a round of betting before and after each, and the best five-card hand wins.",
+    "rules.poker.count": "New hand moves the dealer and posts the blinds. The big button says exactly what a call costs. Between rounds, the host closes the round. If somebody goes all-in with fewer chips, Split the pot separates the pots each player can win, and the host awards them one by one. Once the last of the pot is awarded, the next hand deals itself. If everybody but one folds, the pot is theirs without anybody doing a thing. On a tie, Tie shares the pot evenly.",
+    "rules.poker.people": "Whose turn it is, when you may check, and who wins the hand. The app counts the chips; the game is yours.",
     "log.undo": "Undo", "log.sub": "%s moves",
     "undo.window": "Can still be undone",
     "undo.always": "Always undoable, one move at a time",
@@ -728,7 +1153,47 @@ const DICT = {
     "error.not_joined": "Join the table first",
     "error.wrong_room": "That code is from another table",
     "error.kicked": "The host closed your seat",
-    modes: { manual: { "pot": "Pot", "pot.main": "main pot" } }
+    "error.wrong_mode": "That is not part of this game",
+    "error.no_banker": "Nobody is holding the bank yet",
+    "error.banker_cannot_bet": "The bank does not bet against itself",
+    "error.no_stake": "There is no stake to settle",
+    "error.nothing_to_split": "This pot does not need splitting",
+    "error.not_enough_players": "Not enough players yet",
+    "mode.manual": "Manual", "mode.seven_half": "Seven and a half",
+    "mode.blackjack": "Blackjack", "mode.poker": "Poker",
+    "game.title": "Game", "game.sub": "%s · change it whenever",
+    "bank.title": "The bank", "bank.none": "Nobody", "bank.you": "You hold the bank",
+    "bank.youSub": "Everybody plays against you. Settle each hand from the panel.",
+    "bank.holder": "Bank: %s",
+    "bank.yourStake": "Your stake", "bank.stake": "Stake",
+    "bank.cancel": "Take the stake back", "bank.hands": "Hands to settle",
+    "bank.noHands": "Nobody has staked yet",
+    "bank.win": "Wins", "bank.lose": "Loses", "bank.push": "Push", "bank.natural": "Natural",
+    "bank.pays": "A natural pays", "bank.stakeTitle": "How much do you stake?",
+    "poker.call": "Call %s", "poker.bet": "Bet", "poker.raise": "Raise",
+    "poker.fold": "Fold", "poker.folded": "You are out of this hand",
+    "poker.toCall": "To call", "poker.betColumn": "Bet", "poker.newHand": "New hand",
+    "poker.closeRound": "Close the round", "poker.split": "Split the pot",
+    "poker.award": "Award the pot", "poker.betTotal": "Your bet would be",
+    "poker.blinds": "Blinds", "poker.blindsSub": "Type the big blind: the small one is half of it", "poker.blindsNow": "%s / %s · tap to change them",
+    "poker.button": "Dealer", "poker.sidePot": "Side pot %s",
+    "poker.onlyEligible": "Only players still in the hand can take this pot",
+    "poker.foldedTag": "folded", "poker.allIn": "all-in",
+    "log.banker_changed": "took the bank", "log.banker_cleared": "the bank is free again",
+    "log.stake_placed": "staked %{amount}", "log.stake_returned": "took back %{amount}",
+    "log.hand_won": "won %{amount} from the bank",
+    "log.hand_lost": "lost %{amount} to the bank",
+    "log.hand_push": "pushed with the bank",
+    "log.hand_natural": "natural! won %{amount}",
+    "log.hand_started": "new hand · dealer at seat %{seat}",
+    "log.player_folded": "folded", "log.round_closed": "end of the round",
+    "log.pots_split": "the pot splits into %{count}",
+    modes: {
+      manual: { "pot": "Pot", "pot.main": "main pot" },
+      seven_half: { "bank.natural": "Seven and a half", "pot": "Pot", "pot.main": "pot" },
+      blackjack: { "bank.natural": "Blackjack", "pot": "Pot", "pot.main": "pot" },
+      poker: { "pot": "Pot", "pot.main": "main pot", "action.bet": "Bet" }
+    }
   }
 };
 
@@ -931,17 +1396,42 @@ function seated() { const p = mine(); return !!p && p.seat !== null; }
 function seatedPlayers() {
   return state ? state.players.filter((p) => p.seat !== null).sort((a, b) => a.seat - b.seat) : [];
 }
-function potName(pot) { return pot.name || (pot.id === "main" ? t("pot.main") : pot.id); }
+function potName(pot) {
+  if (pot.name) return pot.name;
+  if (pot.id === "main") return t("pot.main");
+  if (mode === "poker") return t("poker.sidePot", fmt(Number(pot.id.split("-")[1] || 1)));
+  return pot.id;
+}
+function bankGame() { return mode === "seven_half" || mode === "blackjack"; }
+function banker() { return state && state.banker ? player(state.banker) : undefined; }
+function iAmBanker() { return !!me && !!state && state.banker === me; }
+function toCall(who) {
+  if (!state || !who) return 0;
+  return Math.max(0, (state.currentBet || 0) - (who.roundBet || 0));
+}
+/** Who may be given this pot: everybody, or only those still in the hand. */
+function eligibleFor(pot) {
+  const seats = seatedPlayers();
+  if (!pot.eligible) return mode === "poker" ? seats.filter((p) => !p.folded) : seats;
+  return pot.eligible.map((id) => player(id)).filter(Boolean);
+}
 function potTotal() { return state ? state.pots.reduce((sum, pot) => sum + pot.amount, 0) : 0; }
+/**
+ * The pot the screens act on: the one picked, until it has been given away;
+ * then the next one that still holds chips, so a host handing out side pots
+ * never has to go and find the next one.
+ */
 function currentPot() {
   if (!state) return null;
-  return state.pots.find((p) => p.id === selectedPot) || state.pots[0];
+  return state.pots.find((p) => p.id === selectedPot && p.amount > 0)
+    || state.pots.find((p) => p.amount > 0)
+    || state.pots.find((p) => p.id === selectedPot) || state.pots[0];
 }
 let selectedPot = "main";
 
 // ---------------------------------------------------------------- views
 let view = "join";
-const VIEWS = ["join", "table", "amount", "host", "log"];
+const VIEWS = ["join", "table", "amount", "host", "log", "rules", "name"];
 
 function showView(next) {
   view = next;
@@ -1010,7 +1500,9 @@ function render() {
   if (view === "table") renderTable();
   if (view === "host") renderHost();
   if (view === "log") renderLog();
+  if (view === "rules") renderRules();
   document.getElementById("mHost").hidden = !iAmHost();
+  document.getElementById("mStand").hidden = !seated();
 }
 
 // ---------------------------------------------------------------- table
@@ -1023,6 +1515,7 @@ function renderTable() {
   document.getElementById("myCard").hidden = !seated();
   if (player) {
     figure(document.getElementById("myStack"), fmt(player.stack));
+    renderChips(document.getElementById("myChips"), player.stack);
     const net = player.stack - player.boughtIn;
     const netNode = document.getElementById("myNet");
     netNode.textContent = net === 0 ? "" : signed(net);
@@ -1030,12 +1523,34 @@ function renderTable() {
   }
 
   renderPots();
+  renderHostHand();
   renderUndoBar();
   renderSeats();
   renderTableActions();
 }
 
+/**
+ * What the host does between the players' moves, where the host already is:
+ * closing a street, saying who won, dealing when no hand is on. Each shows
+ * only when it would do something.
+ */
+function renderHostHand() {
+  const bar = document.getElementById("hostHand");
+  const nodes = [];
+  if (mode === "poker" && iAmHost()) {
+    const bets = state.players.some((p) => (p.roundBet || 0) > 0);
+    const canDeal = state.players.filter((p) => p.seat !== null && p.stack > 0).length >= 2;
+    const button = (key, onClick) => { const b = el("button", "secondary", t(key)); b.onclick = onClick; return b; };
+    if (bets) nodes.push(button("poker.closeRound", () => hostCommand({ type: "close_round" })));
+    if (potTotal() > 0) nodes.push(button("poker.award", () => { pendingSplit = null; showView("host"); }));
+    else if (canDeal) nodes.push(button("poker.newHand", () => hostCommand({ type: "start_hand" })));
+  }
+  bar.replaceChildren(...nodes);
+  bar.hidden = nodes.length === 0;
+}
+
 function renderPots() {
+  if (bankGame()) { renderBankMetrics(); return; }
   const pots = state.pots;
   const cards = pots.map((pot) => {
     const node = el(pots.length > 1 ? "button" : "div", "card metric");
@@ -1044,11 +1559,63 @@ function renderPots() {
     figure(value, fmt(pot.amount));
     node.append(value);
     if (pots.length > 1) {
-      if (pot.id === selectedPot) node.classList.add("sel");
+      if (pot.id === currentPot().id) node.classList.add("sel");
       node.onclick = () => { selectedPot = pot.id; render(); };
     }
     return node;
   });
+  if (mode === "poker") {
+    const owed = toCall(mine());
+    if (seated() && owed > 0) {
+      const card = el("div", "card metric");
+      card.append(el("div", "cap", t("poker.toCall")));
+      const value = el("div", "v");
+      figure(value, fmt(owed));
+      card.append(value);
+      cards.push(card);
+    }
+  }
+  document.getElementById("pots").replaceChildren(...cards);
+}
+
+/**
+ * In a game with a bank there is no pot: what matters is what you have up for
+ * this hand, and who you are playing it against.
+ */
+function renderBankMetrics() {
+  const cards = [];
+  const who = mine();
+  // A bank game has no pot, but chips left in one from another game are still
+  // chips: never hide them.
+  if (potTotal() > 0) {
+    const pot = el("div", "card metric");
+    pot.append(el("div", "cap", t("pot")));
+    const amount = el("div", "v");
+    figure(amount, fmt(potTotal()));
+    pot.append(amount);
+    cards.push(pot);
+  }
+  if (who && who.seat !== null && !iAmBanker()) {
+    const stake = el("div", "card metric" + (who.stake > 0 ? " sel" : ""));
+    stake.append(el("div", "cap", t("bank.yourStake")));
+    const value = el("div", "v");
+    figure(value, fmt(who.stake || 0));
+    stake.append(value);
+    cards.push(stake);
+  }
+  const bank = el("div", "card metric");
+  bank.append(el("div", "cap", t("bank.title")));
+  const held = banker();
+  const value = el("div", "v");
+  if (held) {
+    value.style.fontSize = "19px";
+    value.textContent = iAmBanker() ? t("bank.you") : held.name;
+  } else {
+    value.style.fontSize = "15px";
+    value.textContent = t("bank.none");
+  }
+  bank.append(value);
+  cards.push(bank);
   document.getElementById("pots").replaceChildren(...cards);
 }
 
@@ -1080,7 +1647,7 @@ function renderSeats() {
 
   const head = el("div", "rowsCap");
   head.append(el("span", "cap", t("player.atTable")),
-              el("span", "cap", fmt(seatedPlayers().length)));
+              el("span", "cap", mode === "poker" ? t("poker.betColumn") : fmt(seatedPlayers().length)));
   document.getElementById("tableRows").replaceChildren(head, ...rows);
 }
 
@@ -1090,8 +1657,22 @@ function seatRow(seat, who) {
   const name = el("span", "pname" + (who.id === me ? " self" : ""), who.name);
   row.append(dot, name);
   if (who.isHost) row.append(el("span", "ptag", t("host.role")));
+  if (bankGame() && state.banker === who.id) row.append(el("span", "ptag", t("bank.title")));
+  if (mode === "poker") {
+    if (state.button === seat) row.append(el("span", "ptag", t("poker.button")));
+    if (who.folded) row.append(el("span", "ptag", t("poker.foldedTag")));
+    else if (who.stack === 0 && who.committed > 0) row.append(el("span", "ptag bad", t("poker.allIn")));
+  }
   if (!who.connected) row.append(el("span", "ptag bad", t("player.gone")));
-  row.append(el("span", "pchips", fmt(who.stack)));
+  // At a poker table what matters about the others is what they have pushed
+  // forward this round, not what they have behind.
+  if (mode === "poker") {
+    const bet = who.roundBet || 0;
+    row.append(el("span", "pchips" + (bet > 0 ? " bet" : " nobet"), bet > 0 ? fmt(bet) : "\u2014"));
+    if (who.folded) row.classList.add("dim");
+  } else {
+    row.append(el("span", "pchips", fmt(who.stack)));
+  }
   return row;
 }
 
@@ -1122,23 +1703,120 @@ function watcherRow(who) {
 function renderTableActions() {
   const bar = document.getElementById("tableActions");
   const nodes = [];
-  if (seated()) {
+  if (!seated()) {
+    // One tap sits down with what the table deals, or back down with the chips
+    // kept; any other amount is the exception, one tap further.
+    const who = mine();
+    const back = !!who && who.stack > 0;
+    const sit = el("button", "primary");
+    sit.append(el("span", null, t(back ? "sit.back" : "sit.confirm")),
+               el("span", "n", fmt(back ? who.stack : state.config.defaultBuyIn)));
+    sit.onclick = () => send({ type: "sit", seat: null, buyIn: back ? 0 : null });
+    const nodes = [sit];
+    if (!back) nodes.push(action(t("sit.other"), () => askBuyIn(null)));
+    bar.replaceChildren(...nodes);
+    return;
+  }
+  const who = mine();
+  if (bankGame()) nodes.push(...bankActions(who));
+  else if (mode === "poker") nodes.push(...pokerActions(who));
+  else {
     const bet = el("button", "primary");
     bet.append(el("span", null, t("action.bet")));
     bet.onclick = () => openBet();
     nodes.push(bet);
-    const row = el("div", "row");
-    row.append(
-      action(t("action.rebuy"), () => openRebuy()),
-      action(t("action.stand"), () => act({ type: "stand_up" }))
-    );
-    nodes.push(row);
-  } else {
-    const sit = el("button", "primary", t("sit.action"));
-    sit.onclick = () => askBuyIn(null);
-    nodes.push(sit);
   }
+  // Standing up is in the menu: next to call and fold, one stray tap would
+  // take a player out of the hand and off the table.
+  nodes.push(action(t("action.rebuy"), () => openRebuy()));
   bar.replaceChildren(...nodes);
+}
+
+/** Stake against the bank, or hold it and wait for the others. */
+function bankActions(who) {
+  if (iAmBanker()) {
+    const note = el("div", "note");
+    note.append(el("span", "bang"), el("span", "txt", t("bank.youSub")));
+    return [note];
+  }
+  if (!state.banker) {
+    // Nothing can be staked until somebody banks, and anybody seated may.
+    const take = el("button", "primary");
+    take.append(el("span", null, t("bank.take")));
+    take.onclick = () => act({ type: "take_bank" });
+    return [take];
+  }
+  const stake = el("button", "primary");
+  stake.append(el("span", null, t("bank.stake")));
+  stake.onclick = () => openStake();
+  const nodes = [stake];
+  if (who.stake > 0) {
+    const row = el("div", "row");
+    row.append(action(t("bank.cancel"), () => act({ type: "cancel_stake" }), "want"));
+    nodes.push(row);
+  }
+  return nodes;
+}
+
+/**
+ * Call, raise, fold. What a call costs is the one number nobody at a real table
+ * agrees on, so the button carries it.
+ */
+function pokerActions(who) {
+  if (who.folded) {
+    const note = el("div", "note");
+    note.append(el("span", "bang"), el("span", "txt", t("poker.folded")));
+    return [note];
+  }
+  const owed = toCall(who);
+  const first = el("button", "primary");
+  if (owed > 0) {
+    const label = el("span", null);
+    fill(label, "poker.call", num(fmt(Math.min(owed, who.stack))));
+    first.append(label);
+    first.onclick = () => act({ type: "bet", amount: Math.min(owed, who.stack), pot: "main" });
+    first.disabled = who.stack <= 0;
+  } else {
+    first.append(el("span", null, t("poker.bet")));
+    first.onclick = () => openBet();
+  }
+  // With nothing owed the big button already is the bet; and whoever cannot
+  // even cover the call has no raise to make, only the all-in call.
+  const row = el("div", "row");
+  if (owed > 0 && who.stack > owed) row.append(action(t("poker.raise"), () => openRaise(owed)));
+  row.append(action(t("poker.fold"), () => act({ type: "fold" }), "danger"));
+  return [first, row];
+}
+
+/**
+ * A raise starts from the call — those chips go in either way — and is only
+ * a raise once it goes over it. Under that, the balance line says what the
+ * least raise is, rather than leave a greyed-out button to explain itself.
+ */
+function openRaise(owed) {
+  const who = mine();
+  openAmount({
+    title: t("poker.raise"), sub: ["poker.raiseSub", num(fmt(owed))],
+    confirm: t("poker.raise"), initial: owed, max: who.stack,
+    poker: { raise: true, roundBet: who.roundBet || 0 },
+    // Where the raise leaves you against the others; the stack is above.
+    rest: (value) => value <= owed
+      ? { label: t("poker.raiseMin"), value: owed + 1, bad: true }
+      : { label: t("poker.betTotal"), value: (who.roundBet || 0) + value, bad: value > who.stack },
+    run: (value) => act({ type: "bet", amount: value, pot: "main" })
+  });
+}
+
+function openStake() {
+  const who = mine();
+  openAmount({
+    title: t("bank.stakeTitle"), sub: ["bet.sub", num(fmt(who.stack))],
+    confirm: t("bank.stake"), max: who.stack,
+    initial: who.stake > 0 ? undefined : state.config.defaultBuyIn / 10 | 0,
+    rest: (value) => ({ label: t("amount.remaining"), value: who.stack - value,
+                        bad: value > who.stack }),
+    run: (value) => act({ type: "stake", amount: value })
+  });
 }
 
 function action(label, onClick, className) {
@@ -1156,6 +1834,8 @@ let untouched = false;
 
 function openAmount(next) {
   flow = next;
+  chipCounts = null;
+  padFresh = true;
   typed = next.initial === undefined ? "" : String(next.initial);
   untouched = typed !== "";
   showView("amount");
@@ -1182,8 +1862,12 @@ function openBet() {
   openAmount({
     title: t("bet.title"), sub: ["bet.sub", num(fmt(mine().stack))],
     confirm: t("bet.confirm"), max: mine().stack, potRelative: true,
-    rest: (value) => ({ label: t("amount.remaining"), value: mine().stack - value,
-                        bad: value > mine().stack }),
+    poker: mode === "poker" ? { raise: false, roundBet: mine().roundBet || 0 } : null,
+    // At poker what matters is where the bet leaves you against the others;
+    // the stack is in the line above.
+    rest: (value) => mode === "poker"
+      ? { label: t("poker.betTotal"), value: (mine().roundBet || 0) + value, bad: value > mine().stack }
+      : { label: t("amount.remaining"), value: mine().stack - value, bad: value > mine().stack },
     run: (value) => act({ type: "bet", amount: value, pot: pot.id })
   });
 }
@@ -1191,6 +1875,7 @@ function openBet() {
 function openRebuy() {
   openAmount({
     title: t("rebuy.title"), sub: ["rebuy.sub", num(fmt(mine().stack))],
+    dealt: true,
     confirm: t("rebuy.confirm"), initial: state.config.defaultBuyIn,
     rest: (value) => ({ label: t("amount.resulting"), value: mine().stack + value }),
     run: (value) => act({ type: "rebuy", amount: value })
@@ -1198,8 +1883,15 @@ function openRebuy() {
 }
 
 function askBuyIn(seat) {
+  // Coming back with chips is not a buy-in: sit straight down with them.
+  const who = mine();
+  if (who && who.stack > 0) {
+    send({ type: "sit", seat: seat, buyIn: 0 });
+    return;
+  }
   openAmount({
     title: t("sit.title"),
+    dealt: true,
     sub: ["sit.sub", num(seat === null ? "\u2014" : fmt(seat + 1)),
           num(fmt(state.config.defaultBuyIn))],
     confirm: t("sit.confirm"), initial: state.config.defaultBuyIn, allowZero: true,
@@ -1228,8 +1920,100 @@ function renderAmount() {
   document.getElementById("amountOk").disabled =
     (rest && rest.bad) || (value <= 0 && !flow.allowZero);
 
-  renderQuick();
-  renderKeypad();
+  renderAmountMode();
+  if (byChips) {
+    renderChipPad();
+  } else {
+    renderQuick();
+    renderKeypad();
+  }
+}
+
+// ---------------------------------------------------------------- chip by chip
+
+// Whoever counts in chips keeps counting in chips: it is a way of playing.
+let byChips = store.get("amountByChips") === "1";
+// The rows are the truth while the pad is open; null means "start again from
+// the amount", in the fewest chips, which is how a bet is pushed — or, for a
+// buy-in (`flow.dealt`), the way the chips are dealt: five of each.
+let chipCounts = null;
+// A new amount opens the pad at its top, with the biggest chip in view. It is
+// reset on the first draw rather than when the flow opens: the view is still
+// hidden then, and a hidden element keeps its old scroll offset regardless.
+let padFresh = false;
+
+/** The same as `fewestChips` in :core: largest first. */
+function fewestChips(amount) {
+  let rest = Math.max(0, amount);
+  return DENOMINATIONS.map((value) => {
+    const count = Math.floor(rest / value);
+    rest -= count * value;
+    return { value: value, count: count };
+  });
+}
+
+function padChips(amount) { return flow.dealt ? chipsIn(amount) : fewestChips(amount); }
+
+function chipTotal(counts) { return counts.reduce((sum, c) => sum + c.value * c.count, 0); }
+
+function renderAmountMode() {
+  const pills = [[false, "amount.byNumber"], [true, "amount.byChips"]].map(([value, key]) => {
+    const pill = el("button", byChips === value ? "on" : null, t(key));
+    pill.onclick = () => {
+      if (byChips === value) return;
+      byChips = value;
+      store.set("amountByChips", value ? "1" : "0");
+      chipCounts = null;
+      renderAmount();
+    };
+    return pill;
+  });
+  document.getElementById("amountMode").replaceChildren(...pills);
+  document.getElementById("quickBlock").hidden = byChips;
+  document.getElementById("keypad").hidden = byChips;
+  document.getElementById("chipPad").hidden = !byChips;
+}
+
+/**
+ * The amount as chips pushed forward, one row per value. The figure above is
+ * always the total, and it is the total that is confirmed: the app counts
+ * amounts, not chips.
+ */
+function renderChipPad() {
+  const value = amountValue();
+  if (!chipCounts || chipTotal(chipCounts) !== value) chipCounts = padChips(value);
+  const max = flow.max === undefined || flow.max === null ? null : flow.max;
+  const lines = chipCounts.map(({ value: chip, count }) => {
+    const line = el("div", "chipLine");
+    const less = el("button", null, "\u2212");
+    less.disabled = count === 0;
+    less.setAttribute("aria-label", t("amount.chipLess", fmt(chip)));
+    less.onclick = () => changeChip(chip, -1);
+    const more = el("button", null, "+");
+    more.disabled = max !== null && value + chip > max;
+    more.setAttribute("aria-label", t("amount.chipMore", fmt(chip)));
+    more.onclick = () => changeChip(chip, 1);
+    line.append(el("i", "sw v" + chip), el("span", "v", fmt(chip)), less,
+                el("span", "c" + (count ? "" : " zero"), fmt(count)), more);
+    return line;
+  });
+  const row = el("div", "row");
+  const clear = el("button", "quick rel", t("amount.clear"));
+  clear.onclick = () => { chipCounts = padChips(0); setAmount(0); };
+  row.append(clear);
+  if (max !== null) {
+    const all = el("button", "quick rel all", t("amount.all"));
+    all.onclick = () => { chipCounts = padChips(max); setAmount(max); };
+    row.append(all);
+  }
+  const pad = document.getElementById("chipPad");
+  pad.replaceChildren(...lines, row);
+  if (padFresh) { pad.scrollTop = 0; padFresh = false; }
+}
+
+function changeChip(chip, by) {
+  chipCounts = chipCounts.map((c) => (c.value === chip ? { value: c.value, count: c.count + by } : c));
+  setAmount(chipTotal(chipCounts));
 }
 
 function renderQuick() {
@@ -1243,15 +2027,31 @@ function renderQuick() {
     button.onclick = () => setAmount(amount);
     return button;
   };
-  const nodes = [add(5), add(25), add(100)];
-  if (flow.potRelative) {
+  const cap = (amount) => (flow.max ? Math.min(flow.max, amount) : amount);
+  const sizes = flow.poker;
+  const nodes = [];
+  if (sizes && sizes.raise) {
+    // A raise is sized in multiples of the bet it raises; the amount is what
+    // goes in now, so twice the bet less what is already in front of you.
+    nodes.push(...[2, 3].map((times) => set("\u00d7" + times, cap(state.currentBet * times - sizes.roundBet))),
+               set(t("amount.pot"), cap(potTotal())), set(t("amount.all"), flow.max || 0, "all"));
+  } else if (sizes && state.config.bigBlind > 0) {
+    // A bet is sized in big blinds, or against the pot.
     const pot = currentPot().amount;
-    nodes.push(set(t("amount.halfPot"), Math.floor(pot / 2)),
+    nodes.push(...[2, 3].map((times) => set(fmt(state.config.bigBlind * times), cap(state.config.bigBlind * times))),
+               set(t("amount.halfPot"), cap(Math.floor(pot / 2))), set(t("amount.pot"), cap(pot)),
+               set(t("amount.all"), flow.max || 0, "all"));
+  } else if (flow.potRelative) {
+    const pot = currentPot().amount;
+    nodes.push(add(5), add(25), add(100),
+               set(t("amount.halfPot"), Math.floor(pot / 2)),
                set(t("amount.pot"), pot),
                set(t("amount.all"), flow.max || 0, "all"));
   } else {
-    nodes.push(add(500), set(t("amount.pot"), currentPot() ? currentPot().amount : 0),
-               set(t("amount.all"), flow.max || state.config.defaultBuyIn, "all"));
+    // No "pot" here: this is not a bet against a pot (a stake, a buy-in, a
+    // correction), and offering one where there is none sets a meaningless 0.
+    nodes.push(add(5), add(25), add(100),
+               add(500), set(t("amount.all"), flow.max || state.config.defaultBuyIn, "all"));
   }
   document.getElementById("quick").replaceChildren(...nodes);
 }
@@ -1287,18 +2087,50 @@ function renderHost() {
   figure(document.getElementById("awardPot"), fmt(pot ? pot.amount : 0));
 
   const amount = pendingSplit === null ? (pot ? pot.amount : 0) : pendingSplit;
-  const rows = seatedPlayers().map((who) => {
+  if (tying && tying.pot !== (pot && pot.id)) tying = null;
+  // More than one pot: which one is being given is picked here, where it is
+  // given, not back on the table.
+  const potPills = document.getElementById("awardPots");
+  potPills.hidden = state.pots.length < 2;
+  potPills.replaceChildren(...(state.pots.length < 2 ? [] : state.pots.map((each) => {
+    const pill = el("button", "pill" + (pot && each.id === pot.id ? " on" : ""),
+                    potName(each) + " \u00b7 " + fmt(each.amount));
+    pill.onclick = () => { selectedPot = each.id; pendingSplit = null; tying = null; render(); };
+    return pill;
+  })));
+  const winners = pot ? eligibleFor(pot) : seatedPlayers();
+  const rows = winners.map((who) => {
+    if (tying) {
+      const picked = tying.players.includes(who.id);
+      const button = el("button", "awardBtn" + (picked ? " picked" : ""),
+                        (picked ? "\u2713 " : "") + who.name);
+      button.disabled = amount <= 0;
+      button.onclick = () => {
+        tying.players = picked ? tying.players.filter((id) => id !== who.id) : tying.players.concat(who.id);
+        render();
+      };
+      return button;
+    }
     const button = el("button", "awardBtn");
     button.append(el("span", null, t("hostPanel.wins", who.name)), el("span", "g", signed(amount)));
     button.disabled = amount <= 0;
     button.onclick = () => {
-      hostCommand({ type: "award_pot", to: who.id, pot: pot.id,
-                    amount: pendingSplit === null ? null : pendingSplit });
+      const whole = pendingSplit === null;
+      hostCommand({ type: "award_pot", to: who.id, pot: pot.id, amount: whole ? null : pendingSplit });
       pendingSplit = null;
+      if (whole && handOverAfter(pot)) showView("table");
     };
     return button;
   });
   document.getElementById("awardRows").replaceChildren(...rows);
+  document.getElementById("tieHint").hidden = !tying;
+  document.getElementById("awardTools").hidden = !!tying;
+  document.getElementById("tieTools").hidden = !tying;
+  document.getElementById("tieBtn").hidden = winners.length < 2 || pendingSplit !== null;
+  document.getElementById("tieBtn").disabled = !pot || pot.amount <= 0;
+  const tieOk = document.getElementById("tieOk");
+  tieOk.textContent = t("hostPanel.tieConfirm", fmt(tying ? tying.players.length : 0));
+  tieOk.disabled = !tying || tying.players.length < 2;
 
   const playerRows = state.players.map((who) => {
     const row = el("div", "hrow");
@@ -1334,9 +2166,189 @@ function renderHost() {
   });
   document.getElementById("hostRows").replaceChildren(...playerRows);
   renderSeatAdmin();
+  renderHands();
+  renderPokerPanel();
+  renderGameSettings();
 
   fill(document.getElementById("buyInBtn"), "hostPanel.buyInNow",
        num(fmt(state.config.defaultBuyIn)));
+}
+
+/**
+ * The bank's side of a hand: one row per player with chips up, and the four
+ * ways it can end. The app never sees the cards, so this is the host saying
+ * what happened, not the app deciding it.
+ */
+function renderHands() {
+  const block = document.getElementById("handsBlock");
+  block.hidden = !bankGame();
+  if (block.hidden) return;
+  const rows = [];
+  const held = banker();
+  const bank = el("div", "hrow");
+  const bankWho = el("div", "who");
+  bankWho.append(el("div", "n", t("bank.title")));
+  bankWho.append(el("div", "s", held ? held.name : t("bank.none")));
+  bank.append(bankWho);
+  const pass = el("button", "rowBtn", t(held ? "bank.change" : "bank.assign"));
+  pass.onclick = () => { pickingBanker = !pickingBanker; renderHands(); };
+  bank.append(pass);
+  rows.push(bank);
+  if (pickingBanker) {
+    document.getElementById("handRows").replaceChildren(bank, ...bankerPicker());
+    return;
+  }
+
+  const staked = state.players.filter((p) => p.stake > 0);
+  if (!staked.length) {
+    const note = el("div", "note");
+    note.append(el("span", "bang"), el("span", "txt", t("bank.noHands")));
+    rows.push(note);
+  }
+  staked.forEach((who) => {
+    const card = el("div", "handCard");
+    const head = el("div", "hrow");
+    const block = el("div", "who");
+    block.append(el("div", "n", who.name));
+    const line = el("div", "s");
+    line.append(el("span", "num", fmt(who.stake)));
+    block.append(line);
+    head.append(block);
+    card.append(head);
+    const buttons = el("div", "handBtns");
+    [["win", "bank.win"], ["natural", "bank.natural"],
+     ["push", "bank.push"], ["lose", "bank.lose"]].forEach(([outcome, key]) => {
+      const button = el("button", "rowBtn" + (outcome === "lose" ? " danger" : ""), t(key));
+      button.onclick = () => hostCommand({ type: "settle", player: who.id, outcome: outcome });
+      buttons.append(button);
+    });
+    card.append(buttons);
+    rows.push(card);
+  });
+  document.getElementById("handRows").replaceChildren(...rows);
+}
+
+/** The bank row opens into the names it can be handed to, and to nobody. */
+let pickingBanker = false;
+
+function bankerPicker() {
+  const rows = [];
+  seatedPlayers().forEach((who) => {
+    const row = el("div", "hrow");
+    const block = el("div", "who");
+    block.append(el("div", "n", who.name));
+    const line = el("div", "s");
+    line.append(el("span", "num", fmt(who.stack)));
+    block.append(line);
+    row.append(block);
+    const take = el("button", "rowBtn" + (state.banker === who.id ? " want" : ""), t("bank.give"));
+    take.onclick = () => {
+      pickingBanker = false;
+      hostCommand({ type: "set_banker", player: who.id });
+    };
+    row.append(take);
+    rows.push(row);
+  });
+  const none = el("button", "secondary", t("bank.none"));
+  none.style.cssText = "height:48px;font-size:14px";
+  none.onclick = () => {
+    pickingBanker = false;
+    hostCommand({ type: "set_banker", player: null });
+  };
+  rows.push(none);
+  return rows;
+}
+
+/** Running a hand of poker: the button, the streets, and the side pots. */
+/**
+ * Whether giving away the whole of this pot ends the hand: nothing left in any
+ * other. The host is then done in the panel and goes back to the table, where
+ * the next hand has already been dealt.
+ */
+function handOverAfter(pot) {
+  return mode === "poker" && !state.pots.some((each) => each.id !== pot.id && each.amount > 0);
+}
+
+// Picking the players who tied, rather than the one who won: { pot, players }.
+let tying = null;
+
+function renderPokerPanel() {
+  const block = document.getElementById("pokerBlock");
+  block.hidden = mode !== "poker";
+  if (block.hidden) return;
+  const rows = [];
+  const newHand = el("button", "secondary", t("poker.newHand"));
+  newHand.style.cssText = "height:52px;font-size:15px";
+  newHand.onclick = () => hostCommand({ type: "start_hand" });
+  rows.push(newHand);
+
+  const pair = el("div", "row");
+  const close = el("button", "secondary", t("poker.closeRound"));
+  close.style.cssText = "height:52px;font-size:14px";
+  close.onclick = () => hostCommand({ type: "close_round" });
+  const split = el("button", "secondary", t("poker.split"));
+  split.style.cssText = "height:52px;font-size:14px";
+  split.onclick = () => hostCommand({ type: "split_pots" });
+  pair.append(close, split);
+  rows.push(pair);
+
+  const blinds = el("button", "secondary");
+  blinds.style.cssText = "height:52px;font-size:14px";
+  fill(blinds, "poker.blindsNow", num(fmt(state.config.smallBlind)), num(fmt(state.config.bigBlind)));
+  blinds.onclick = () => askBlinds();
+  rows.push(blinds);
+  document.getElementById("pokerRows").replaceChildren(...rows);
+}
+
+function askBlinds() {
+  openAmount({
+    title: t("poker.blinds"), sub: ["poker.blindsSub"],
+    confirm: t("buyIn.confirm"),
+    initial: state.config.bigBlind || (state.config.defaultBuyIn / 50 | 0),
+    allowZero: true,
+    rest: (value) => ({ label: t("poker.blinds"), value: value / 2 | 0 }),
+    // One number to type: the big blind. The small one is half of it, which is
+    // what it is at every table that does not say otherwise.
+    run: (value) => hostCommand({
+      type: "set_config",
+      config: Object.assign({}, state.config, { bigBlind: value, smallBlind: value / 2 | 0 })
+    }),
+    back: "host"
+  });
+}
+
+/** Which game this table is playing, and the one setting that game needs. */
+function renderGameSettings() {
+  const pills = ["manual", "seven_half", "blackjack", "poker"].map((name) => {
+    const pill = el("button", "pill" + (mode === name ? " on" : ""), t("mode." + name));
+    pill.onclick = () => {
+      if (mode === name) return;
+      hostCommand({ type: "set_config", config: Object.assign({}, state.config, { mode: name }) });
+    };
+    return pill;
+  });
+  document.getElementById("modePills").replaceChildren(...pills);
+
+  const rows = [];
+  if (bankGame()) {
+    const cap = el("div", "cap", t("bank.pays"));
+    rows.push(cap);
+    const row = el("div", "pills");
+    [[1, 1], [3, 2], [2, 1]].forEach(([numerator, denominator]) => {
+      const pays = state.config.naturalPays || { numerator: 3, denominator: 2 };
+      const on = pays.numerator === numerator && pays.denominator === denominator;
+      const pill = el("button", "pill" + (on ? " on" : ""), numerator + ":" + denominator);
+      pill.onclick = () => hostCommand({
+        type: "set_config",
+        config: Object.assign({}, state.config, {
+          naturalPays: { numerator: numerator, denominator: denominator }
+        })
+      });
+      row.append(pill);
+    });
+    rows.push(row);
+  }
+  document.getElementById("gameSettings").replaceChildren(...rows);
 }
 
 /**
@@ -1414,6 +2426,121 @@ function renderSeatAdmin() {
   document.getElementById("seatRows").replaceChildren(...rows);
 }
 
+// ---------------------------------------------------------------- chips
+
+// The same breakdown as `chipsIn` in :core, so both screens draw the same
+// stack. The cases in ChipsTest are checked against this copy too.
+const DENOMINATIONS = [100, 50, 25, 5, 1];
+const CHIPS_PER_DENOMINATION = 5;
+const MAX_EDGES = 7;
+
+/**
+ * A stack as a player at a real table would hold it: up to five of each small
+ * chip — what a deal gives — and everything above that in the biggest one.
+ * A picture of the number, never a claim about what is on the felt.
+ */
+function chipsIn(amount) {
+  const ascending = DENOMINATIONS.slice().sort((a, b) => a - b);
+  const counts = {};
+  let rest = Math.max(0, amount);
+  ascending.forEach((value, index) => {
+    const next = ascending[index + 1];
+    let count;
+    if (next === undefined) {
+      count = Math.floor(rest / value);
+    } else {
+      const group = next / value;
+      count = (rest % next) / value;
+      while (count + group <= CHIPS_PER_DENOMINATION && (count + group) * value <= rest) count += group;
+    }
+    counts[value] = count;
+    rest -= count * value;
+  });
+  return DENOMINATIONS.map((value) => ({ value: value, count: counts[value] }));
+}
+
+function renderChips(node, amount) {
+  const columns = chipsIn(amount).map(({ value, count }) => {
+    const column = el("div", "chipCol" + (count === 0 ? " empty" : ""));
+    const pile = el("div", "chipPile");
+    if (count === 0) pile.append(el("i", "none"));
+    for (let i = 0; i < Math.min(count, MAX_EDGES); i++) pile.append(el("i", "v" + value));
+    column.append(pile, el("div", "cv", fmt(value)), el("div", "cc", "\u00D7" + fmt(count)));
+    return column;
+  });
+  node.replaceChildren(...columns);
+}
+
+// ---------------------------------------------------------------- rules
+
+/**
+ * How the game on this table is played, what the app does about it, and what
+ * it leaves to the people sitting there — whose turn it is and who won are
+ * theirs. With this table's own numbers: the house rules are half the argument.
+ */
+function renderRules() {
+  const config = state.config;
+  document.getElementById("rulesSub").textContent = t("mode." + mode);
+  document.getElementById("rulesPlay").textContent = t("rules." + mode + ".play");
+  document.getElementById("rulesCount").textContent = t("rules." + mode + ".count");
+  document.getElementById("rulesPeople").textContent = t("rules." + mode + ".people");
+  renderHands();
+  const lines = [t("rules.buyIn", fmt(config.defaultBuyIn)), t("rules.seats", fmt(config.seatCount))];
+  if (bankGame()) {
+    const pays = config.naturalPays || { numerator: 3, denominator: 2 };
+    lines.push(t("rules.natural", pays.numerator + ":" + pays.denominator));
+  }
+  if (mode === "poker") {
+    lines.push(config.bigBlind > 0
+      ? t("rules.blinds", fmt(config.smallBlind), fmt(config.bigBlind))
+      : t("rules.noBlinds"));
+  }
+  document.getElementById("rulesValues").replaceChildren(...lines.map((line) => el("div", null, line)));
+}
+
+/** Highest first. The example cards read the same in every language. */
+const HANDS = [
+  ["royal_flush", "A♠ K♠ Q♠ J♠ 10♠"],
+  ["straight_flush", "9♥ 8♥ 7♥ 6♥ 5♥"],
+  ["four_kind", "Q♣ Q♦ Q♥ Q♠ 7♦"],
+  ["full_house", "8♠ 8♥ 8♦ K♣ K♥"],
+  ["flush", "K♦ 10♦ 7♦ 4♦ 2♦"],
+  ["straight", "7♣ 6♦ 5♠ 4♥ 3♣"],
+  ["three_kind", "9♠ 9♥ 9♦ K♣ 4♠"],
+  ["two_pair", "J♥ J♣ 4♦ 4♠ A♥"],
+  ["pair", "10♠ 10♦ K♥ 6♣ 3♦"],
+  ["high_card", "A♣ J♦ 8♥ 6♠ 2♣"]
+];
+
+/**
+ * Which hand beats which, and the ties that start arguments: near the top of
+ * the poker rules, because it is what gets looked up mid-hand, and a hotspot
+ * has no internet to look it up on.
+ */
+function renderHands() {
+  const block = document.getElementById("rulesHands");
+  block.hidden = mode !== "poker";
+  if (block.hidden) return;
+  const list = el("div", "ruleCard");
+  list.append(el("div", "hd", t("hands.sub")));
+  HANDS.forEach(([key, cards], index) => {
+    const row = el("div", "handRow");
+    const body = el("div");
+    const shown = el("div", "cards");
+    cards.split(" ").forEach((card) => {
+      const red = card.endsWith("\u2665") || card.endsWith("\u2666");
+      shown.append(el("span", red ? "red" : null, card));
+    });
+    body.append(el("div", "hn", t("hand." + key)), shown, el("div", "hd", t("hand." + key + ".desc")));
+    row.append(el("span", "rank", String(index + 1)), body);
+    list.append(row);
+  });
+  const notes = el("div", "ruleCard handNotes");
+  [1, 2, 3, 4, 5].forEach((n) => notes.append(el("div", null, t("hands.note" + n))));
+  block.replaceChildren(el("div", "cap", t("hands.title")), list,
+                        el("div", "cap", t("hands.ties")), notes);
+}
+
 // ---------------------------------------------------------------- log
 
 
@@ -1485,6 +2612,7 @@ document.getElementById("menu").onclick = (event) => {
 };
 document.getElementById("mHost").onclick = () => showView("host");
 document.getElementById("mLog").onclick = () => showView("log");
+document.getElementById("mStand").onclick = () => { act({ type: "stand_up" }); showView("table"); };
 document.getElementById("mLeave").onclick = () => {
   if (!confirm(t("leave.confirm"))) return;
   send({ type: "leave" });
@@ -1508,6 +2636,28 @@ document.getElementById("hostDoneBtn").onclick = () => showView("table");
 document.getElementById("hostLogBtn").onclick = () => showView("log");
 document.getElementById("logBack").onclick = () => showView("table");
 document.getElementById("logDone").onclick = () => showView("table");
+document.getElementById("rulesBtn").onclick = () => showView("rules");
+
+// A new name is kept on this device too: every reconnection repeats the join
+// with the stored name, which would otherwise rename the player back.
+const renameField = document.getElementById("renameField");
+function saveName() {
+  const name = renameField.value.trim();
+  if (!name) return;
+  store.set("name", name);
+  act({ type: "rename", name: name });
+  showView("table");
+}
+document.getElementById("mRename").onclick = () => {
+  renameField.value = (mine() && mine().name) || store.get("name") || "";
+  showView("name");
+  renameField.focus();
+};
+document.getElementById("renameSave").onclick = saveName;
+renameField.onkeydown = (event) => { if (event.key === "Enter") saveName(); };
+document.getElementById("nameBack").onclick = () => showView("table");
+document.getElementById("rulesBack").onclick = () => showView("table");
+document.getElementById("rulesDone").onclick = () => showView("table");
 document.getElementById("logUndoBtn").onclick = () => hostCommand({ type: "undo" });
 document.getElementById("undoBarBtn").onclick = () => { hostCommand({ type: "undo" }); undoBar = null; };
 
@@ -1522,10 +2672,19 @@ document.getElementById("splitBtn").onclick = () => {
     back: "host"
   });
 };
+document.getElementById("tieBtn").onclick = () => { tying = { pot: currentPot().id, players: [] }; render(); };
+document.getElementById("tieCancel").onclick = () => { tying = null; render(); };
+document.getElementById("tieOk").onclick = () => {
+  const pot = currentPot();
+  hostCommand({ type: "share_pot", winners: tying.players, pot: pot.id });
+  tying = null;
+  if (handOverAfter(pot)) showView("table"); else render();
+};
 document.getElementById("newPotBtn").onclick = () =>
   hostCommand({ type: "create_pot", name: t("newPot.name") });
 document.getElementById("buyInBtn").onclick = () => openAmount({
   title: t("buyIn.title"), sub: t("buyIn.sub"), confirm: t("buyIn.confirm"),
+  dealt: true,
   initial: state.config.defaultBuyIn, allowZero: true,
   rest: (value) => ({ label: t("hostPanel.buyIn"), value: value }),
   run: (value) => hostCommand({

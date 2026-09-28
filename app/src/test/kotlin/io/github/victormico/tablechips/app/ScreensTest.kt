@@ -7,18 +7,27 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import io.github.victormico.tablechips.core.MAIN_POT
 import io.github.victormico.tablechips.core.PlayerId
 import io.github.victormico.tablechips.core.Table
 import io.github.victormico.tablechips.core.TableConfig
 import io.github.victormico.tablechips.core.AwardPot
+import io.github.victormico.tablechips.core.GameMode
+import io.github.victormico.tablechips.core.HandOutcome
+import io.github.victormico.tablechips.core.Payout
+import io.github.victormico.tablechips.core.PlaceStake
+import io.github.victormico.tablechips.core.SetBanker
+import io.github.victormico.tablechips.core.StartHand
 import io.github.victormico.tablechips.core.JoinTable
 import io.github.victormico.tablechips.core.PlaceBet
 import io.github.victormico.tablechips.core.SitDown
@@ -79,7 +88,6 @@ class ScreensTest {
                 onMenu = {},
                 onBet = {},
                 onRebuy = {},
-                onStand = {},
                 onSit = {},
             )
         }
@@ -101,7 +109,7 @@ class ScreensTest {
                 TableScreen(
                     state = playing(), selectedPot = MAIN_POT, onSelectPot = {},
                     undoable = null, onUndo = {}, onMenu = {},
-                    onBet = { opened = true }, onRebuy = {}, onStand = {}, onSit = {},
+                    onBet = { opened = true }, onRebuy = {}, onSit = {},
                 )
             }
         }
@@ -182,7 +190,9 @@ class ScreensTest {
                 pendingSplit = null,
                 onAward = { player, _ -> awarded = player.name },
                 onSplit = {}, onNewPot = {}, onGive = {}, onTake = {}, onBuyIn = {},
-                onSeats = {}, onLog = {}, onClose = {}, onBack = {},
+                onSeats = {}, onBanker = {}, onSettle = { _, _ -> }, onMode = {},
+                onNaturalPays = {}, onNewHand = {}, onCloseRound = {}, onSplitPots = {},
+                onBlinds = {}, onLog = {}, onClose = {}, onBack = {},
             )
         }
 
@@ -258,7 +268,7 @@ class ScreensTest {
         compose.setContent {
             App(
                 prefs = prefs,
-                onStartHost = { started = true },
+                onStartHost = { _, _ -> started = true },
                 onStopHost = {},
                 onDiscardSaved = {},
                 onShare = {},
@@ -270,20 +280,24 @@ class ScreensTest {
         compose.onNodeWithText("Crear una taula").performClick()
         compose.waitForIdle()
 
-        // No name yet, so the table is not opened until there is one to show.
+        // The name is asked on the setup screen, and without one the table
+        // is not opened: there would be nothing to show the others.
+        compose.onNodeWithText("Nova taula").assertIsDisplayed()
+        compose.onNodeWithText("Obrir la taula").performClick()
+        compose.waitForIdle()
         assertEquals(false, started)
-        compose.onNodeWithText("Com et dius").assertIsDisplayed()
     }
 
     @Test
-    fun `with a name already known, creating a table starts the host`() {
+    fun `creating a table asks how it is set up, then opens it with that`() {
         val prefs = Prefs(androidx.test.core.app.ApplicationProvider.getApplicationContext())
         prefs.name = "Víctor"
-        var started = false
+        prefs.lastConfig = null
+        var opened: Pair<Boolean, TableConfig?>? = null
         compose.setContent {
             App(
                 prefs = prefs,
-                onStartHost = { started = true },
+                onStartHost = { resume, config -> opened = resume to config },
                 onStopHost = {},
                 onDiscardSaved = {},
                 onShare = {},
@@ -293,8 +307,96 @@ class ScreensTest {
 
         compose.onNodeWithText("Crear una taula").performClick()
         compose.waitForIdle()
+        // Nothing opens until the setup has been seen.
+        assertEquals(null, opened)
+        compose.onNodeWithText("Nova taula").assertIsDisplayed()
 
-        assertEquals(true, started)
+        compose.onNodeWithText("Blackjack").performClick()
+        compose.onNodeWithText("Obrir la taula").performClick()
+        compose.waitForIdle()
+
+        val (resume, config) = opened!!
+        assertEquals(false, resume)
+        assertEquals(GameMode.BLACKJACK, config!!.mode)
+        assertEquals(Payout(3, 2), config.naturalPays)
+        // And the next table starts from this one.
+        assertEquals(GameMode.BLACKJACK, prefs.lastConfig!!.mode)
+    }
+
+    @Test
+    fun `the setup shows each game's own setting and nothing else`() {
+        var config by mutableStateOf(TableConfig(defaultBuyIn = 1000))
+        compose.setContent {
+            SetupScreen(
+                config = config, starting = false, name = "Víctor", onName = {},
+                onConfig = { config = it },
+                onBuyIn = {}, onBlinds = {}, onRules = {}, onOpen = {}, onBack = {},
+            )
+        }
+
+        compose.onNodeWithText("La natural paga".uppercase()).assertDoesNotExist()
+        compose.onNodeWithText("Set i mig").performClick()
+        compose.onNodeWithText("La natural paga".uppercase()).assertIsDisplayed()
+        assertEquals(Payout(2, 1), config.naturalPays)
+
+        compose.onNodeWithText("Pòquer").performClick()
+        compose.onNodeWithText("La natural paga".uppercase()).assertDoesNotExist()
+        // A fiftieth of the buy-in, as a starting point shown right there.
+        compose.onNodeWithText("10 / 20 · toca per canviar-les").performScrollTo().assertIsDisplayed()
+        assertEquals(20L, config.bigBlind)
+
+        compose.onNodeWithContentDescription("Un lloc menys").performScrollTo().performClick()
+        assertEquals(9, config.seatCount)
+    }
+
+    @Test
+    fun `the seats stop where a table stops`() {
+        var config by mutableStateOf(TableConfig(seatCount = 2))
+        compose.setContent {
+            SetupScreen(
+                config = config, starting = false, name = "Víctor", onName = {},
+                onConfig = { config = it },
+                onBuyIn = {}, onBlinds = {}, onRules = {}, onOpen = {}, onBack = {},
+            )
+        }
+
+        compose.onNodeWithContentDescription("Un lloc menys").performScrollTo().performClick()
+        assertEquals(2, config.seatCount)
+    }
+
+    /**
+     * The part that is nowhere else in the app: what the people at the table
+     * decide and the app does not. With this table's numbers, not generic ones.
+     */
+    @Test
+    fun `the rules say how the game is counted and what is left to the table`() {
+        compose.setContent {
+            RulesScreen(
+                config = TableConfig(mode = GameMode.BLACKJACK, naturalPays = Payout(3, 2), defaultBuyIn = 500),
+                onBack = {},
+            )
+        }
+
+        compose.onNodeWithText("Regles del joc").assertIsDisplayed()
+        compose.onNodeWithText("Blackjack").assertIsDisplayed()
+        compose.onNodeWithText("Què decidiu vosaltres".uppercase()).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("La natural paga 3:2").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Compra per defecte: 500").assertExists()
+    }
+
+    @Test
+    fun `the table carries a question mark that opens the rules`() {
+        var asked = false
+        compose.setContent {
+            TableScreen(
+                state = playing(), selectedPot = MAIN_POT, onSelectPot = {},
+                undoable = null, onUndo = {}, onMenu = {}, onRules = { asked = true },
+                onBet = {}, onRebuy = {}, onSit = {},
+            )
+        }
+
+        compose.onNodeWithContentDescription("Regles del joc").performClick()
+        assertEquals(true, asked)
     }
 
     /**
@@ -448,5 +550,550 @@ class ScreensTest {
         assertEquals(true, recovered)
         compose.onNodeWithText("Crear-ne una de nova").performClick()
         assertEquals(true, created)
+    }
+
+    /** A table playing a game with a bank, one hand up for settling. */
+    private fun bankTable(mode: GameMode = GameMode.BLACKJACK): ClientState {
+        val table = Table("ZGWH", TableConfig(defaultBuyIn = 1000, mode = mode), clock = { 0 })
+        table.execute(JoinTable(anna, "Anna"))
+        table.execute(JoinTable(bru, "Bru"))
+        table.execute(SitDown(anna))
+        table.execute(SitDown(bru))
+        table.execute(SetBanker(anna, anna))
+        table.execute(PlaceStake(bru, 250))
+        table.setConnected(anna, true)
+        table.setConnected(bru, true)
+        return ClientState(
+            connection = Connection.ONLINE,
+            table = table.snapshot(),
+            you = bru,
+            undoDepth = table.undoDepth,
+        )
+    }
+
+    @Test
+    fun `against the bank the screen shows the stake and who holds it`() {
+        var staked = false
+        compose.setContent {
+            TableScreen(
+                state = bankTable(), selectedPot = MAIN_POT, onSelectPot = {},
+                undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {},
+                onSit = {}, onStake = { staked = true },
+            )
+        }
+
+        compose.onNodeWithText("La teua aposta".uppercase()).assertIsDisplayed()
+        compose.onNodeWithText("250").assertIsDisplayed()
+        compose.onNodeWithText("La banca".uppercase()).assertIsDisplayed()
+        compose.onAllNodesWithText("Anna").onFirst().assertIsDisplayed()
+        // No pot anywhere: in this game there is not one.
+        compose.onNodeWithText("Pot".uppercase()).assertDoesNotExist()
+        compose.onNodeWithText("Apostar").performClick()
+
+        assertEquals(true, staked)
+    }
+
+    @Test
+    fun `the banker is told to settle from the panel rather than offered a bet`() {
+        val state = bankTable().let { it.copy(you = anna) }
+        compose.setContent {
+            TableScreen(
+                state = state, selectedPot = MAIN_POT, onSelectPot = {},
+                undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {},
+                onSit = {},
+            )
+        }
+
+        // The card says who holds it; the bar says what holding it means.
+        compose.onNodeWithText("Tens la banca").assertIsDisplayed()
+        compose.onNodeWithText(
+            "Els altres juguen contra tu. Resol cada mà des del panell.",
+        ).assertIsDisplayed()
+        compose.onNodeWithText("Apostar").assertDoesNotExist()
+    }
+
+    /**
+     * The four buttons that are the whole of the app's opinion about a hand of
+     * blackjack, and the word on the second one, which belongs to the game.
+     */
+    @Test
+    fun `the host settles a hand from the panel, in the game's own words`() {
+        var settled: Pair<String, HandOutcome>? = null
+        val state = bankTable(GameMode.SEVEN_HALF).copy(you = anna)
+        compose.setContent {
+            HostPanelScreen(
+                state = state, selectedPot = MAIN_POT, pendingSplit = null,
+                onAward = { _, _ -> }, onSplit = {}, onNewPot = {}, onGive = {}, onTake = {},
+                onBuyIn = {}, onSeats = {}, onBanker = {},
+                onSettle = { player, outcome -> settled = player.name to outcome },
+                onMode = {}, onNaturalPays = {}, onNewHand = {}, onCloseRound = {},
+                onSplitPots = {}, onBlinds = {}, onLog = {}, onClose = {}, onBack = {},
+            )
+        }
+
+        compose.onNodeWithText("Mans per resoldre".uppercase()).assertIsDisplayed()
+        // The word on the button is the game's: set i mig here, blackjack there.
+        compose.onAllNodesWithText("Set i mig").onFirst().assertExists()
+        compose.onNodeWithText("Guanya").performScrollTo().performClick()
+
+        assertEquals("Bru" to HandOutcome.WIN, settled)
+    }
+
+    /** A table mid-hand of poker, with somebody all-in for less than the rest. */
+    private fun pokerState(): ClientState {
+        val table = Table(
+            "ZGWH",
+            TableConfig(defaultBuyIn = 1000, mode = GameMode.POKER, smallBlind = 10, bigBlind = 20),
+            clock = { 0 },
+        )
+        table.execute(JoinTable(anna, "Anna"))
+        table.execute(JoinTable(bru, "Bru"))
+        table.execute(SitDown(anna))
+        table.execute(SitDown(bru))
+        table.execute(StartHand(anna))
+        table.setConnected(anna, true)
+        table.setConnected(bru, true)
+        return ClientState(
+            connection = Connection.ONLINE,
+            table = table.snapshot(),
+            you = bru,
+            undoDepth = table.undoDepth,
+        )
+    }
+
+    @Test
+    fun `at poker the button says what a call costs`() {
+        var called = 0L
+        var folded = false
+        compose.setContent {
+            TableScreen(
+                state = pokerState(), selectedPot = MAIN_POT, onSelectPot = {},
+                undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {},
+                onSit = {},
+                onCall = { called = it }, onFold = { folded = true },
+            )
+        }
+
+        // Heads-up: Anna has the button and the small blind, Bru the big one,
+        // so Bru is the one facing nothing and Anna owes the difference.
+        compose.onNodeWithText("Per igualar".uppercase()).assertDoesNotExist()
+        compose.onNodeWithText("Apostar").assertIsDisplayed()
+        compose.onNodeWithText("Retirar-se").performClick()
+        assertEquals(true, folded)
+        assertEquals(0L, called)
+    }
+
+    @Test
+    fun `the player who owes chips is offered the exact number`() {
+        var called = 0L
+        val state = pokerState().copy(you = anna)
+        compose.setContent {
+            TableScreen(
+                state = state, selectedPot = MAIN_POT, onSelectPot = {},
+                undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {},
+                onSit = {}, onCall = { called = it },
+            )
+        }
+
+        compose.onNodeWithText("Per igualar".uppercase()).assertIsDisplayed()
+        compose.onNodeWithText("Igualar 10").performClick()
+
+        assertEquals(10L, called)
+    }
+
+    @Test
+    fun `the host closes the round and awards the pot from the table itself`() {
+        var closed = false
+        var awarding = false
+        compose.setContent {
+            TableScreen(
+                state = pokerState().copy(you = anna), selectedPot = MAIN_POT, onSelectPot = {},
+                undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {}, onSit = {},
+                onCloseRound = { closed = true }, onAwardPot = { awarding = true },
+            )
+        }
+
+        compose.onNodeWithText("Tancar la ronda").performScrollTo().performClick()
+        compose.onNodeWithText("Donar el pot").performScrollTo().performClick()
+        assertEquals(true, closed)
+        assertEquals(true, awarding)
+    }
+
+    @Test
+    fun `only the host sees how the hand is run`() {
+        compose.setContent {
+            TableScreen(
+                state = pokerState(), selectedPot = MAIN_POT, onSelectPot = {},
+                undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {}, onSit = {},
+            )
+        }
+
+        compose.onNodeWithText("Tancar la ronda").assertDoesNotExist()
+        compose.onNodeWithText("Donar el pot").assertDoesNotExist()
+    }
+
+    /** Next to call and fold, one stray tap on it would end a player's night. */
+    @Test
+    fun `standing up is not next to the moves of a hand`() {
+        compose.setContent {
+            TableScreen(
+                state = pokerState(), selectedPot = MAIN_POT, onSelectPot = {},
+                undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {}, onSit = {},
+            )
+        }
+
+        compose.onNodeWithText("Aixecar-se").assertDoesNotExist()
+        compose.onNodeWithText("Comprar més").assertIsDisplayed()
+    }
+
+    @Test
+    fun `one tap sits down with what the table deals`() {
+        var sat = false
+        var other = false
+        val table = Table("ZGWH", TableConfig(), clock = { 0 })
+        table.execute(JoinTable(anna, "Anna"))
+        val state = ClientState(connection = Connection.ONLINE, table = table.snapshot(), you = anna)
+        compose.setContent {
+            TableScreen(
+                state = state, selectedPot = MAIN_POT, onSelectPot = {},
+                undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {},
+                onSit = { sat = true }, onSitOther = { other = true },
+            )
+        }
+
+        compose.onNodeWithText("Seure amb").assertIsDisplayed()
+        compose.onNodeWithText("905").assertIsDisplayed()
+        compose.onNodeWithText("Seure amb").performClick()
+        compose.onNodeWithText("Altre import").performClick()
+        assertEquals(true, sat)
+        assertEquals(true, other)
+    }
+
+    @Test
+    fun `a tie is the players who tied, and the pot shared between them`() {
+        var shared: List<PlayerId>? = null
+        compose.setContent {
+            HostPanelScreen(
+                state = pokerState().copy(you = anna), selectedPot = MAIN_POT, pendingSplit = null,
+                onAward = { _, _ -> }, onShare = { players -> shared = players.map { it.id } },
+                onSplit = {}, onNewPot = {}, onGive = {}, onTake = {},
+                onBuyIn = {}, onSeats = {}, onBanker = {}, onSettle = { _, _ -> },
+                onMode = {}, onNaturalPays = {}, onNewHand = {},
+                onCloseRound = {}, onSplitPots = {}, onBlinds = {}, onLog = {},
+                onClose = {}, onBack = {},
+            )
+        }
+
+        compose.onNodeWithText("Empat").performClick()
+        compose.onNodeWithText("Repartir entre 0").assertIsDisplayed()
+        compose.onAllNodesWithText("Anna").onFirst().performClick()
+        compose.onAllNodesWithText("Bru").onFirst().performClick()
+        compose.onNodeWithText("Repartir entre 2").performClick()
+
+        assertEquals(listOf(anna, bru), shared)
+    }
+
+    @Test
+    fun `poker sizes a bet in big blinds and a raise in multiples of the bet`() {
+        var typed = ""
+        compose.setContent {
+            AmountScreen(
+                request = betRequest(max = 1000).copy(poker = PokerSizes(20, 0, 0, raise = false), pot = 30),
+                typed = typed, untouched = true,
+                onType = {}, onSet = { typed = it.toString() }, onBack = {},
+            )
+        }
+        compose.onNodeWithText("40").performClick()
+        assertEquals("40", typed)
+    }
+
+    @Test
+    fun `a raise to twice the bet counts what is already in front of you`() {
+        var typed = ""
+        compose.setContent {
+            AmountScreen(
+                request = betRequest(max = 1000).copy(poker = PokerSizes(20, 20, 10, raise = true)),
+                typed = typed, untouched = true,
+                onType = {}, onSet = { typed = it.toString() }, onBack = {},
+            )
+        }
+        compose.onNodeWithText("\u00d72").performClick()
+        assertEquals("30", typed)
+    }
+
+    @Test
+    fun `the host runs the hand from the panel and can change the game`() {
+        var started = false
+        var picked: GameMode? = null
+        val state = pokerState().copy(you = anna)
+        compose.setContent {
+            HostPanelScreen(
+                state = state, selectedPot = MAIN_POT, pendingSplit = null,
+                onAward = { _, _ -> }, onSplit = {}, onNewPot = {}, onGive = {}, onTake = {},
+                onBuyIn = {}, onSeats = {}, onBanker = {}, onSettle = { _, _ -> },
+                onMode = { picked = it }, onNaturalPays = {}, onNewHand = { started = true },
+                onCloseRound = {}, onSplitPots = {}, onBlinds = {}, onLog = {},
+                onClose = {}, onBack = {},
+            )
+        }
+
+        compose.onNodeWithText("Mà nova").performScrollTo().performClick()
+        assertEquals(true, started)
+        compose.onNodeWithText("Joc".uppercase()).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Set i mig").performScrollTo().performClick()
+        assertEquals(GameMode.SEVEN_HALF, picked)
+    }
+
+    /**
+     * The stack drawn as the chips a real deal gives: five of each at 905,
+     * every value in its place, and the count written under each so the
+     * picture never has to be counted.
+     */
+    @Test
+    fun `a fresh stack is drawn as five chips of each value`() {
+        compose.setContent { ChipStacks(905) }
+
+        compose.onAllNodesWithText("\u00D75").assertCountEquals(5)
+        listOf("100", "50", "25", "5", "1").forEach { compose.onNodeWithText(it).assertExists() }
+    }
+
+    @Test
+    fun `the chips follow the stack as it moves`() {
+        var stack by mutableStateOf(905L)
+        compose.setContent { ChipStacks(stack) }
+
+        stack = 800 // a 100 and a 5 pushed forward
+        compose.waitForIdle()
+        compose.onAllNodesWithText("\u00D74").assertCountEquals(2)
+        compose.onAllNodesWithText("\u00D75").assertCountEquals(3)
+    }
+
+    @Test
+    fun `poker blinds start at amounts the chips can pay`() {
+        val config = TableConfig().forMode(GameMode.POKER)
+
+        assertEquals(905L, config.defaultBuyIn)
+        assertEquals(10L, config.bigBlind)
+        assertEquals(5L, config.smallBlind)
+    }
+
+    /**
+     * Nobody holds the bank yet, so nothing can be staked: taking it is the
+     * one thing to offer, to anybody seated, not only the host.
+     */
+    @Test
+    fun `with a free bank the big button takes it`() {
+        val table = Table("HUGH", TableConfig(mode = GameMode.SEVEN_HALF), clock = { 0 })
+        table.execute(JoinTable(anna, "Anna"))
+        table.execute(JoinTable(bru, "Bru"))
+        table.execute(SitDown(anna))
+        table.execute(SitDown(bru))
+        val state = ClientState(
+            connection = Connection.ONLINE,
+            table = table.snapshot(),
+            you = bru, // not the host
+            undoDepth = table.undoDepth,
+        )
+        var taken = false
+        compose.setContent {
+            TableScreen(
+                state = state, selectedPot = MAIN_POT, onSelectPot = {},
+                undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {},
+                onSit = {}, onTakeBank = { taken = true },
+            )
+        }
+
+        compose.onNodeWithText("Apostar").assertDoesNotExist()
+        compose.onNodeWithText("Agafar la banca").performClick()
+        assertEquals(true, taken)
+    }
+
+    private fun betRequest(max: Long?) = AmountRequest(
+        title = "Apostar", subtitle = "", confirm = "Apostar", max = max,
+        restLabel = "", rest = { it }, onConfirm = {},
+    )
+
+    /** Counting a bet chip by chip: the figure is always the total. */
+    @Test
+    fun `chips mode adds up the chips pushed forward`() {
+        var typed by mutableStateOf("")
+        compose.setContent {
+            AmountScreen(
+                request = betRequest(max = 905), typed = typed, untouched = false,
+                onType = {}, onSet = { typed = it.toString() }, onBack = {}, byChips = true,
+            )
+        }
+
+        compose.onNodeWithContentDescription("Una fitxa de 100 més").performClick()
+        compose.onNodeWithContentDescription("Una fitxa de 100 més").performClick()
+        compose.onNodeWithContentDescription("Una fitxa de 25 més").performClick()
+        compose.onNodeWithContentDescription("Una fitxa de 5 més").performClick()
+
+        assertEquals("230", typed)
+        compose.onNodeWithTag("chip-count:100").assertTextEquals("2")
+        compose.onNodeWithContentDescription("Una fitxa de 100 menys").performClick()
+        assertEquals("130", typed)
+    }
+
+    @Test
+    fun `a chip that would go past the stack cannot be added`() {
+        var typed by mutableStateOf("")
+        compose.setContent {
+            AmountScreen(
+                request = betRequest(max = 120), typed = typed, untouched = false,
+                onType = {}, onSet = { typed = it.toString() }, onBack = {}, byChips = true,
+            )
+        }
+
+        compose.onNodeWithContentDescription("Una fitxa de 100 més").performClick()
+        // 100 in, 20 left: another 100 or a 50 would bet chips that are not there.
+        compose.onNodeWithContentDescription("Una fitxa de 100 més").performClick()
+        compose.onNodeWithContentDescription("Una fitxa de 50 més").performClick()
+        assertEquals("100", typed)
+        compose.onNodeWithContentDescription("Una fitxa de 5 més").performClick()
+        assertEquals("105", typed)
+    }
+
+    @Test
+    fun `switching to chips starts from the amount, in the fewest chips`() {
+        compose.setContent {
+            AmountScreen(
+                request = betRequest(max = null), typed = "150", untouched = true,
+                onType = {}, onSet = {}, onBack = {}, byChips = true,
+            )
+        }
+
+        compose.onNodeWithTag("chip-count:100").assertTextEquals("1")
+        compose.onNodeWithTag("chip-count:50").assertTextEquals("1")
+        compose.onNodeWithTag("chip-count:5").assertTextEquals("0")
+    }
+
+    /** A buy-in is chips handed out, so it counts as the deal: five of each. */
+    @Test
+    fun `a buy-in in chips starts from the deal, not the fewest chips`() {
+        compose.setContent {
+            AmountScreen(
+                request = betRequest(max = null).copy(dealt = true), typed = "905", untouched = true,
+                onType = {}, onSet = {}, onBack = {}, byChips = true,
+            )
+        }
+
+        listOf(100L, 50L, 25L, 5L, 1L).forEach { chip ->
+            compose.onNodeWithTag("chip-count:$chip").assertTextEquals("5")
+        }
+    }
+
+    /**
+     * At a poker table the row shows what each player has pushed forward this
+     * round, not what they have behind.
+     */
+    @Test
+    fun `at poker the rows show each player's bet, not their stack`() {
+        compose.setContent {
+            TableScreen(
+                state = pokerState(), selectedPot = MAIN_POT, onSelectPot = {},
+                undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {},
+                onSit = {},
+            )
+        }
+
+        // Heads-up blinds 10/20: Anna posted 10, Bru 20.
+        compose.onNodeWithText("Aposta".uppercase()).assertIsDisplayed()
+        compose.onNodeWithText("10").assertExists()
+        compose.onNodeWithText("20").assertExists()
+        // Anna's 990 behind is hers to know, not the table's.
+        compose.onNodeWithText("990").assertDoesNotExist()
+    }
+
+    /** The host's name is asked with the rest of the setup, and a table needs one. */
+    @Test
+    fun `the setup asks for the host's name and will not open without one`() {
+        var name by mutableStateOf("")
+        var opened = false
+        compose.setContent {
+            SetupScreen(
+                config = TableConfig(), starting = false, name = name, onName = { name = it },
+                onConfig = {}, onBuyIn = {}, onBlinds = {}, onRules = {},
+                onOpen = { opened = true }, onBack = {},
+            )
+        }
+
+        compose.onNodeWithText("Obrir la taula").performClick()
+        assertEquals(false, opened)
+
+        name = "Víctor"
+        compose.waitForIdle()
+        compose.onNodeWithText("Obrir la taula").performClick()
+        assertEquals(true, opened)
+    }
+
+    @Test
+    fun `raising starts from what is owed`() {
+        var raised = 0L
+        val state = pokerState().copy(you = anna) // owes 10
+        compose.setContent {
+            TableScreen(
+                state = state, selectedPot = MAIN_POT, onSelectPot = {},
+                undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {},
+                onSit = {}, onRaise = { raised = it },
+            )
+        }
+
+        compose.onNodeWithText("Pujar").performClick()
+        assertEquals(10L, raised)
+    }
+
+    /**
+     * A raise is only a raise above the call: at the call itself the button
+     * stays off, and the line under the figure says what the least raise is.
+     */
+    @Test
+    fun `a raise cannot be confirmed at or under the call`() {
+        var typed by mutableStateOf("50")
+        var confirmed = 0L
+        compose.setContent {
+            AmountScreen(
+                request = AmountRequest(
+                    title = "Pujar", subtitle = "", confirm = "Pujar",
+                    initial = 50, min = 51, minLabel = "Mínim per pujar", max = 905,
+                    restLabel = "Et quedarien", rest = { 905 - it }, onConfirm = { confirmed = it },
+                ),
+                typed = typed, untouched = false, onType = {}, onSet = { typed = it.toString() },
+                onBack = {}, byChips = true,
+            )
+        }
+
+        compose.onNodeWithText("Mínim per pujar").assertIsDisplayed()
+        compose.onNodeWithText("Pujar  50").assertDoesNotExist()
+        compose.onAllNodesWithText("Pujar").onLast().performClick()
+        assertEquals(0L, confirmed)
+
+        // A 5 on top of the call makes it a raise.
+        compose.onNodeWithContentDescription("Una fitxa de 5 més").performClick()
+        compose.onNodeWithText("Et quedarien").assertIsDisplayed()
+        compose.onAllNodesWithText("Pujar").onLast().performClick()
+        assertEquals(55L, confirmed)
+    }
+
+    /** Which hand beats which, where it gets looked up: the poker rules. */
+    @Test
+    fun `the poker rules rank the hands, highest first`() {
+        compose.setContent {
+            RulesScreen(config = TableConfig(mode = GameMode.POKER, smallBlind = 5, bigBlind = 10), onBack = {})
+        }
+
+        compose.onNodeWithText("Ordre de les jugades".uppercase()).performScrollTo().assertIsDisplayed()
+        val royal = compose.onNodeWithText("Escala reial").fetchSemanticsNode().positionInRoot.y
+        val twoPair = compose.onNodeWithText("Doble parella").fetchSemanticsNode().positionInRoot.y
+        val pair = compose.onNodeWithText("Parella").fetchSemanticsNode().positionInRoot.y
+        assertEquals(true, royal < twoPair && twoPair < pair)
+        compose.onNodeWithText("Al full mana el trio: 8-8-8-K-K guanya 7-7-7-A-A.").assertExists()
+    }
+
+    @Test
+    fun `other games have no hand rankings`() {
+        compose.setContent { RulesScreen(config = TableConfig(mode = GameMode.BLACKJACK), onBack = {}) }
+
+        compose.onNodeWithText("Ordre de les jugades".uppercase()).assertDoesNotExist()
     }
 }

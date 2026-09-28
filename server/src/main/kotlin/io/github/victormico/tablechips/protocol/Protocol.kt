@@ -3,6 +3,7 @@ package io.github.victormico.tablechips.protocol
 import io.github.victormico.tablechips.core.MAIN_POT
 import io.github.victormico.tablechips.core.PlayerId
 import io.github.victormico.tablechips.core.PotId
+import io.github.victormico.tablechips.core.HandOutcome
 import io.github.victormico.tablechips.core.RuleError
 import io.github.victormico.tablechips.core.TableConfig
 import io.github.victormico.tablechips.core.TableState
@@ -100,6 +101,26 @@ data object StandUpAction : PlayerAction
 @SerialName("rename")
 data class RenameAction(val name: String) : PlayerAction
 
+/** Bank games: chips up for the hand about to be dealt. */
+@Serializable
+@SerialName("stake")
+data class StakeAction(val amount: Long) : PlayerAction
+
+/** Bank games: take the bank for yourself, while nobody holds it. */
+@Serializable
+@SerialName("take_bank")
+data object TakeBankAction : PlayerAction
+
+/** Bank games: take an unsettled stake back. */
+@Serializable
+@SerialName("cancel_stake")
+data object CancelStakeAction : PlayerAction
+
+/** Poker: out of this hand. */
+@Serializable
+@SerialName("fold")
+data object FoldAction : PlayerAction
+
 /** Only accepted from the player the ledger marks as host. */
 @Serializable
 sealed interface HostCommand
@@ -110,6 +131,14 @@ data class AwardPotCommand(
     val to: PlayerId,
     val pot: PotId = MAIN_POT,
     val amount: Long? = null,
+) : HostCommand
+
+/** A tie: the pot shared evenly between the winners. */
+@Serializable
+@SerialName("share_pot")
+data class SharePotCommand(
+    val winners: List<PlayerId>,
+    val pot: PotId = MAIN_POT,
 ) : HostCommand
 
 @Serializable
@@ -127,6 +156,35 @@ data class SetConfigCommand(val config: TableConfig) : HostCommand
 @Serializable
 @SerialName("kick")
 data class KickCommand(val player: PlayerId) : HostCommand
+
+/** Bank games. A null player means nobody holds the bank. */
+@Serializable
+@SerialName("set_banker")
+data class SetBankerCommand(val player: PlayerId? = null) : HostCommand
+
+/** Bank games. A null amount settles the whole stake; part of it is a split hand. */
+@Serializable
+@SerialName("settle")
+data class SettleCommand(
+    val player: PlayerId,
+    val outcome: HandOutcome,
+    val amount: Long? = null,
+) : HostCommand
+
+/** Poker: move the button, post the blinds, clear the last hand. */
+@Serializable
+@SerialName("start_hand")
+data object StartHandCommand : HostCommand
+
+/** Poker: the street is over. */
+@Serializable
+@SerialName("close_round")
+data object CloseRoundCommand : HostCommand
+
+/** Poker: cut the pot into the pots that can actually be won. */
+@Serializable
+@SerialName("split_pots")
+data object SplitPotsCommand : HostCommand
 
 @Serializable
 @SerialName("transfer_seat")

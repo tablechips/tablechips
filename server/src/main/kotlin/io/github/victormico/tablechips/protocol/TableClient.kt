@@ -60,6 +60,16 @@ class TableClient(
         if (loop == null) loop = scope.launch { run() }
     }
 
+    /**
+     * Changes the name the table shows. The join this client repeats on every
+     * reconnection carries the new name too: otherwise the next dropped
+     * connection would quietly rename the player back.
+     */
+    suspend fun rename(name: String) {
+        hello = hello?.copy(name = name)
+        send(Action(RenameAction(name)))
+    }
+
     suspend fun send(message: ClientMessage) {
         val open = transport ?: return
         try {

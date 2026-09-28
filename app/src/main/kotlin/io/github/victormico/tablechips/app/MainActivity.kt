@@ -37,7 +37,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             App(
                 prefs = prefs,
-                onStartHost = { resume: Boolean -> HostService.start(this, resume) },
+                onStartHost = { resume, config -> HostService.start(this, resume, config) },
                 onStopHost = { HostService.stop(this) },
                 onDiscardSaved = { HostController.discardSaved() },
                 onShare = { url: String -> share(url) },

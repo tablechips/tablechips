@@ -1,5 +1,17 @@
 package io.github.victormico.tablechips.app
 
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import io.github.victormico.tablechips.app.ui.Pills
+import io.github.victormico.tablechips.core.ChipCount
+import io.github.victormico.tablechips.core.chipsIn
+import io.github.victormico.tablechips.core.fewestChips
+import io.github.victormico.tablechips.core.total
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,12 +55,39 @@ data class AmountRequest(
     val initial: Long? = null,
     /** Highest legal value, when there is one: a bet cannot exceed the stack. */
     val max: Long? = null,
+    /** Lowest legal value, when there is one: a raise has to go over the call. */
+    val min: Long? = null,
+    /** What the balance line says while the amount is under [min]. */
+    val minLabel: String? = null,
     val allowZero: Boolean = false,
+    /**
+     * The amount is chips handed out by the bank, a buy-in, rather than
+     * chips pushed forward: counting by chips starts from the deal, five of
+     * each, instead of the fewest chips.
+     */
+    val dealt: Boolean = false,
     /** The pot, when the shortcuts should offer half of it and all of it. */
     val pot: Long? = null,
+    /** A poker bet or raise: the shortcuts are then the sizes poker bets in. */
+    val poker: PokerSizes? = null,
     val restLabel: String,
     val rest: (Long) -> Long,
     val onConfirm: (Long) -> Unit,
+    /** Where cancelling goes, when it is not back to the table. */
+    val onCancel: (() -> Unit)? = null,
+)
+
+/**
+ * What poker shortcuts are measured against. A bet is sized in big blinds; a
+ * raise in multiples of the bet it raises, and the amount is always what goes
+ * in now, so a raise to twice the bet is that bet times two, less what the
+ * player already has in front of them.
+ */
+data class PokerSizes(
+    val bigBlind: Long,
+    val currentBet: Long,
+    val roundBet: Long,
+    val raise: Boolean,
 )
 
 /**
@@ -65,11 +104,15 @@ fun AmountScreen(
     onType: (String) -> Unit,
     onSet: (Long) -> Unit,
     onBack: () -> Unit,
+    /** Counting chip by chip rather than typing the number. */
+    byChips: Boolean = false,
+    onByChips: (Boolean) -> Unit = {},
 ) {
     val value = typed.toLongOrNull() ?: 0L
     val rest = request.rest(value)
     val overMax = request.max != null && value > request.max
-    val ready = (value > 0 || request.allowZero) && !overMax
+    val underMin = request.min != null && value < request.min
+    val ready = (value > 0 || request.allowZero) && !overMax && !underMin
 
     Frame(
         scrolling = false,
@@ -119,19 +162,64 @@ fun AmountScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    TcText(request.restLabel, Type.body, color = Refugi.text2)
+                    // Under the minimum, the line says what the minimum is
+                    // rather than leave a greyed-out button to explain itself.
+                    val short = underMin && request.min != null
                     TcText(
-                        chips(rest),
+                        if (short) request.minLabel ?: request.restLabel else request.restLabel,
+                        Type.body,
+                        color = if (short) Refugi.loss else Refugi.text2,
+                    )
+                    TcText(
+                        chips(if (short) request.min!! else rest),
                         Type.chips.copy(fontSize = 17.sp),
-                        color = if (overMax) Refugi.loss else Refugi.text,
+                        color = if (overMax || short) Refugi.loss else Refugi.text,
                     )
                 }
             }
         }
 
+        Pills(
+            options = listOf(
+                false to stringResource(R.string.amount_by_number),
+                true to stringResource(R.string.amount_by_chips),
+            ),
+            selected = byChips,
+            onSelect = onByChips,
+        )
+
+        if (byChips) {
+            ChipPad(value = value, max = request.max, dealt = request.dealt, onSet = onSet)
+            return@Frame
+        }
+
         Caption(stringResource(R.string.amount_quick))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            if (request.pot != null) {
+            val sizes = request.poker
+            val cap = { amount: Long -> request.max?.let { minOf(it, amount) } ?: amount }
+            if (sizes != null && (sizes.raise || sizes.bigBlind > 0)) {
+                if (sizes.raise) {
+                    listOf(2L, 3L).forEach { times ->
+                        Quick("\u00d7$times", Modifier.weight(1f), mono = true) {
+                            onSet(cap(sizes.currentBet * times - sizes.roundBet))
+                        }
+                    }
+                } else {
+                    listOf(2L, 3L).forEach { times ->
+                        Quick(chips(sizes.bigBlind * times), Modifier.weight(1f), mono = true) {
+                            onSet(cap(sizes.bigBlind * times))
+                        }
+                    }
+                    if (request.pot != null) {
+                        Quick(stringResource(R.string.amount_half_pot), Modifier.weight(1f)) {
+                            onSet(cap(request.pot / 2))
+                        }
+                    }
+                }
+                if (request.pot != null) {
+                    Quick(stringResource(R.string.amount_pot), Modifier.weight(1f)) { onSet(cap(request.pot)) }
+                }
+            } else if (request.pot != null) {
                 Quick(stringResource(R.string.amount_half_pot), Modifier.weight(1f)) {
                     onSet(request.pot / 2)
                 }
@@ -170,6 +258,91 @@ fun AmountScreen(
                 }
             }
         }
+    }
+}
+
+/**
+ * The amount as chips pushed forward, one row per value: how many of each go
+ * in. It starts from the amount already there, in the fewest chips, because
+ * that is how a bet is pushed — or, for a buy-in, the way the chips are dealt.
+ * The figure above is always the total, and it is the total that is
+ * confirmed: the app counts amounts, not chips.
+ */
+@Composable
+private fun ColumnScope.ChipPad(value: Long, max: Long?, dealt: Boolean, onSet: (Long) -> Unit) {
+    val breakdown: (Long) -> List<ChipCount> = if (dealt) ::chipsIn else ::fewestChips
+    // The rows are the truth while this pad is open; they start from whatever
+    // amount was there when it opened, and every tap writes the new total back.
+    var counts by remember { mutableStateOf(breakdown(value)) }
+    if (counts.total() != value) counts = breakdown(value)
+
+    fun change(chip: Long, by: Long) {
+        val next = counts.map { if (it.value == chip) it.copy(count = it.count + by) else it }
+        counts = next
+        onSet(next.total())
+    }
+
+    Column(
+        modifier = Modifier.weight(1f).fillMaxWidth().padding(bottom = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(7.dp),
+    ) {
+        counts.forEach { (chip, count) ->
+            val more = stringResource(R.string.amount_chip_more, chips(chip))
+            val less = stringResource(R.string.amount_chip_less, chips(chip))
+            Row(
+                modifier = Modifier.weight(1f).fillMaxWidth()
+                    .background(Refugi.surface, RoundedCornerShape(11.dp))
+                    .border(BorderStroke(1.dp, Refugi.line), RoundedCornerShape(11.dp))
+                    .padding(start = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Box(Modifier.size(28.dp, 6.dp).background(chipColour(chip), RoundedCornerShape(2.dp)))
+                TcText(chips(chip), Type.chips.copy(fontSize = 17.sp), modifier = Modifier.weight(1f))
+                ChipKey("\u2212", less, enabled = count > 0) { change(chip, -1) }
+                TcText(
+                    chips(count),
+                    Type.metric.copy(
+                        fontSize = 20.sp,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    ),
+                    color = if (count > 0) Refugi.text else Refugi.line,
+                    modifier = Modifier.width(40.dp).testTag("chip-count:$chip"),
+                )
+                ChipKey("+", more, enabled = max == null || value + chip <= max) { change(chip, 1) }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            Quick(stringResource(R.string.amount_clear), Modifier.weight(1f)) {
+                counts = breakdown(0)
+                onSet(0)
+            }
+            if (max != null) {
+                Quick(stringResource(R.string.amount_all), Modifier.weight(1f), warn = true) {
+                    counts = breakdown(max)
+                    onSet(max)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChipKey(label: String, description: String, enabled: Boolean, onClick: () -> Unit) {
+    ClickableSurface(
+        onClick = onClick,
+        modifier = Modifier.width(56.dp).fillMaxHeight().semantics { contentDescription = description },
+        enabled = enabled,
+        fill = Refugi.surfaceHigh,
+        border = null,
+        radius = 11.dp,
+        padding = 0.dp,
+    ) {
+        TcText(
+            label,
+            Type.metric.copy(fontSize = 22.sp),
+            color = if (enabled) Refugi.text else Refugi.line,
+        )
     }
 }
 
