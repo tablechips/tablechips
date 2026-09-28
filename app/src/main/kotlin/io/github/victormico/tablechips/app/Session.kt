@@ -133,6 +133,13 @@ object Session {
         }
     }
 
+    /** A new name at the table, kept on this device for the next one too. */
+    fun rename(name: String) {
+        prefs?.name = name
+        val open = client ?: return
+        scope.launch { open.rename(name) }
+    }
+
     fun act(message: ClientMessage) {
         val open = client ?: return
         scope.launch { open.send(message) }

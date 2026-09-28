@@ -284,4 +284,6 @@
     <string name="amount_chip_more">Una ficha de %1$s más</string>
     <string name="amount_chip_less">Una ficha de %1$s menos</string>
     <string name="poker_bet_column">Apuesta</string>
+    <string name="menu_rename">Cambiar el nombre</string>
+    <string name="common_save">Guardar</string>
 </resources>

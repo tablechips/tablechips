@@ -586,10 +586,28 @@ button[disabled] { opacity: .4; cursor: default; }
   </div>
 </section>
 
+<section class="view" id="v-name">
+  <div class="head">
+    <button class="iconBtn" id="nameBack" aria-label="back"><span class="back"></span></button>
+    <div class="headStack">
+      <div class="t" data-i18n="name.title"></div>
+      <div class="s" data-i18n="name.sub"></div>
+    </div>
+  </div>
+  <div class="scroll">
+    <input class="field" type="text" id="renameField" maxlength="24" autocomplete="nickname"
+           enterkeyhint="done" data-i18n-placeholder="join.name">
+  </div>
+  <div class="actions">
+    <button class="primary" id="renameSave" data-i18n="common.save"></button>
+  </div>
+</section>
+
 <div class="menu" id="menu" hidden>
   <div class="menuCard">
     <button id="mHost" data-i18n="hostPanel.title"></button>
     <button id="mLog" data-i18n="log.title"></button>
+    <button id="mRename" data-i18n="menu.rename"></button>
     <div class="langRow">
       <span class="cap" data-i18n="menu.language"></span>
       <div class="pills" id="menuLangs"></div>
@@ -653,6 +671,10 @@ const DICT = {
     "buyIn.confirm": "Fixar a",
     "newPot.name": "poso",
     "log.title": "Registre d'activitat", "log.short": "Registre", "log.back": "Tornar a la taula",
+    "menu.rename": "Canviar el nom",
+    "common.save": "Desar",
+    "name.title": "Com et dius?",
+    "name.sub": "És el nom que veuran a la taula",
     "amount.byNumber": "Import",
     "amount.byChips": "Fitxes",
     "amount.clear": "Esborrar",
@@ -793,6 +815,10 @@ const DICT = {
     "buyIn.confirm": "Fijar en",
     "newPot.name": "bote",
     "log.title": "Registro de actividad", "log.short": "Registro", "log.back": "Volver a la mesa",
+    "menu.rename": "Cambiar el nombre",
+    "common.save": "Guardar",
+    "name.title": "¿Cómo te llamas?",
+    "name.sub": "Es el nombre que verán en la mesa",
     "amount.byNumber": "Importe",
     "amount.byChips": "Fichas",
     "amount.clear": "Borrar",
@@ -935,6 +961,10 @@ const DICT = {
     "buyIn.confirm": "Set to",
     "newPot.name": "side pot",
     "log.title": "Activity log", "log.short": "Log", "log.back": "Back to the table",
+    "menu.rename": "Change your name",
+    "common.save": "Save",
+    "name.title": "What is your name?",
+    "name.sub": "It is the name the table will see",
     "amount.byNumber": "Amount",
     "amount.byChips": "Chips",
     "amount.clear": "Clear",
@@ -1269,7 +1299,7 @@ let selectedPot = "main";
 
 // ---------------------------------------------------------------- views
 let view = "join";
-const VIEWS = ["join", "table", "amount", "host", "log", "rules"];
+const VIEWS = ["join", "table", "amount", "host", "log", "rules", "name"];
 
 function showView(next) {
   view = next;
@@ -2309,6 +2339,25 @@ document.getElementById("hostLogBtn").onclick = () => showView("log");
 document.getElementById("logBack").onclick = () => showView("table");
 document.getElementById("logDone").onclick = () => showView("table");
 document.getElementById("rulesBtn").onclick = () => showView("rules");
+
+// A new name is kept on this device too: every reconnection repeats the join
+// with the stored name, which would otherwise rename the player back.
+const renameField = document.getElementById("renameField");
+function saveName() {
+  const name = renameField.value.trim();
+  if (!name) return;
+  store.set("name", name);
+  act({ type: "rename", name: name });
+  showView("table");
+}
+document.getElementById("mRename").onclick = () => {
+  renameField.value = (mine() && mine().name) || store.get("name") || "";
+  showView("name");
+  renameField.focus();
+};
+document.getElementById("renameSave").onclick = saveName;
+renameField.onkeydown = (event) => { if (event.key === "Enter") saveName(); };
+document.getElementById("nameBack").onclick = () => showView("table");
 document.getElementById("rulesBack").onclick = () => showView("table");
 document.getElementById("rulesDone").onclick = () => showView("table");
 document.getElementById("logUndoBtn").onclick = () => hostCommand({ type: "undo" });

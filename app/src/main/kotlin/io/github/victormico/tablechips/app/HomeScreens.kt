@@ -159,7 +159,13 @@ fun HomeScreen(
 
 /** Asked once, before the first table: the name the others will see. */
 @Composable
-fun NameScreen(name: String, onName: (String) -> Unit, onDone: () -> Unit, onBack: () -> Unit) {
+fun NameScreen(
+    name: String,
+    onName: (String) -> Unit,
+    onDone: () -> Unit,
+    onBack: () -> Unit,
+    confirm: String = stringResource(R.string.home_create),
+) {
     Frame(
         header = {
             BackHeader(
@@ -170,7 +176,7 @@ fun NameScreen(name: String, onName: (String) -> Unit, onDone: () -> Unit, onBac
         },
         actions = {
             PrimaryButton(
-                label = stringResource(R.string.home_create),
+                label = confirm,
                 onClick = onDone,
                 enabled = name.isNotBlank(),
             )
@@ -366,7 +372,7 @@ fun ConnectionScreen(
 
 /** A plain text field: no component library, so it is drawn here. */
 @Composable
-private fun Field(
+internal fun Field(
     value: String,
     placeholder: String,
     onValue: (String) -> Unit,

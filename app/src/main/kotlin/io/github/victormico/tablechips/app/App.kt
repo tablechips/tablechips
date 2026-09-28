@@ -140,6 +140,7 @@ private sealed interface Screen {
     data object Table : Screen
     data object Amount : Screen
     data object Setup : Screen
+    data object Rename : Screen
     data object Rules : Screen
     data object HostPanel : Screen
     data object Seats : Screen
@@ -235,6 +236,8 @@ fun App(
     }
 
     fun openTable() {
+        name = name.trim()
+        prefs.name = name
         prefs.lastConfig = setup
         onStartHost(false, setup)
     }
@@ -256,9 +259,10 @@ fun App(
                 canResume = prefs.lastAddress != null,
                 tableOpen = hostStatus.running,
                 abandoned = abandoned,
+                // The name is asked on the setup screen itself, with the rest.
                 onCreate = {
                     recovering = false
-                    screen = if (name.isBlank()) Screen.Name else Screen.Setup
+                    screen = Screen.Setup
                 },
                 onRecover = {
                     recovering = true
@@ -289,6 +293,22 @@ fun App(
                     if (recovering) onStartHost(true, null) else screen = Screen.Setup
                 },
                 onBack = { screen = Screen.Home },
+                confirm = stringResource(if (recovering) R.string.home_recover else R.string.home_create),
+            )
+
+            Screen.Rename -> NameScreen(
+                name = name,
+                onName = { name = it },
+                onDone = {
+                    name = name.trim()
+                    Session.rename(name)
+                    screen = Screen.Table
+                },
+                onBack = {
+                    name = prefs.name.orEmpty()
+                    screen = Screen.Table
+                },
+                confirm = stringResource(R.string.common_save),
             )
 
             Screen.Join -> JoinScreen(
@@ -332,6 +352,8 @@ fun App(
                 config = setup,
                 starting = hostStatus.starting,
                 failed = hostStatus.failure != null,
+                name = name,
+                onName = { name = it },
                 onConfig = { setup = it },
                 onBuyIn = {
                     openAmount(
@@ -726,6 +748,7 @@ fun App(
                 onConnection = { menuOpen = false; screen = Screen.Connection },
                 onHostPanel = { menuOpen = false; screen = Screen.HostPanel },
                 onLog = { menuOpen = false; screen = Screen.Log },
+                onRename = { menuOpen = false; screen = Screen.Rename },
                 onLeave = {
                     menuOpen = false
                     asking = Ask.Leave
@@ -767,6 +790,7 @@ private fun TableMenu(
     onConnection: () -> Unit,
     onHostPanel: () -> Unit,
     onLog: () -> Unit,
+    onRename: () -> Unit,
     onLeave: () -> Unit,
     onClose: () -> Unit,
 ) {
@@ -782,6 +806,7 @@ private fun TableMenu(
                 }
                 if (isHost) MenuItem(stringResource(R.string.host_panel_title), onHostPanel)
                 MenuItem(stringResource(R.string.log_title), onLog)
+                MenuItem(stringResource(R.string.menu_rename), onRename)
                 MenuItem(stringResource(R.string.action_leave), onLeave, Refugi.loss)
                 MenuItem(stringResource(R.string.common_cancel), onClose, Refugi.text2)
             }

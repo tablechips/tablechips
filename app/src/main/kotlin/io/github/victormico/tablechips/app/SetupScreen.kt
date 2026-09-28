@@ -45,6 +45,9 @@ fun SetupScreen(
     config: TableConfig,
     starting: Boolean,
     failed: Boolean = false,
+    /** The host's own name at the table: the first thing the others will see. */
+    name: String,
+    onName: (String) -> Unit,
     onConfig: (TableConfig) -> Unit,
     onBuyIn: () -> Unit,
     onBlinds: () -> Unit,
@@ -64,11 +67,14 @@ fun SetupScreen(
             PrimaryButton(
                 label = stringResource(if (starting) R.string.host_starting else R.string.setup_open),
                 onClick = onOpen,
-                enabled = !starting,
+                enabled = !starting && name.isNotBlank(),
             )
         },
     ) {
         if (failed) Note(stringResource(R.string.host_error_start), color = Refugi.loss)
+        Caption(stringResource(R.string.join_name))
+        Field(name, stringResource(R.string.join_name), onName)
+
         Caption(stringResource(R.string.game_title))
         Pills(
             options = GameMode.entries.map { it to modeName(it) },

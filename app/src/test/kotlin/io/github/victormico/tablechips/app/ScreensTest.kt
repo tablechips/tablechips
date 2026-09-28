@@ -281,9 +281,12 @@ class ScreensTest {
         compose.onNodeWithText("Crear una taula").performClick()
         compose.waitForIdle()
 
-        // No name yet, so the table is not opened until there is one to show.
+        // The name is asked on the setup screen, and without one the table
+        // is not opened: there would be nothing to show the others.
+        compose.onNodeWithText("Nova taula").assertIsDisplayed()
+        compose.onNodeWithText("Obrir la taula").performClick()
+        compose.waitForIdle()
         assertEquals(false, started)
-        compose.onNodeWithText("Com et dius").assertIsDisplayed()
     }
 
     @Test
@@ -326,7 +329,8 @@ class ScreensTest {
         var config by mutableStateOf(TableConfig(defaultBuyIn = 1000))
         compose.setContent {
             SetupScreen(
-                config = config, starting = false, onConfig = { config = it },
+                config = config, starting = false, name = "Víctor", onName = {},
+                onConfig = { config = it },
                 onBuyIn = {}, onBlinds = {}, onRules = {}, onOpen = {}, onBack = {},
             )
         }
@@ -351,7 +355,8 @@ class ScreensTest {
         var config by mutableStateOf(TableConfig(seatCount = 2))
         compose.setContent {
             SetupScreen(
-                config = config, starting = false, onConfig = { config = it },
+                config = config, starting = false, name = "Víctor", onName = {},
+                onConfig = { config = it },
                 onBuyIn = {}, onBlinds = {}, onRules = {}, onOpen = {}, onBack = {},
             )
         }
@@ -864,5 +869,27 @@ class ScreensTest {
         compose.onNodeWithText("20").assertExists()
         // Anna's 990 behind is hers to know, not the table's.
         compose.onNodeWithText("990").assertDoesNotExist()
+    }
+
+    /** The host's name is asked with the rest of the setup, and a table needs one. */
+    @Test
+    fun `the setup asks for the host's name and will not open without one`() {
+        var name by mutableStateOf("")
+        var opened = false
+        compose.setContent {
+            SetupScreen(
+                config = TableConfig(), starting = false, name = name, onName = { name = it },
+                onConfig = {}, onBuyIn = {}, onBlinds = {}, onRules = {},
+                onOpen = { opened = true }, onBack = {},
+            )
+        }
+
+        compose.onNodeWithText("Obrir la taula").performClick()
+        assertEquals(false, opened)
+
+        name = "Víctor"
+        compose.waitForIdle()
+        compose.onNodeWithText("Obrir la taula").performClick()
+        assertEquals(true, opened)
     }
 }
