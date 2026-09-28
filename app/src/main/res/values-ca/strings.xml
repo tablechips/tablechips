@@ -270,7 +270,7 @@
     <string name="rules_blackjack_count">Qui no té la banca aposta abans de repartir; doblar és tornar a apostar la mateixa quantitat. Quan acaba la mà, l\'amfitrió resol cada aposta: guanya, perd, empat o blackjack (la banca paga el que marca aquesta taula). Una mà separada es resol en dues parts.</string>
     <string name="rules_blackjack_people">Quan es planta la banca, si es pot doblar o separar, i qui ha guanyat cada mà. Les regles de la casa les poseu vosaltres.</string>
     <string name="rules_poker_play">Texas hold\'em: cadascú rep dues cartes i n\'hi ha cinc de comunes, que surten en tres tongades. Hi ha una ronda d\'apostes abans i després de cada tongada, i guanya la millor jugada de cinc cartes.</string>
-    <string name="rules_poker_count">«Mà nova» mou el repartidor i posa les cegues. El botó gran diu exactament quant costa igualar. Entre tongades, l\'amfitrió tanca la ronda. Si algú va all-in amb menys fitxes, «Dividir el pot» separa els pots que pot guanyar cadascú, i l\'amfitrió els dona un a un.</string>
+    <string name="rules_poker_count">«Mà nova» mou el repartidor i posa les cegues. El botó gran diu exactament quant costa igualar. Entre tongades, l\'amfitrió tanca la ronda. Si algú va all-in amb menys fitxes, «Dividir el pot» separa els pots que pot guanyar cadascú, i l\'amfitrió els dona un a un. Quan s\'ha donat tot el pot, la mà següent comença sola.</string>
     <string name="rules_poker_people">De qui és el torn, quan es pot passar i qui guanya la mà. L\'app compta les fitxes; el joc el porteu vosaltres.</string>
     <string name="common_back">Enrere</string>
     <string name="bank_take">Agafar la banca</string>

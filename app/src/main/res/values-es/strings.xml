@@ -270,7 +270,7 @@
     <string name="rules_blackjack_count">Quien no tiene la banca apuesta antes de repartir; doblar es volver a apostar la misma cantidad. Cuando acaba la mano, el anfitrión resuelve cada apuesta: gana, pierde, empate o blackjack (la banca paga lo que marca esta mesa). Una mano separada se resuelve en dos partes.</string>
     <string name="rules_blackjack_people">Cuándo se planta la banca, si se puede doblar o separar, y quién ha ganado cada mano. Las reglas de la casa las ponéis vosotros.</string>
     <string name="rules_poker_play">Texas hold\'em: cada uno recibe dos cartas y hay cinco comunes, que salen en tres tandas. Hay una ronda de apuestas antes y después de cada tanda, y gana la mejor jugada de cinco cartas.</string>
-    <string name="rules_poker_count">«Mano nueva» mueve el repartidor y pone las ciegas. El botón grande dice exactamente cuánto cuesta igualar. Entre tandas, el anfitrión cierra la ronda. Si alguien va all-in con menos fichas, «Dividir el bote» separa los botes que puede ganar cada uno, y el anfitrión los da uno a uno.</string>
+    <string name="rules_poker_count">«Mano nueva» mueve el repartidor y pone las ciegas. El botón grande dice exactamente cuánto cuesta igualar. Entre tandas, el anfitrión cierra la ronda. Si alguien va all-in con menos fichas, «Dividir el bote» separa los botes que puede ganar cada uno, y el anfitrión los da uno a uno. Cuando se ha dado todo el bote, la mano siguiente empieza sola.</string>
     <string name="rules_poker_people">De quién es el turno, cuándo se puede pasar y quién gana la mano. La app cuenta las fichas; el juego lo lleváis vosotros.</string>
     <string name="common_back">Atrás</string>
     <string name="bank_take">Coger la banca</string>

@@ -362,4 +362,89 @@ class PokerTest {
 
         assertEquals(1, table.accept(PlaceBet(BRU, 1)).pot(MAIN_POT)!!.amount - 30)
     }
+
+    @Test
+    fun `awarding the whole pot deals the next hand`() {
+        val table = pokerTable()
+        table.accept(StartHand(ANNA))            // button 0, blinds 5 and 10
+        table.accept(PlaceBet(ANNA, 10))
+        table.accept(PlaceBet(BRU, 5))
+
+        val state = table.accept(AwardPot(ANNA, CARME, MAIN_POT))
+
+        // Carme had 90 after her big blind and took the 30. Then the button
+        // moved to Bru, so Carme posts the small blind and Anna the big one.
+        assertEquals(1, state.button)
+        assertEquals(115, state.player(CARME)!!.stack)
+        assertEquals(10, state.player(ANNA)!!.roundBet)
+        assertEquals(15, state.pot(MAIN_POT)!!.amount)
+        assertTrue(state.log.last().key == "log.hand_started")
+        assertTrue(state.balanced)
+    }
+
+    @Test
+    fun `a pot split between winners keeps the hand open until the last of it goes`() {
+        val table = pokerTable()
+        table.accept(StartHand(ANNA))
+        table.accept(PlaceBet(ANNA, 10))
+        table.accept(PlaceBet(BRU, 5))
+
+        val half = table.accept(AwardPot(ANNA, ANNA, MAIN_POT, 15))
+        assertEquals(0, half.button)
+        assertEquals(15, half.pot(MAIN_POT)!!.amount)
+
+        val rest = table.accept(AwardPot(ANNA, BRU, MAIN_POT))
+        assertEquals(1, rest.button)
+        assertTrue(rest.balanced)
+    }
+
+    @Test
+    fun `with a side pot still to give, the hand is not over`() {
+        val table = pokerTable(defaultBuyIn = 0, smallBlind = 0, bigBlind = 0)
+        table.accept(Rebuy(ANNA, 100))
+        table.accept(Rebuy(BRU, 100))
+        table.accept(Rebuy(CARME, 30))
+        table.accept(StartHand(ANNA))
+        table.accept(PlaceBet(CARME, 30))
+        table.accept(PlaceBet(ANNA, 100))
+        table.accept(PlaceBet(BRU, 100))
+        val pots = table.accept(SplitPots(ANNA)).pots
+
+        val main = table.accept(AwardPot(ANNA, CARME, pots[0].id))
+        assertEquals(0, main.button)
+
+        val side = table.accept(AwardPot(ANNA, BRU, pots[1].id))
+        assertEquals(1, side.button)
+        assertEquals(1, side.pots.size)
+        assertTrue(side.balanced)
+    }
+
+    @Test
+    fun `with one player left holding chips, there is no hand to deal`() {
+        val table = pokerTable(defaultBuyIn = 0, smallBlind = 5, bigBlind = 10)
+        table.accept(Rebuy(ANNA, 5))
+        table.accept(Rebuy(BRU, 10))
+        table.accept(StandUp(CARME))
+        table.accept(StartHand(ANNA))              // both all in on the blinds
+
+        val state = table.accept(AwardPot(ANNA, BRU, MAIN_POT))
+
+        assertEquals(15, state.player(BRU)!!.stack)
+        assertEquals(0, state.button)
+        assertTrue(state.log.last().key == "log.pot_awarded")
+    }
+
+    @Test
+    fun `the new hand and the award come back off the ledger one at a time`() {
+        val table = pokerTable()
+        table.accept(StartHand(ANNA))
+        table.accept(PlaceBet(ANNA, 10))
+        table.accept(PlaceBet(BRU, 5))
+        table.accept(AwardPot(ANNA, CARME, MAIN_POT))
+
+        // Until the ledger groups a command's entries (#5), undo takes back the
+        // new hand first and the award second.
+        assertEquals(0, table.accept(UndoLast(ANNA)).button)
+        assertEquals(30, table.accept(UndoLast(ANNA)).pot(MAIN_POT)!!.amount)
+    }
 }

@@ -209,7 +209,16 @@ object Rules {
         val amount = command.amount ?: pot.amount
         if (amount <= 0) return fail(RuleError.INVALID_AMOUNT)
         if (amount > pot.amount) return fail(RuleError.POT_TOO_SMALL)
-        return ok(PotAwarded(pot.id, winner.id, amount, at))
+        val award = PotAwarded(pot.id, winner.id, amount, at)
+        // At poker, the last chips leaving the pot is the end of the hand, and a
+        // real table deals the next one: the button moves and the blinds go in,
+        // in the same move. A pot split between winners, or a side pot still to
+        // give, keeps the hand open until the last of it has gone.
+        if (state.config.mode != GameMode.POKER) return ok(award)
+        val after = apply(state, award)
+        if (after.pots.any { it.amount > 0 }) return ok(award)
+        val next = nextHand(after, at) ?: return ok(award)
+        return ok(award, next)
     }
 
     private fun planCreatePot(state: TableState, command: CreatePot, at: Long): Plan {
@@ -315,6 +324,20 @@ object Rules {
         if (order.size < 2) return fail(RuleError.NOT_ENOUGH_PLAYERS)
         val button = nextSeat(order, state.button)
         return ok(HandStarted(button, blindsFor(state, order, button), at))
+    }
+
+    /**
+     * The hand that follows an awarded pot, or null when there is nobody to
+     * play it: with fewer than two players holding chips the game is over, or
+     * waiting for somebody to buy back in, and dealing would only post blinds
+     * into an empty hand.
+     */
+    private fun nextHand(state: TableState, at: Long): TableEvent? {
+        val withChips = state.players.count { it.seated && it.stack > 0 }
+        if (withChips < 2) return null
+        val order = seatOrder(state)
+        val button = nextSeat(order, state.button)
+        return HandStarted(button, blindsFor(state, order, button), at)
     }
 
     /** Seats with somebody in them, in table order. */

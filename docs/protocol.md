@@ -100,7 +100,10 @@ A bet also adds to `player.committed` and `player.roundBet`, so `state.currentBe
 minus a player's `roundBet` is what a call costs. `close_round` ends a street,
 `fold` takes somebody out of the hand, and `split_pots` cuts the pot into the
 pots that can actually be won: each `Pot` then carries `eligible`, and chips
-nobody could call come back as a pot only their owner may be given.
+nobody could call come back as a pot only their owner may be given. When
+`award_pot` takes the last chips out of the pots, the same command deals the
+next hand — the button moves and the blinds go in — as long as at least two
+seated players still have chips.
 
 Whose turn it is is deliberately not modelled. At a real table that is settled
 by the people sitting at it, and software that disagreed with them would only
