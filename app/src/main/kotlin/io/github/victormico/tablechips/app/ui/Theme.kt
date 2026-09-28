@@ -41,6 +41,19 @@ object Refugi {
     val warn = Color(0xFFEBC15E)
     val onAccent = Color(0xFF14110E)
 
+    /**
+     * Chips, in the colours of a real case: ivory 1, red 5, green 25, blue 50.
+     * Darker than gain and loss on purpose — a red 5 chip on the stack card
+     * must not read as money lost. The 100 would be black, but black vanishes
+     * on a dark card and leaves only a hollow outline; it is a dull gold
+     * instead, far enough from the brass of the primary button not to compete.
+     */
+    val chip1 = Color(0xFFE6DCCB)
+    val chip5 = Color(0xFF9E4436)
+    val chip25 = Color(0xFF4F7D55)
+    val chip50 = Color(0xFF4D6F8F)
+    val chip100 = Color(0xFF8E7040)
+
     /** Side margin of every screen. */
     val side = 18.dp
 }

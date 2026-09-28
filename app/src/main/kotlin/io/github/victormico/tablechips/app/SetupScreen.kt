@@ -132,9 +132,17 @@ fun SetupScreen(
 val PAYOUTS: List<Payout> = listOf(Payout(1, 1), Payout(3, 2), Payout(2, 1))
 
 /**
+ * Big blinds a chip case pays cleanly: the small blind, half of each, is
+ * always one or two chips. A plain fiftieth of the buy-in would make 905 into
+ * blinds of 9 and 18, which nobody at a real table would ever post.
+ */
+private val BIG_BLINDS: List<Long> = listOf(2, 10, 20, 50, 100, 200, 500, 1000)
+
+/**
  * Switching game brings that game's usual house rule with it: 3:2 for a
- * blackjack, 2:1 for a set i mig, and blinds a fiftieth of the buy-in for
- * poker. They are starting points, shown right under the choice.
+ * blackjack, 2:1 for a set i mig, and for poker blinds of about a fiftieth of
+ * the buy-in, rounded down to ones the chips can pay. They are starting
+ * points, shown right under the choice.
  */
 fun TableConfig.forMode(mode: GameMode): TableConfig = when (mode) {
     GameMode.BLACKJACK -> copy(mode = mode, naturalPays = Payout(3, 2))
@@ -142,7 +150,7 @@ fun TableConfig.forMode(mode: GameMode): TableConfig = when (mode) {
     GameMode.POKER -> if (bigBlind > 0) {
         copy(mode = mode)
     } else {
-        val big = (defaultBuyIn / 50).coerceAtLeast(2)
+        val big = BIG_BLINDS.lastOrNull { it <= defaultBuyIn / 50 } ?: BIG_BLINDS.first()
         copy(mode = mode, bigBlind = big, smallBlind = big / 2)
     }
     GameMode.MANUAL -> copy(mode = mode)

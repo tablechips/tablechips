@@ -63,7 +63,8 @@ data class Payout(val numerator: Int = 3, val denominator: Int = 2) {
 data class TableConfig(
     val mode: GameMode = GameMode.MANUAL,
     val seatCount: Int = MAX_SEATS,
-    val defaultBuyIn: Long = 100,
+    /** Five of each chip, as a real table deals. */
+    val defaultBuyIn: Long = STANDARD_BUY_IN,
     /** Bank games: what a natural pays. Blackjack is 3:2, set i mig usually 2:1. */
     val naturalPays: Payout = Payout(),
     /** Poker: posted at the start of every hand. Zero means no blinds. */

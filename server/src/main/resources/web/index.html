@@ -40,6 +40,14 @@
   --loss: #CC5B42;
   --warn: #EBC15E;
   --onAccent: #14110E;
+  /* Chips, as in the app's theme: darker than gain and loss so a red 5 does not
+     read as money lost, and the 100 a dull gold, because black vanishes on a
+     dark card and leaves a hollow outline. */
+  --chip1: #E6DCCB;
+  --chip5: #9E4436;
+  --chip25: #4F7D55;
+  --chip50: #4D6F8F;
+  --chip100: #8E7040;
 
   --sans: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
@@ -111,9 +119,21 @@ body {
 .stackNum { font-family: var(--mono); font-weight: 600; --figure: 72px;
             font-size: calc(var(--figure) * var(--fit, 1)); line-height: 1;
             letter-spacing: -.03em; font-variant-numeric: tabular-nums; margin-top: 6px; }
-.bars { display: flex; gap: 4px; margin-top: 14px; }
-.bars > div { flex: 1; height: 10px; border-radius: 3px; background: var(--surfaceHigh);
-              border: 1px solid var(--lineStrong); }
+.chipRow { display: flex; gap: 8px; margin-top: 16px; align-items: flex-end; }
+.chipCol { flex: 1; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.chipPile { height: 40px; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; }
+.chipPile > i { display: block; width: 34px; height: 4px; border-radius: 2px; }
+.chipPile > i.v1 { background: var(--chip1); }
+.chipPile > i.v5 { background: var(--chip5); }
+.chipPile > i.v25 { background: var(--chip25); }
+.chipPile > i.v50 { background: var(--chip50); }
+.chipPile > i.v100 { background: var(--chip100); }
+.chipPile > i.none { background: none; box-shadow: inset 0 0 0 1px var(--line); }
+.chipCol .cv { margin-top: 6px; font-family: var(--mono); font-weight: 500; font-size: 12px;
+               font-variant-numeric: tabular-nums; }
+.chipCol .cc { font-family: var(--mono); font-size: 11px; color: var(--text2);
+               font-variant-numeric: tabular-nums; }
+.chipCol.empty .cv, .chipCol.empty .cc { color: var(--line); }
 
 .metrics { display: flex; gap: 12px; }
 .metric { flex: 1; padding: 14px 16px 16px; text-align: start;
@@ -381,12 +401,7 @@ button[disabled] { opacity: .4; cursor: default; }
         <span class="num" id="myNet" style="font-weight:600;font-size:13px"></span>
       </div>
       <div class="stackNum" id="myStack">0</div>
-      <div class="bars">
-        <div style="border-left:4px solid var(--accent)"></div>
-        <div style="border-left:4px solid var(--gain)"></div>
-        <div style="border-left:4px solid var(--gain)"></div>
-        <div style="border-left:4px solid var(--loss)"></div>
-      </div>
+      <div class="chipRow" id="myChips"></div>
     </div>
 
     <div class="metrics" id="pots"></div>
@@ -1277,6 +1292,7 @@ function renderTable() {
   document.getElementById("myCard").hidden = !seated();
   if (player) {
     figure(document.getElementById("myStack"), fmt(player.stack));
+    renderChips(document.getElementById("myChips"), player.stack);
     const net = player.stack - player.boughtIn;
     const netNode = document.getElementById("myNet");
     netNode.textContent = net === 0 ? "" : signed(net);
@@ -1964,6 +1980,51 @@ function renderSeatAdmin() {
     });
   }
   document.getElementById("seatRows").replaceChildren(...rows);
+}
+
+// ---------------------------------------------------------------- chips
+
+// The same breakdown as `chipsIn` in :core, so both screens draw the same
+// stack. The cases in ChipsTest are checked against this copy too.
+const DENOMINATIONS = [100, 50, 25, 5, 1];
+const CHIPS_PER_DENOMINATION = 5;
+const MAX_EDGES = 7;
+
+/**
+ * A stack as a player at a real table would hold it: up to five of each small
+ * chip — what a deal gives — and everything above that in the biggest one.
+ * A picture of the number, never a claim about what is on the felt.
+ */
+function chipsIn(amount) {
+  const ascending = DENOMINATIONS.slice().sort((a, b) => a - b);
+  const counts = {};
+  let rest = Math.max(0, amount);
+  ascending.forEach((value, index) => {
+    const next = ascending[index + 1];
+    let count;
+    if (next === undefined) {
+      count = Math.floor(rest / value);
+    } else {
+      const group = next / value;
+      count = (rest % next) / value;
+      while (count + group <= CHIPS_PER_DENOMINATION && (count + group) * value <= rest) count += group;
+    }
+    counts[value] = count;
+    rest -= count * value;
+  });
+  return DENOMINATIONS.map((value) => ({ value: value, count: counts[value] }));
+}
+
+function renderChips(node, amount) {
+  const columns = chipsIn(amount).map(({ value, count }) => {
+    const column = el("div", "chipCol" + (count === 0 ? " empty" : ""));
+    const pile = el("div", "chipPile");
+    if (count === 0) pile.append(el("i", "none"));
+    for (let i = 0; i < Math.min(count, MAX_EDGES); i++) pile.append(el("i", "v" + value));
+    column.append(pile, el("div", "cv", fmt(value)), el("div", "cc", "\u00D7" + fmt(count)));
+    return column;
+  });
+  node.replaceChildren(...columns);
 }
 
 // ---------------------------------------------------------------- rules

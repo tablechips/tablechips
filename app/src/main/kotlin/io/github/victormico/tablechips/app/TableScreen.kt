@@ -39,6 +39,7 @@ import io.github.victormico.tablechips.app.ui.TcText
 import io.github.victormico.tablechips.app.ui.Type
 import io.github.victormico.tablechips.app.ui.chips
 import io.github.victormico.tablechips.core.GameMode
+import io.github.victormico.tablechips.core.chipsIn
 import io.github.victormico.tablechips.core.Pot
 import io.github.victormico.tablechips.core.PotId
 import io.github.victormico.tablechips.protocol.ClientState
@@ -128,7 +129,7 @@ fun TableScreen(
                     Spacer(Modifier.height(6.dp))
                     Figure(chips(me.stack), Type.stack, modifier = Modifier.testTag("stack-figure"))
                     Spacer(Modifier.height(14.dp))
-                    StackBars()
+                    ChipStacks(me.stack)
                 }
             }
         }
@@ -365,20 +366,69 @@ fun Figure(text: String, style: TextStyle, modifier: Modifier = Modifier, color:
     )
 }
 
-/** Chips seen edge on. Informative decoration, not a count. */
+/** Most chip edges drawn in one stack; the count underneath is the truth. */
+private const val MAX_EDGES = 7
+
+/**
+ * The stack as chips seen edge on, one column per value, biggest first: the
+ * number above it, drawn the way it would sit on the felt after a real deal.
+ * Each column carries its value and how many there are, so the picture never
+ * has to be counted to be read.
+ */
 @Composable
-private fun StackBars() {
-    val colours = listOf(Refugi.accent, Refugi.gain, Refugi.gain, Refugi.loss)
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        colours.forEach { colour ->
-            Row(
-                modifier = Modifier.weight(1f).height(10.dp)
-                    .background(Refugi.surfaceHigh, RoundedCornerShape(3.dp)),
+fun ChipStacks(amount: Long) {
+    val stacks = chipsIn(amount.coerceAtLeast(0))
+    Row(
+        modifier = Modifier.fillMaxWidth().testTag("chip-stacks"),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        stacks.forEach { (value, count) ->
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Box(Modifier.size(4.dp, 10.dp).background(colour))
+                Column(
+                    modifier = Modifier.height(40.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.Bottom),
+                ) {
+                    if (count == 0L) {
+                        // An empty place, so every value stays where it always is.
+                        Box(
+                            Modifier.size(34.dp, 4.dp)
+                                .border(BorderStroke(1.dp, Refugi.line), RoundedCornerShape(2.dp)),
+                        )
+                    } else {
+                        repeat(minOf(count, MAX_EDGES.toLong()).toInt()) { ChipEdge(value) }
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
+                TcText(
+                    chips(value),
+                    Type.chips.copy(fontSize = 12.sp),
+                    color = if (count == 0L) Refugi.line else Refugi.text,
+                )
+                TcText(
+                    "\u00D7" + chips(count),
+                    Type.caption.copy(fontSize = 11.sp),
+                    color = if (count == 0L) Refugi.line else Refugi.text2,
+                )
             }
         }
     }
+}
+
+@Composable
+private fun ChipEdge(value: Long) {
+    Box(Modifier.size(34.dp, 4.dp).background(chipColour(value), RoundedCornerShape(2.dp)))
+}
+
+private fun chipColour(value: Long): Color = when (value) {
+    1L -> Refugi.chip1
+    5L -> Refugi.chip5
+    25L -> Refugi.chip25
+    50L -> Refugi.chip50
+    else -> Refugi.chip100
 }
 
 @Composable

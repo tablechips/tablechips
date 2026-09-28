@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
@@ -717,5 +718,38 @@ class ScreensTest {
         compose.onNodeWithText("Joc".uppercase()).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Set i mig").performScrollTo().performClick()
         assertEquals(GameMode.SEVEN_HALF, picked)
+    }
+
+    /**
+     * The stack drawn as the chips a real deal gives: five of each at 905,
+     * every value in its place, and the count written under each so the
+     * picture never has to be counted.
+     */
+    @Test
+    fun `a fresh stack is drawn as five chips of each value`() {
+        compose.setContent { ChipStacks(905) }
+
+        compose.onAllNodesWithText("\u00D75").assertCountEquals(5)
+        listOf("100", "50", "25", "5", "1").forEach { compose.onNodeWithText(it).assertExists() }
+    }
+
+    @Test
+    fun `the chips follow the stack as it moves`() {
+        var stack by mutableStateOf(905L)
+        compose.setContent { ChipStacks(stack) }
+
+        stack = 800 // a 100 and a 5 pushed forward
+        compose.waitForIdle()
+        compose.onAllNodesWithText("\u00D74").assertCountEquals(2)
+        compose.onAllNodesWithText("\u00D75").assertCountEquals(3)
+    }
+
+    @Test
+    fun `poker blinds start at amounts the chips can pay`() {
+        val config = TableConfig().forMode(GameMode.POKER)
+
+        assertEquals(905L, config.defaultBuyIn)
+        assertEquals(10L, config.bigBlind)
+        assertEquals(5L, config.smallBlind)
     }
 }
