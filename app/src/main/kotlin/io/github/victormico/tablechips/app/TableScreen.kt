@@ -64,6 +64,7 @@ fun TableScreen(
     onSit: () -> Unit,
     onStake: () -> Unit = {},
     onCancelStake: () -> Unit = {},
+    onTakeBank: () -> Unit = {},
     onCall: (Long) -> Unit = {},
     onFold: () -> Unit = {},
 ) {
@@ -90,7 +91,7 @@ fun TableScreen(
         actions = {
             if (state.seated) {
                 when {
-                    table.config.mode.isBankGame -> BankActions(state, onStake, onCancelStake)
+                    table.config.mode.isBankGame -> BankActions(state, onStake, onCancelStake, onTakeBank)
                     table.config.mode == GameMode.POKER -> PokerActions(state, onBet, onCall, onFold)
                     else -> PrimaryButton(stringResource(R.string.action_bet), onBet)
                 }
@@ -249,12 +250,19 @@ fun TableScreen(
  * out of it, until the host says how the hand ended.
  */
 @Composable
-private fun BankActions(state: ClientState, onStake: () -> Unit, onCancel: () -> Unit) {
+private fun BankActions(
+    state: ClientState,
+    onStake: () -> Unit,
+    onCancel: () -> Unit,
+    onTakeBank: () -> Unit,
+) {
     val table = state.table ?: return
     val me = state.me ?: return
     when {
         table.banker == me.id -> Note(stringResource(R.string.bank_you_sub))
-        table.banker == null -> Note(stringResource(R.string.bank_need))
+        // Nothing can be staked until somebody banks, so taking the bank is
+        // the one thing to do, and anybody seated may do it.
+        table.banker == null -> PrimaryButton(stringResource(R.string.bank_take), onTakeBank)
         else -> {
             PrimaryButton(stringResource(R.string.bank_stake), onStake)
             if (me.stake > 0) {

@@ -96,6 +96,12 @@ data class Player(
     val name: String,
     /** Seat index in `0 until config.seatCount`, or null for someone watching. */
     val seat: Int? = null,
+    /**
+     * The seat this player last stood up from. A seat is a place at a real
+     * table — it decides the order of play and where the dealer button goes —
+     * so sitting back down returns the player to it while it is still free.
+     */
+    val lastSeat: Int? = null,
     val stack: Long = 0,
     /** Everything this player has put on the table: first buy-in plus rebuys. */
     val boughtIn: Long = 0,

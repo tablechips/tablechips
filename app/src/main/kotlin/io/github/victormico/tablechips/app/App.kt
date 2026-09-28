@@ -50,6 +50,7 @@ import io.github.victormico.tablechips.protocol.SettleCommand
 import io.github.victormico.tablechips.protocol.SplitPotsCommand
 import io.github.victormico.tablechips.protocol.StakeAction
 import io.github.victormico.tablechips.protocol.StartHandCommand
+import io.github.victormico.tablechips.protocol.TakeBankAction
 import io.github.victormico.tablechips.protocol.Sit
 import io.github.victormico.tablechips.protocol.StandUpAction
 import io.github.victormico.tablechips.protocol.TableConnection
@@ -442,11 +443,18 @@ fun App(
                     )
                 },
                 onCancelStake = { Session.act(Action(CancelStakeAction)) },
+                onTakeBank = { Session.act(Action(TakeBankAction)) },
                 // A call goes into the pot being played for, not into whichever
                 // side pot the screen happens to be showing.
                 onCall = { amount -> Session.act(Action(BetAction(amount, MAIN_POT))) },
                 onFold = { Session.act(Action(FoldAction)) },
                 onSit = {
+                    // Back from the bar with chips: sit straight down with them.
+                    // The buy-in screen is for somebody bringing chips in.
+                    if ((state.me?.stack ?: 0) > 0) {
+                        Session.act(Sit(seat = null, buyIn = 0))
+                        return@TableScreen
+                    }
                     openAmount(
                         AmountRequest(
                             title = texts.sitTitle,

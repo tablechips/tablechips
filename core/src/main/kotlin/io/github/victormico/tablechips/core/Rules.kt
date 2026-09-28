@@ -125,10 +125,14 @@ object Rules {
     private fun planSit(state: TableState, command: SitDown, at: Long): Plan {
         val player = state.player(command.actor) ?: return fail(RuleError.UNKNOWN_PLAYER)
         if (player.seated) return fail(RuleError.ALREADY_SEATED)
-        val buyIn = command.buyIn ?: state.config.defaultBuyIn
+        // Somebody coming back with chips sits down with them. Buying in again
+        // is what "buy more" is for, and it is never a side effect of sitting.
+        val buyIn = command.buyIn ?: if (player.stack > 0) 0 else state.config.defaultBuyIn
         if (buyIn < 0) return fail(RuleError.INVALID_AMOUNT)
         val seat = when (val requested = command.seat) {
-            null -> state.freeSeats.firstOrNull() ?: return fail(RuleError.TABLE_FULL)
+            null -> player.lastSeat?.takeIf { it in state.freeSeats }
+                ?: state.freeSeats.firstOrNull()
+                ?: return fail(RuleError.TABLE_FULL)
             else -> {
                 if (requested !in 0 until state.config.seatCount) return fail(RuleError.SEAT_OUT_OF_RANGE)
                 if (state.playerAtSeat(requested) != null) return fail(RuleError.SEAT_TAKEN)
@@ -238,8 +242,12 @@ object Rules {
     // ----------------------------------------------------------- bank games
 
     private fun planSetBanker(state: TableState, command: SetBanker, at: Long): Plan {
-        if (!isHost(state, command.actor)) return fail(RuleError.NOT_HOST)
         if (!state.config.mode.isBankGame) return fail(RuleError.WRONG_MODE)
+        // Anybody seated may take a bank nobody holds: at a real table that is
+        // just saying "I'll bank". Taking it from somebody, or handing it to
+        // somebody else, is the host's call.
+        val claimingFreeBank = command.player == command.actor && state.banker == null
+        if (!claimingFreeBank && !isHost(state, command.actor)) return fail(RuleError.NOT_HOST)
         val player = command.player
         if (player == null) return ok(BankerChanged(null, at))
         val taking = state.player(player) ?: return fail(RuleError.INVALID_TARGET)
@@ -460,7 +468,7 @@ object Rules {
         }.let { it.copy(bank = it.bank.copy(boughtIn = it.bank.boughtIn + event.buyIn)) }
 
         is PlayerStoodUp -> state
-            .mapPlayer(event.player) { it.copy(seat = null) }
+            .mapPlayer(event.player) { it.copy(seat = null, lastSeat = it.seat) }
             // The bank belongs to a seat at the table, not to a spectator.
             .copy(banker = state.banker.takeIf { it != event.player })
 

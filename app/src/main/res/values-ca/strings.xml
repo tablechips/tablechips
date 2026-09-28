@@ -191,7 +191,6 @@
     <string name="bank_none">Ningú</string>
     <string name="bank_you">Tens la banca</string>
     <string name="bank_you_sub">Els altres juguen contra tu. Resol cada mà des del panell.</string>
-    <string name="bank_need">Ningú no té la banca encara</string>
     <string name="bank_your_stake">La teua aposta</string>
     <string name="bank_stake">Apostar</string>
     <string name="bank_stake_title">Quant apostes?</string>
@@ -265,7 +264,7 @@
     <string name="rules_manual_count">Cadascú aposta al pot des del seu mòbil. L\'amfitrió dona el pot a qui l\'ha guanyat, sencer o a parts, i pot obrir pots nous. Un pot que ningú no s\'endú es queda a la taula per a la mà següent.</string>
     <string name="rules_manual_people">Les regles, els torns i qui guanya cada mà. L\'app només anota el que diu l\'amfitrió, i tot es pot desfer des del registre.</string>
     <string name="rules_seven_half_play">Es juga amb baralla espanyola de 40 cartes. Les cartes de número valen el seu número i les figures (sota, cavall i rei), mig punt. Cadascú demana cartes per acostar-se a set i mig sense passar-se\'n, i juga sol contra la banca.</string>
-    <string name="rules_seven_half_count">Qui no té la banca aposta abans de repartir. Quan acaba la mà, l\'amfitrió resol cada aposta: guanya (la banca paga el mateix), perd (l\'aposta és per a la banca), empat (torna l\'aposta) o set i mig (la banca paga el que marca aquesta taula). La banca canvia de mans des del panell.</string>
+    <string name="rules_seven_half_count">Qui no té la banca aposta abans de repartir. Quan acaba la mà, l\'amfitrió resol cada aposta: guanya (la banca paga el mateix), perd (l\'aposta és per a la banca), empat (torna l\'aposta) o set i mig (la banca paga el que marca aquesta taula). Qui vulga la banca l\'agafa mentre està lliure; passar-la a una altra persona es fa des del panell d\'amfitrió.</string>
     <string name="rules_seven_half_people">Qui té la banca i quan passa, quina jugada compta com a set i mig, i qui s\'endú l\'empat: a molts llocs, la banca, i llavors el botó que cal prémer és «Perd».</string>
     <string name="rules_blackjack_play">Cadascú intenta acostar-se a 21 sense passar-se\'n. Les figures valen 10, l\'as 1 o 11, i la resta el seu número. Un as i una carta de 10 com a primeres cartes és blackjack. Tothom juga contra la banca.</string>
     <string name="rules_blackjack_count">Qui no té la banca aposta abans de repartir; doblar és tornar a apostar la mateixa quantitat. Quan acaba la mà, l\'amfitrió resol cada aposta: guanya, perd, empat o blackjack (la banca paga el que marca aquesta taula). Una mà separada es resol en dues parts.</string>
@@ -274,4 +273,9 @@
     <string name="rules_poker_count">«Mà nova» mou el repartidor i posa les cegues. El botó gran diu exactament quant costa igualar. Entre tongades, l\'amfitrió tanca la ronda. Si algú va all-in amb menys fitxes, «Dividir el pot» separa els pots que pot guanyar cadascú, i l\'amfitrió els dona un a un.</string>
     <string name="rules_poker_people">De qui és el torn, quan es pot passar i qui guanya la mà. L\'app compta les fitxes; el joc el porteu vosaltres.</string>
     <string name="common_back">Enrere</string>
+    <string name="bank_take">Agafar la banca</string>
+    <string name="bank_assign">Assignar</string>
+    <string name="bank_change">Canviar</string>
+    <string name="bank_give">Dona-li-la</string>
+    <string name="log_player_sat_back">s\'ha assegut al lloc %1$s</string>
 </resources>

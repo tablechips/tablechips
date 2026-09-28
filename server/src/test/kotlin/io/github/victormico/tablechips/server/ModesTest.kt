@@ -24,6 +24,7 @@ import io.github.victormico.tablechips.protocol.Sit
 import io.github.victormico.tablechips.protocol.SplitPotsCommand
 import io.github.victormico.tablechips.protocol.StakeAction
 import io.github.victormico.tablechips.protocol.StartHandCommand
+import io.github.victormico.tablechips.protocol.TakeBankAction
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
@@ -89,7 +90,7 @@ class ModesTest {
     }
 
     @Test
-    fun `the bank is the host's to hand out, and the banker cannot stake`() = runTest {
+    fun `a player takes a free bank, and only the host takes it away`() = runTest {
         val host = host(GameMode.SEVEN_HALF)
         val a = TestTransport()
         val b = TestTransport()
@@ -99,13 +100,16 @@ class ModesTest {
         play(b, Join(name = "Bru"))
         play(b, Sit())
 
-        play(b, HostCommandMessage(SetBankerCommand(bru)))
-        assertEquals("not_host", (b.lastMessage() as ErrorMessage).code)
-
-        play(a, HostCommandMessage(SetBankerCommand(bru)))
+        play(b, Action(TakeBankAction))
+        assertEquals(bru, a.lastState().state.banker)
         play(b, Action(StakeAction(10)))
         assertEquals("banker_cannot_bet", (b.lastMessage() as ErrorMessage).code)
-        assertEquals(bru, a.lastState().state.banker)
+
+        // The host hands it over; Bru cannot simply take it back.
+        play(a, HostCommandMessage(SetBankerCommand(anna)))
+        play(b, Action(TakeBankAction))
+        assertEquals("not_host", (b.lastMessage() as ErrorMessage).code)
+        assertEquals(anna, a.lastState().state.banker)
         listOf(a, b).forEach { it.close() }
     }
 

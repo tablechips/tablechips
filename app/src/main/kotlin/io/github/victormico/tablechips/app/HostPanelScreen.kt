@@ -299,7 +299,7 @@ private fun BankerRow(state: ClientState, onBanker: (Player?) -> Unit) {
                 )
             }
             SecondaryButton(
-                label = stringResource(R.string.seat_hand),
+                label = stringResource(if (banker == null) R.string.bank_assign else R.string.bank_change),
                 onClick = { picking = !picking },
                 height = 48.dp,
                 style = Type.secondary.copy(fontSize = 13.sp),
@@ -319,7 +319,7 @@ private fun BankerRow(state: ClientState, onBanker: (Player?) -> Unit) {
                         TcText(chips(player.stack), Type.chips.copy(fontSize = 13.sp), color = Refugi.text2)
                     }
                     SecondaryButton(
-                        label = stringResource(R.string.seat_confirm),
+                        label = stringResource(R.string.bank_give),
                         onClick = { picking = false; onBanker(player) },
                         height = 48.dp,
                         warn = table.banker == player.id,

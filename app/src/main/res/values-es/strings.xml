@@ -191,7 +191,6 @@
     <string name="bank_none">Nadie</string>
     <string name="bank_you">Tienes la banca</string>
     <string name="bank_you_sub">Los demás juegan contra ti. Resuelve cada mano desde el panel.</string>
-    <string name="bank_need">Nadie tiene la banca todavía</string>
     <string name="bank_your_stake">Tu apuesta</string>
     <string name="bank_stake">Apostar</string>
     <string name="bank_stake_title">¿Cuánto apuestas?</string>
@@ -265,7 +264,7 @@
     <string name="rules_manual_count">Cada uno apuesta al bote desde su móvil. El anfitrión da el bote a quien lo ha ganado, entero o a partes, y puede abrir botes nuevos. Un bote que nadie se lleva se queda en la mesa para la mano siguiente.</string>
     <string name="rules_manual_people">Las reglas, los turnos y quién gana cada mano. La app solo apunta lo que dice el anfitrión, y todo se puede deshacer desde el registro.</string>
     <string name="rules_seven_half_play">Se juega con baraja española de 40 cartas. Las cartas de número valen su número y las figuras (sota, caballo y rey), medio punto. Cada uno pide cartas para acercarse a siete y media sin pasarse, y juega solo contra la banca.</string>
-    <string name="rules_seven_half_count">Quien no tiene la banca apuesta antes de repartir. Cuando acaba la mano, el anfitrión resuelve cada apuesta: gana (la banca paga lo mismo), pierde (la apuesta es para la banca), empate (vuelve la apuesta) o siete y media (la banca paga lo que marca esta mesa). La banca cambia de manos desde el panel.</string>
+    <string name="rules_seven_half_count">Quien no tiene la banca apuesta antes de repartir. Cuando acaba la mano, el anfitrión resuelve cada apuesta: gana (la banca paga lo mismo), pierde (la apuesta es para la banca), empate (vuelve la apuesta) o siete y media (la banca paga lo que marca esta mesa). Quien quiera la banca la coge mientras está libre; pasarla a otra persona se hace desde el panel de anfitrión.</string>
     <string name="rules_seven_half_people">Quién tiene la banca y cuándo pasa, qué jugada cuenta como siete y media, y quién se lleva el empate: en muchos sitios, la banca, y entonces el botón que hay que pulsar es «Pierde».</string>
     <string name="rules_blackjack_play">Cada uno intenta acercarse a 21 sin pasarse. Las figuras valen 10, el as 1 u 11, y el resto su número. Un as y una carta de 10 como primeras cartas es blackjack. Todos juegan contra la banca.</string>
     <string name="rules_blackjack_count">Quien no tiene la banca apuesta antes de repartir; doblar es volver a apostar la misma cantidad. Cuando acaba la mano, el anfitrión resuelve cada apuesta: gana, pierde, empate o blackjack (la banca paga lo que marca esta mesa). Una mano separada se resuelve en dos partes.</string>
@@ -274,4 +273,9 @@
     <string name="rules_poker_count">«Mano nueva» mueve el repartidor y pone las ciegas. El botón grande dice exactamente cuánto cuesta igualar. Entre tandas, el anfitrión cierra la ronda. Si alguien va all-in con menos fichas, «Dividir el bote» separa los botes que puede ganar cada uno, y el anfitrión los da uno a uno.</string>
     <string name="rules_poker_people">De quién es el turno, cuándo se puede pasar y quién gana la mano. La app cuenta las fichas; el juego lo lleváis vosotros.</string>
     <string name="common_back">Atrás</string>
+    <string name="bank_take">Coger la banca</string>
+    <string name="bank_assign">Asignar</string>
+    <string name="bank_change">Cambiar</string>
+    <string name="bank_give">Dásela</string>
+    <string name="log_player_sat_back">se ha sentado en el puesto %1$s</string>
 </resources>

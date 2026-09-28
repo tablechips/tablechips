@@ -752,4 +752,35 @@ class ScreensTest {
         assertEquals(10L, config.bigBlind)
         assertEquals(5L, config.smallBlind)
     }
+
+    /**
+     * Nobody holds the bank yet, so nothing can be staked: taking it is the
+     * one thing to offer, to anybody seated, not only the host.
+     */
+    @Test
+    fun `with a free bank the big button takes it`() {
+        val table = Table("HUGH", TableConfig(mode = GameMode.SEVEN_HALF), clock = { 0 })
+        table.execute(JoinTable(anna, "Anna"))
+        table.execute(JoinTable(bru, "Bru"))
+        table.execute(SitDown(anna))
+        table.execute(SitDown(bru))
+        val state = ClientState(
+            connection = Connection.ONLINE,
+            table = table.snapshot(),
+            you = bru, // not the host
+            undoDepth = table.undoDepth,
+        )
+        var taken = false
+        compose.setContent {
+            TableScreen(
+                state = state, selectedPot = MAIN_POT, onSelectPot = {},
+                undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {},
+                onStand = {}, onSit = {}, onTakeBank = { taken = true },
+            )
+        }
+
+        compose.onNodeWithText("Apostar").assertDoesNotExist()
+        compose.onNodeWithText("Agafar la banca").performClick()
+        assertEquals(true, taken)
+    }
 }

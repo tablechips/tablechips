@@ -106,6 +106,11 @@ data class RenameAction(val name: String) : PlayerAction
 @SerialName("stake")
 data class StakeAction(val amount: Long) : PlayerAction
 
+/** Bank games: take the bank for yourself, while nobody holds it. */
+@Serializable
+@SerialName("take_bank")
+data object TakeBankAction : PlayerAction
+
 /** Bank games: take an unsettled stake back. */
 @Serializable
 @SerialName("cancel_stake")

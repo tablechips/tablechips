@@ -230,4 +230,28 @@ class BankGameTest {
             table.reject(SetConfig(ANNA, table.snapshot().config.copy(mode = GameMode.POKER))),
         )
     }
+
+    @Test
+    fun `anybody seated may take a bank nobody holds`() {
+        val table = seatedTable()
+        table.accept(SetConfig(ANNA, table.snapshot().config.copy(mode = GameMode.SEVEN_HALF)))
+
+        val state = table.accept(SetBanker(BRU, BRU))
+
+        assertEquals(BRU, state.banker)
+    }
+
+    @Test
+    fun `but only the host takes it from somebody or hands it to somebody else`() {
+        val table = bankTable(mode = GameMode.SEVEN_HALF)
+
+        // Anna holds it: Carme cannot take it from her.
+        assertEquals(RuleError.NOT_HOST, table.reject(SetBanker(CARME, CARME)))
+        // Nor can a guest decide who else holds it, even when it is free.
+        table.accept(SetBanker(ANNA, null))
+        assertEquals(RuleError.NOT_HOST, table.reject(SetBanker(BRU, CARME)))
+        // Somebody watching cannot bank at all.
+        table.accept(StandUp(CARME))
+        assertEquals(RuleError.NOT_SEATED, table.reject(SetBanker(CARME, CARME)))
+    }
 }

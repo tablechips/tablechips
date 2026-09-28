@@ -57,6 +57,7 @@ import io.github.victormico.tablechips.protocol.SettleCommand
 import io.github.victormico.tablechips.protocol.SplitPotsCommand
 import io.github.victormico.tablechips.protocol.StakeAction
 import io.github.victormico.tablechips.protocol.StartHandCommand
+import io.github.victormico.tablechips.protocol.TakeBankAction
 import io.github.victormico.tablechips.protocol.Sit
 import io.github.victormico.tablechips.protocol.StandUpAction
 import io.github.victormico.tablechips.protocol.StateMessage
@@ -284,6 +285,7 @@ internal fun ClientMessage.toCommand(actor: PlayerId): TableCommand? = when (thi
         is RenameAction -> Rename(actor, action.name)
         is StakeAction -> PlaceStake(actor, action.amount)
         CancelStakeAction -> CancelStake(actor)
+        TakeBankAction -> SetBanker(actor, actor)
         FoldAction -> Fold(actor)
         StandUpAction -> StandUp(actor)
     }

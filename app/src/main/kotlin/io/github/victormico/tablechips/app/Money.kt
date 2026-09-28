@@ -104,6 +104,7 @@ fun logLine(entry: LogEntry, table: TableState): String {
         "log.player_joined" -> stringResource(R.string.log_player_joined)
         "log.player_renamed" -> stringResource(R.string.log_player_renamed, entry.args["name"].orEmpty())
         "log.player_sat" -> stringResource(R.string.log_player_sat, entry.args["seat"].orEmpty(), amount)
+        "log.player_sat_back" -> stringResource(R.string.log_player_sat_back, entry.args["seat"].orEmpty())
         "log.player_stood_up" -> stringResource(R.string.log_player_stood_up)
         "log.player_left" -> stringResource(R.string.log_player_left)
         "log.rebuy" -> stringResource(R.string.log_rebuy, amount)

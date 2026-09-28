@@ -79,7 +79,9 @@ data class PlayerSat(
     val buyIn: Long,
     override val at: Long,
 ) : TableEvent {
-    override val logKey: String get() = "log.player_sat"
+    // Sitting back down with one's own chips buys nothing, and the log must not
+    // say "sat down with 0" as if that were a buy-in.
+    override val logKey: String get() = if (buyIn > 0) "log.player_sat" else "log.player_sat_back"
     override val logActor: PlayerId get() = player
     override fun logArgs(): Map<String, String> =
         mapOf("seat" to (seat + 1).toString(), "amount" to buyIn.toString())

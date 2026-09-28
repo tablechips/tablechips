@@ -32,7 +32,12 @@ computes nothing that matters.
 
 `action` is one of `bet` (`amount`, `pot`), `rebuy` (`amount`), `transfer`
 (`to`, `amount`), `rename` (`name`), `stand_up`, `stake` (`amount`, bank games),
-`cancel_stake` (bank games), `fold` (poker).
+`cancel_stake` (bank games), `take_bank` (bank games, only while nobody holds
+it), `fold` (poker).
+
+`sit` with no `seat` returns a player to the seat they last stood up from while
+it is free, and with no `buyIn` a player who still has chips sits down with
+them: coming back from the bar is not a buy-in.
 
 `hostCommand` is one of `award_pot` (`to`, `pot`, `amount?` — null means the
 whole pot), `adjust_stack` (`player`, `delta`), `create_pot` (`name?`),
