@@ -301,4 +301,7 @@
     <string name="poker_bet_column">Bet</string>
     <string name="menu_rename">Change your name</string>
     <string name="common_save">Save</string>
+    <string name="poker_raise_sub">To call it takes %1$s: a raise goes over that</string>
+    <string name="poker_raise_min">Lowest raise</string>
+    <string name="error_below_call">You have to at least call</string>
 </resources>

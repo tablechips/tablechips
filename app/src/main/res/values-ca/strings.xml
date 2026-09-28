@@ -286,4 +286,7 @@
     <string name="poker_bet_column">Aposta</string>
     <string name="menu_rename">Canviar el nom</string>
     <string name="common_save">Desar</string>
+    <string name="poker_raise_sub">Per igualar calen %1$s: la pujada ha de passar-ne</string>
+    <string name="poker_raise_min">Mínim per pujar</string>
+    <string name="error_below_call">Cal igualar l\'aposta com a mínim</string>
 </resources>

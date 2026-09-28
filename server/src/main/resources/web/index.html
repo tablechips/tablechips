@@ -671,6 +671,9 @@ const DICT = {
     "buyIn.confirm": "Fixar a",
     "newPot.name": "poso",
     "log.title": "Registre d'activitat", "log.short": "Registre", "log.back": "Tornar a la taula",
+    "poker.raiseSub": "Per igualar calen %s: la pujada ha de passar-ne",
+    "poker.raiseMin": "Mínim per pujar",
+    "error.below_call": "Cal igualar l'aposta com a mínim",
     "menu.rename": "Canviar el nom",
     "common.save": "Desar",
     "name.title": "Com et dius?",
@@ -815,6 +818,9 @@ const DICT = {
     "buyIn.confirm": "Fijar en",
     "newPot.name": "bote",
     "log.title": "Registro de actividad", "log.short": "Registro", "log.back": "Volver a la mesa",
+    "poker.raiseSub": "Para igualar hacen falta %s: la subida tiene que pasar de ahí",
+    "poker.raiseMin": "Mínimo para subir",
+    "error.below_call": "Hay que igualar la apuesta como mínimo",
     "menu.rename": "Cambiar el nombre",
     "common.save": "Guardar",
     "name.title": "¿Cómo te llamas?",
@@ -961,6 +967,9 @@ const DICT = {
     "buyIn.confirm": "Set to",
     "newPot.name": "side pot",
     "log.title": "Activity log", "log.short": "Log", "log.back": "Back to the table",
+    "poker.raiseSub": "To call it takes %s: a raise goes over that",
+    "poker.raiseMin": "Lowest raise",
+    "error.below_call": "You have to at least call",
     "menu.rename": "Change your name",
     "common.save": "Save",
     "name.title": "What is your name?",
@@ -1621,12 +1630,29 @@ function pokerActions(who) {
     first.append(el("span", null, t("poker.bet")));
     first.onclick = () => openBet();
   }
+  // With nothing owed the big button already is the bet; and whoever cannot
+  // even cover the call has no raise to make, only the all-in call.
   const row = el("div", "row");
-  row.append(
-    action(owed > 0 ? t("poker.raise") : t("action.bet"), () => openBet()),
-    action(t("poker.fold"), () => act({ type: "fold" }), "danger")
-  );
+  if (owed > 0 && who.stack > owed) row.append(action(t("poker.raise"), () => openRaise(owed)));
+  row.append(action(t("poker.fold"), () => act({ type: "fold" }), "danger"));
   return [first, row];
+}
+
+/**
+ * A raise starts from the call — those chips go in either way — and is only
+ * a raise once it goes over it. Under that, the balance line says what the
+ * least raise is, rather than leave a greyed-out button to explain itself.
+ */
+function openRaise(owed) {
+  const who = mine();
+  openAmount({
+    title: t("poker.raise"), sub: ["poker.raiseSub", num(fmt(owed))],
+    confirm: t("poker.raise"), initial: owed, max: who.stack,
+    rest: (value) => value <= owed
+      ? { label: t("poker.raiseMin"), value: owed + 1, bad: true }
+      : { label: t("amount.remaining"), value: who.stack - value, bad: value > who.stack },
+    run: (value) => act({ type: "bet", amount: value, pot: "main" })
+  });
 }
 
 function openStake() {
@@ -1657,6 +1683,7 @@ let untouched = false;
 function openAmount(next) {
   flow = next;
   chipCounts = null;
+  padFresh = true;
   typed = next.initial === undefined ? "" : String(next.initial);
   untouched = typed !== "";
   showView("amount");
@@ -1751,6 +1778,10 @@ let byChips = store.get("amountByChips") === "1";
 // The rows are the truth while the pad is open; null means "start again from
 // the amount", in the fewest chips, which is how a bet is pushed.
 let chipCounts = null;
+// A new amount opens the pad at its top, with the biggest chip in view. It is
+// reset on the first draw rather than when the flow opens: the view is still
+// hidden then, and a hidden element keeps its old scroll offset regardless.
+let padFresh = false;
 
 /** The same as `fewestChips` in :core: largest first. */
 function fewestChips(amount) {
@@ -1814,7 +1845,9 @@ function renderChipPad() {
     all.onclick = () => { chipCounts = fewestChips(max); setAmount(max); };
     row.append(all);
   }
-  document.getElementById("chipPad").replaceChildren(...lines, row);
+  const pad = document.getElementById("chipPad");
+  pad.replaceChildren(...lines, row);
+  if (padFresh) { pad.scrollTop = 0; padFresh = false; }
 }
 
 function changeChip(chip, by) {

@@ -171,6 +171,13 @@ object Rules {
         if (command.amount <= 0) return fail(RuleError.INVALID_AMOUNT)
         if (command.amount > player.stack) return fail(RuleError.INSUFFICIENT_CHIPS)
         state.pot(command.pot) ?: return fail(RuleError.UNKNOWN_POT)
+        // At poker a bet at least matches what is owed — calling it or raising
+        // over it — unless it is everything the player has: an all-in for
+        // less is the one short bet the game allows.
+        if (state.config.mode == GameMode.POKER) {
+            val owed = state.toCall(player.id)
+            if (command.amount < owed && command.amount < player.stack) return fail(RuleError.BELOW_CALL)
+        }
         return ok(BetPlaced(player.id, command.amount, command.pot, at))
     }
 

@@ -48,6 +48,7 @@ fun errorText(code: String): String = stringResource(
         "no_stake" -> R.string.error_no_stake
         "nothing_to_split" -> R.string.error_nothing_to_split
         "not_enough_players" -> R.string.error_not_enough_players
+        "below_call" -> R.string.error_below_call
         "table_closed" -> R.string.error_table_closed
         "seat_transferred" -> R.string.error_seat_transferred
         else -> R.string.error_no_table

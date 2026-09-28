@@ -892,4 +892,52 @@ class ScreensTest {
         compose.onNodeWithText("Obrir la taula").performClick()
         assertEquals(true, opened)
     }
+
+    @Test
+    fun `raising starts from what is owed`() {
+        var raised = 0L
+        val state = pokerState().copy(you = anna) // owes 10
+        compose.setContent {
+            TableScreen(
+                state = state, selectedPot = MAIN_POT, onSelectPot = {},
+                undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {},
+                onStand = {}, onSit = {}, onRaise = { raised = it },
+            )
+        }
+
+        compose.onNodeWithText("Pujar").performClick()
+        assertEquals(10L, raised)
+    }
+
+    /**
+     * A raise is only a raise above the call: at the call itself the button
+     * stays off, and the line under the figure says what the least raise is.
+     */
+    @Test
+    fun `a raise cannot be confirmed at or under the call`() {
+        var typed by mutableStateOf("50")
+        var confirmed = 0L
+        compose.setContent {
+            AmountScreen(
+                request = AmountRequest(
+                    title = "Pujar", subtitle = "", confirm = "Pujar",
+                    initial = 50, min = 51, minLabel = "Mínim per pujar", max = 905,
+                    restLabel = "Et quedarien", rest = { 905 - it }, onConfirm = { confirmed = it },
+                ),
+                typed = typed, untouched = false, onType = {}, onSet = { typed = it.toString() },
+                onBack = {}, byChips = true,
+            )
+        }
+
+        compose.onNodeWithText("Mínim per pujar").assertIsDisplayed()
+        compose.onNodeWithText("Pujar  50").assertDoesNotExist()
+        compose.onAllNodesWithText("Pujar").onLast().performClick()
+        assertEquals(0L, confirmed)
+
+        // A 5 on top of the call makes it a raise.
+        compose.onNodeWithContentDescription("Una fitxa de 5 més").performClick()
+        compose.onNodeWithText("Et quedarien").assertIsDisplayed()
+        compose.onAllNodesWithText("Pujar").onLast().performClick()
+        assertEquals(55L, confirmed)
+    }
 }

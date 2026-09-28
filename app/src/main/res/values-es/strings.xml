@@ -286,4 +286,7 @@
     <string name="poker_bet_column">Apuesta</string>
     <string name="menu_rename">Cambiar el nombre</string>
     <string name="common_save">Guardar</string>
+    <string name="poker_raise_sub">Para igualar hacen falta %1$s: la subida tiene que pasar de ahí</string>
+    <string name="poker_raise_min">Mínimo para subir</string>
+    <string name="error_below_call">Hay que igualar la apuesta como mínimo</string>
 </resources>

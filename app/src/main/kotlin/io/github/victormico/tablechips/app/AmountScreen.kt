@@ -53,6 +53,10 @@ data class AmountRequest(
     val initial: Long? = null,
     /** Highest legal value, when there is one: a bet cannot exceed the stack. */
     val max: Long? = null,
+    /** Lowest legal value, when there is one: a raise has to go over the call. */
+    val min: Long? = null,
+    /** What the balance line says while the amount is under [min]. */
+    val minLabel: String? = null,
     val allowZero: Boolean = false,
     /** The pot, when the shortcuts should offer half of it and all of it. */
     val pot: Long? = null,
@@ -84,7 +88,8 @@ fun AmountScreen(
     val value = typed.toLongOrNull() ?: 0L
     val rest = request.rest(value)
     val overMax = request.max != null && value > request.max
-    val ready = (value > 0 || request.allowZero) && !overMax
+    val underMin = request.min != null && value < request.min
+    val ready = (value > 0 || request.allowZero) && !overMax && !underMin
 
     Frame(
         scrolling = false,
@@ -134,11 +139,18 @@ fun AmountScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    TcText(request.restLabel, Type.body, color = Refugi.text2)
+                    // Under the minimum, the line says what the minimum is
+                    // rather than leave a greyed-out button to explain itself.
+                    val short = underMin && request.min != null
                     TcText(
-                        chips(rest),
+                        if (short) request.minLabel ?: request.restLabel else request.restLabel,
+                        Type.body,
+                        color = if (short) Refugi.loss else Refugi.text2,
+                    )
+                    TcText(
+                        chips(if (short) request.min!! else rest),
                         Type.chips.copy(fontSize = 17.sp),
-                        color = if (overMax) Refugi.loss else Refugi.text,
+                        color = if (overMax || short) Refugi.loss else Refugi.text,
                     )
                 }
             }

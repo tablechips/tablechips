@@ -144,6 +144,7 @@ enum class RuleError {
     @SerialName("no_stake") NO_STAKE,
     @SerialName("nothing_to_split") NOTHING_TO_SPLIT,
     @SerialName("not_enough_players") NOT_ENOUGH_PLAYERS,
+    @SerialName("below_call") BELOW_CALL,
 }
 
 sealed interface CommandResult {

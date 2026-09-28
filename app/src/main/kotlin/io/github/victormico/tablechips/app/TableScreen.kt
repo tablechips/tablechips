@@ -66,6 +66,7 @@ fun TableScreen(
     onCancelStake: () -> Unit = {},
     onTakeBank: () -> Unit = {},
     onCall: (Long) -> Unit = {},
+    onRaise: (Long) -> Unit = {},
     onFold: () -> Unit = {},
 ) {
     val table = state.table ?: return
@@ -92,7 +93,7 @@ fun TableScreen(
             if (state.seated) {
                 when {
                     table.config.mode.isBankGame -> BankActions(state, onStake, onCancelStake, onTakeBank)
-                    table.config.mode == GameMode.POKER -> PokerActions(state, onBet, onCall, onFold)
+                    table.config.mode == GameMode.POKER -> PokerActions(state, onBet, onCall, onRaise, onFold)
                     else -> PrimaryButton(stringResource(R.string.action_bet), onBet)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
@@ -299,6 +300,7 @@ private fun PokerActions(
     state: ClientState,
     onBet: () -> Unit,
     onCall: (Long) -> Unit,
+    onRaise: (Long) -> Unit,
     onFold: () -> Unit,
 ) {
     val table = state.table ?: return
@@ -318,12 +320,13 @@ private fun PokerActions(
         PrimaryButton(stringResource(R.string.poker_bet), onBet)
     }
     // With nothing to call there is nothing to raise either: the big button is
-    // already the bet, and offering the same thing twice only confuses.
+    // already the bet, and offering the same thing twice only confuses. Nor is
+    // there a raise for somebody whose whole stack does not cover the call.
     Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-        if (owed > 0) {
+        if (owed > 0 && me.stack > owed) {
             SecondaryButton(
                 label = stringResource(R.string.poker_raise),
-                onClick = onBet,
+                onClick = { onRaise(owed) },
                 modifier = Modifier.weight(1f),
             )
         }

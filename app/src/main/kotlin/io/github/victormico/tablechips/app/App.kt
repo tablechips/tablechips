@@ -75,6 +75,9 @@ private class AppTexts(
     val bankStake: String,
     val bankStakeTitle: String,
     val pokerBlinds: String,
+    val pokerRaise: String,
+    val pokerRaiseSub: String,
+    val pokerRaiseMin: String,
     val pokerBlindsSub: String,
     val buyInConfirm: String,
     val buyInSub: String,
@@ -104,6 +107,9 @@ private fun appTexts(): AppTexts = AppTexts(
     bankStake = stringResource(R.string.bank_stake),
     bankStakeTitle = stringResource(R.string.bank_stake_title),
     pokerBlinds = stringResource(R.string.poker_blinds),
+    pokerRaise = stringResource(R.string.poker_raise),
+    pokerRaiseSub = stringResource(R.string.poker_raise_sub),
+    pokerRaiseMin = stringResource(R.string.poker_raise_min),
     pokerBlindsSub = stringResource(R.string.poker_blinds_sub),
     buyInConfirm = stringResource(R.string.buy_in_confirm),
     buyInSub = stringResource(R.string.buy_in_sub),
@@ -472,6 +478,28 @@ fun App(
                 // side pot the screen happens to be showing.
                 onCall = { amount -> Session.act(Action(BetAction(amount, MAIN_POT))) },
                 onFold = { Session.act(Action(FoldAction)) },
+                // A raise starts from the call — those chips go in either way —
+                // and is only a raise once it goes over it.
+                onRaise = { owed ->
+                    val me = state.me ?: return@TableScreen
+                    openAmount(
+                        AmountRequest(
+                            title = texts.pokerRaise,
+                            subtitle = texts.pokerRaiseSub.format(chips(owed)),
+                            confirm = texts.pokerRaise,
+                            initial = owed,
+                            min = owed + 1,
+                            minLabel = texts.pokerRaiseMin,
+                            max = me.stack,
+                            restLabel = texts.amountRemaining,
+                            rest = { me.stack - it },
+                            onConfirm = { amount ->
+                                Session.act(Action(BetAction(amount, MAIN_POT)))
+                                back()
+                            },
+                        ),
+                    )
+                },
                 onSit = {
                     // Back from the bar with chips: sit straight down with them.
                     // The buy-in screen is for somebody bringing chips in.

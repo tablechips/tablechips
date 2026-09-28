@@ -327,4 +327,39 @@ class PokerTest {
         assertNull(state.button)
         assertTrue(state.balanced)
     }
+
+    @Test
+    fun `a bet has to at least match what is owed`() {
+        val table = pokerTable()
+        table.accept(StartHand(ANNA))
+
+        // Anna owes the big blind, 10: 5 is not a bet the game allows.
+        assertEquals(RuleError.BELOW_CALL, table.reject(PlaceBet(ANNA, 5)))
+        // Calling is exactly the owed amount; raising is anything above it.
+        assertEquals(10, table.accept(PlaceBet(ANNA, 10)).player(ANNA)!!.roundBet)
+        assertEquals(RuleError.BELOW_CALL, table.reject(PlaceBet(BRU, 4)))
+        assertEquals(30, table.accept(PlaceBet(BRU, 25)).player(BRU)!!.roundBet)
+    }
+
+    @Test
+    fun `all-in for less than the call is the one short bet allowed`() {
+        val table = pokerTable(defaultBuyIn = 0, smallBlind = 5, bigBlind = 10)
+        table.accept(Rebuy(ANNA, 7))
+        table.accept(Rebuy(BRU, 100))
+        table.accept(Rebuy(CARME, 100))
+        table.accept(StartHand(ANNA))
+
+        val state = table.accept(PlaceBet(ANNA, 7))
+
+        assertEquals(0, state.player(ANNA)!!.stack)
+        assertTrue(state.balanced)
+    }
+
+    @Test
+    fun `outside poker a bet is whatever the player says`() {
+        val table = seatedTable()
+        table.accept(PlaceBet(ANNA, 30))
+
+        assertEquals(1, table.accept(PlaceBet(BRU, 1)).pot(MAIN_POT)!!.amount - 30)
+    }
 }
