@@ -447,4 +447,84 @@ class PokerTest {
         assertEquals(0, table.accept(UndoLast(ANNA)).button)
         assertEquals(30, table.accept(UndoLast(ANNA)).pot(MAIN_POT)!!.amount)
     }
+    @Test
+    fun `when everybody else folds, the one left takes the pot and the next hand is dealt`() {
+        val table = pokerTable()
+        table.accept(StartHand(ANNA))            // button 0, blinds Bru 5 and Carme 10
+        table.accept(PlaceBet(ANNA, 30))
+        table.accept(Fold(BRU))
+
+        val state = table.accept(Fold(CARME))
+
+        // Anna took the 45 and the button moved on to Bru.
+        assertEquals(1, state.button)
+        assertEquals(115, state.player(ANNA)!!.stack + state.player(ANNA)!!.committed)
+        assertEquals(15, state.pot(MAIN_POT)!!.amount)
+        assertFalse(state.player(CARME)!!.folded)
+        assertEquals(
+            listOf("log.player_folded", "log.pot_awarded", "log.hand_started"),
+            state.log.takeLast(3).map { it.key },
+        )
+        assertTrue(state.balanced)
+    }
+
+    @Test
+    fun `a player with no chips and nothing in the hand is not in it`() {
+        val table = pokerTable(defaultBuyIn = 0, smallBlind = 5, bigBlind = 10)
+        table.accept(Rebuy(ANNA, 100))
+        table.accept(Rebuy(BRU, 100))             // Carme sits there with nothing
+        table.accept(StartHand(ANNA))             // heads-up blinds: Anna 5, Bru 10
+
+        val state = table.accept(Fold(ANNA))
+
+        assertEquals(105, state.player(BRU)!!.stack + state.player(BRU)!!.committed)
+        assertTrue(state.balanced)
+    }
+
+    @Test
+    fun `an all-in player is still in the hand, so a fold leaves a showdown`() {
+        val table = pokerTable(defaultBuyIn = 0, smallBlind = 0, bigBlind = 0)
+        table.accept(Rebuy(ANNA, 100))
+        table.accept(Rebuy(BRU, 100))
+        table.accept(Rebuy(CARME, 30))
+        table.accept(StartHand(ANNA))
+        table.accept(PlaceBet(CARME, 30))
+        table.accept(PlaceBet(ANNA, 100))
+
+        val state = table.accept(Fold(BRU))
+
+        assertEquals(130, state.pot(MAIN_POT)!!.amount)
+        assertEquals("log.player_folded", state.log.last().key)
+    }
+
+    @Test
+    fun `a tie shares the pot, odd chips first to the left of the button`() {
+        val table = pokerTable(defaultBuyIn = 0, smallBlind = 0, bigBlind = 0)
+        table.accept(Rebuy(ANNA, 100))
+        table.accept(Rebuy(BRU, 100))
+        table.accept(Rebuy(CARME, 100))
+        table.accept(StartHand(ANNA))             // button at seat 0
+        table.accept(PlaceBet(ANNA, 11))
+        table.accept(PlaceBet(BRU, 11))
+        table.accept(PlaceBet(CARME, 11))
+
+        val state = table.accept(SharePot(ANNA, listOf(ANNA, CARME)))
+
+        // 33 between two: Carme, nearer the dealer's left, gets the odd chip.
+        assertEquals(89 + 16, state.player(ANNA)!!.stack)
+        assertEquals(89 + 17, state.player(CARME)!!.stack)
+        assertEquals(1, state.button)
+        assertTrue(state.balanced)
+    }
+
+    @Test
+    fun `a tie is between winners who could win that pot`() {
+        val table = pokerTable()
+        table.accept(StartHand(ANNA))
+
+        assertEquals(RuleError.NOT_HOST, table.reject(SharePot(BRU, listOf(ANNA, BRU))))
+        assertEquals(RuleError.INVALID_TARGET, table.reject(SharePot(ANNA, listOf(ANNA))))
+        assertEquals(RuleError.INVALID_TARGET, table.reject(SharePot(ANNA, listOf(ANNA, ANNA))))
+        assertEquals(RuleError.UNKNOWN_POT, table.reject(SharePot(ANNA, listOf(ANNA, BRU), PotId("nope"))))
+    }
 }

@@ -133,6 +133,14 @@ data class AwardPotCommand(
     val amount: Long? = null,
 ) : HostCommand
 
+/** A tie: the pot shared evenly between the winners. */
+@Serializable
+@SerialName("share_pot")
+data class SharePotCommand(
+    val winners: List<PlayerId>,
+    val pot: PotId = MAIN_POT,
+) : HostCommand
+
 @Serializable
 @SerialName("adjust_stack")
 data class AdjustStackCommand(val player: PlayerId, val delta: Long) : HostCommand

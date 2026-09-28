@@ -71,6 +71,19 @@ data class AwardPot(
     val amount: Long? = null,
 ) : TableCommand
 
+/**
+ * Host only. A tie: the pot shared evenly between [winners]. Chips that do not
+ * divide go one each to the winners nearest the dealer's left, as at a real
+ * table.
+ */
+@Serializable
+@SerialName("share_pot")
+data class SharePot(
+    override val actor: PlayerId,
+    val winners: List<PlayerId>,
+    val pot: PotId = MAIN_POT,
+) : TableCommand
+
 @Serializable
 @SerialName("create_pot")
 data class CreatePot(override val actor: PlayerId, val name: String? = null) : TableCommand

@@ -158,8 +158,9 @@ class ModesTest {
         play(b, Sit())
         play(a, HostCommandMessage(StartHandCommand))
 
+        // Heads-up, Bru folding hands Anna the pot and deals the next hand at once.
         play(b, Action(FoldAction))
-        assertTrue(a.lastState().state.player(bru)!!.folded)
+        assertTrue(a.lastState().state.log.any { it.key == "log.player_folded" && it.actor == bru })
 
         play(a, HostCommandMessage(SetConfigCommand(
             a.lastState().state.config.copy(mode = GameMode.MANUAL),

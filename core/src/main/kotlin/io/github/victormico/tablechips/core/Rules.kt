@@ -50,6 +50,7 @@ object Rules {
             is Rebuy -> planRebuy(state, command, at)
             is TransferChips -> planTransfer(state, command, at)
             is AwardPot -> planAward(state, command, at)
+            is SharePot -> planShare(state, command, at)
             is CreatePot -> planCreatePot(state, command, at)
             is AdjustStack -> planAdjust(state, command, at)
             is SetConfig -> planSetConfig(state, command, at)
@@ -205,21 +206,53 @@ object Rules {
         // hide the others, but the rule lives here: the whole point of the
         // split is that an all-in for less cannot be handed more than its share.
         // A host who disagrees with the split undoes it and awards by hand.
-        pot.eligible?.let { if (winner.id !in it) return fail(RuleError.INVALID_TARGET) }
+        if (!pot.isWinnableBy(winner.id)) return fail(RuleError.INVALID_TARGET)
         val amount = command.amount ?: pot.amount
         if (amount <= 0) return fail(RuleError.INVALID_AMOUNT)
         if (amount > pot.amount) return fail(RuleError.POT_TOO_SMALL)
-        val award = PotAwarded(pot.id, winner.id, amount, at)
-        // At poker, the last chips leaving the pot is the end of the hand, and a
-        // real table deals the next one: the button moves and the blinds go in,
-        // in the same move. A pot split between winners, or a side pot still to
-        // give, keeps the hand open until the last of it has gone.
-        if (state.config.mode != GameMode.POKER) return ok(award)
-        val after = apply(state, award)
-        if (after.pots.any { it.amount > 0 }) return ok(award)
-        val next = nextHand(after, at) ?: return ok(award)
-        return ok(award, next)
+        return awarded(state, listOf(PotAwarded(pot.id, winner.id, amount, at)), at)
     }
+
+    private fun planShare(state: TableState, command: SharePot, at: Long): Plan {
+        if (!isHost(state, command.actor)) return fail(RuleError.NOT_HOST)
+        val pot = state.pot(command.pot) ?: return fail(RuleError.UNKNOWN_POT)
+        val winners = command.winners.distinct()
+        if (winners.size < 2) return fail(RuleError.INVALID_TARGET)
+        val players = winners.map { state.player(it) ?: return fail(RuleError.INVALID_TARGET) }
+        if (players.any { !pot.isWinnableBy(it.id) }) return fail(RuleError.INVALID_TARGET)
+        if (pot.amount <= 0) return fail(RuleError.INVALID_AMOUNT)
+        // The odd chips go round from the dealer's left, the way a dealer
+        // would push them: whoever acts first after the button gets the first.
+        val order = players.sortedBy { player ->
+            val seat = player.seat ?: player.lastSeat ?: Int.MAX_VALUE
+            val button = state.button ?: -1
+            if (seat > button) seat else seat + MAX_SEATS + 1
+        }
+        val share = pot.amount / order.size
+        val odd = pot.amount % order.size
+        val awards = order.mapIndexedNotNull { index, player ->
+            val amount = share + if (index < odd) 1 else 0
+            if (amount > 0) PotAwarded(pot.id, player.id, amount, at) else null
+        }
+        return awarded(state, awards, at)
+    }
+
+    /**
+     * Pots handed out, and at poker what follows: the last chips leaving the
+     * pot are the end of the hand, and a real table deals the next one — the
+     * button moves and the blinds go in, in the same move. A pot split between
+     * winners by hand, or a side pot still to give, keeps the hand open until
+     * the last of it has gone.
+     */
+    private fun awarded(state: TableState, awards: List<TableEvent>, at: Long): Plan {
+        if (state.config.mode != GameMode.POKER) return Plan.Ok(awards)
+        val after = awards.fold(state, ::apply)
+        if (after.pots.any { it.amount > 0 }) return Plan.Ok(awards)
+        val next = nextHand(after, at) ?: return Plan.Ok(awards)
+        return Plan.Ok(awards + next)
+    }
+
+    private fun Pot.isWinnableBy(player: PlayerId): Boolean = eligible?.let { player in it } ?: true
 
     private fun planCreatePot(state: TableState, command: CreatePot, at: Long): Plan {
         if (!isHost(state, command.actor)) return fail(RuleError.NOT_HOST)
@@ -340,9 +373,13 @@ object Rules {
         return HandStarted(button, blindsFor(state, order, button), at)
     }
 
-    /** Seats with somebody in them, in table order. */
+    /**
+     * Seats with somebody in them who can play, in table order. A player
+     * sitting there with no chips is dealt out: the button and the blinds pass
+     * them by until they buy back in.
+     */
     private fun seatOrder(state: TableState): List<Int> =
-        state.players.mapNotNull { it.seat }.sorted()
+        state.players.filter { it.stack > 0 }.mapNotNull { it.seat }.sorted()
 
     private fun nextSeat(order: List<Int>, after: Int?): Int =
         order.firstOrNull { after == null || it > after } ?: order.first()
@@ -376,7 +413,30 @@ object Rules {
         val player = state.player(command.actor) ?: return fail(RuleError.UNKNOWN_PLAYER)
         if (!player.seated) return fail(RuleError.NOT_SEATED)
         if (player.folded) return Plan.Ok(emptyList())
-        return ok(PlayerFolded(player.id, at))
+        val folded = PlayerFolded(player.id, at)
+        // Everybody else gave up: there is no showdown and nothing for the host
+        // to judge, so the one left takes every pot and the next hand is dealt.
+        val after = apply(state, folded)
+        val winner = lastOneStanding(after) ?: return ok(folded)
+        val awards = after.pots.filter { it.amount > 0 }.map { PotAwarded(it.id, winner, it.amount, at) }
+        val tail = awarded(after, awards, at) as Plan.Ok
+        return Plan.Ok(listOf(folded) + tail.events)
+    }
+
+    /**
+     * The one player still in the hand once all the others have folded, or
+     * null while the hand is still being played. Players with nothing in front
+     * of them and nothing behind are not in it; one who can still play and has
+     * not folded is. Only a pot the survivor can win on every layer is theirs
+     * without a word from the host.
+     */
+    private fun lastOneStanding(state: TableState): PlayerId? {
+        val inHand = state.players.filter { it.seated && !it.folded && (it.committed > 0 || it.stack > 0) }
+        val winner = inHand.singleOrNull() ?: return null
+        val pots = state.pots.filter { it.amount > 0 }
+        if (pots.isEmpty() || state.players.none { it.committed > 0 }) return null
+        if (pots.any { !it.isWinnableBy(winner.id) }) return null
+        return winner.id
     }
 
     private fun planCloseRound(state: TableState, command: CloseRound, at: Long): Plan {

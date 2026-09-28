@@ -19,6 +19,7 @@ import io.github.victormico.tablechips.core.SetBanker
 import io.github.victormico.tablechips.core.SetConfig
 import io.github.victormico.tablechips.core.SettleHand
 import io.github.victormico.tablechips.core.SitDown
+import io.github.victormico.tablechips.core.SharePot
 import io.github.victormico.tablechips.core.SplitPots
 import io.github.victormico.tablechips.core.StandUp
 import io.github.victormico.tablechips.core.StartHand
@@ -54,6 +55,7 @@ import io.github.victormico.tablechips.protocol.ServerMessage
 import io.github.victormico.tablechips.protocol.SetBankerCommand
 import io.github.victormico.tablechips.protocol.SetConfigCommand
 import io.github.victormico.tablechips.protocol.SettleCommand
+import io.github.victormico.tablechips.protocol.SharePotCommand
 import io.github.victormico.tablechips.protocol.SplitPotsCommand
 import io.github.victormico.tablechips.protocol.StakeAction
 import io.github.victormico.tablechips.protocol.StartHandCommand
@@ -292,6 +294,7 @@ internal fun ClientMessage.toCommand(actor: PlayerId): TableCommand? = when (thi
 
     is HostCommandMessage -> when (val command = command) {
         is AwardPotCommand -> AwardPot(actor, command.to, command.pot, command.amount)
+        is SharePotCommand -> SharePot(actor, command.winners, command.pot)
         is AdjustStackCommand -> AdjustStack(actor, command.player, command.delta)
         is CreatePotCommand -> CreatePot(actor, command.name)
         is SetConfigCommand -> SetConfig(actor, command.config)
