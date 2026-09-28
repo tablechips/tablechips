@@ -235,6 +235,28 @@ class PokerTest {
     }
 
     @Test
+    fun `a side pot cannot be given to somebody who did not pay into it`() {
+        val table = pokerTable(defaultBuyIn = 0, smallBlind = 0, bigBlind = 0)
+        table.accept(Rebuy(ANNA, 100))
+        table.accept(Rebuy(BRU, 100))
+        table.accept(Rebuy(CARME, 30))
+        table.accept(StartHand(ANNA))
+        table.accept(PlaceBet(CARME, 30))
+        table.accept(PlaceBet(ANNA, 100))
+        table.accept(PlaceBet(BRU, 100))
+        val side = table.accept(SplitPots(ANNA)).pots[1]
+
+        // Enforced by the rules, not only hidden by the screens.
+        assertEquals(RuleError.INVALID_TARGET, table.reject(AwardPot(ANNA, CARME, side.id)))
+
+        // The way out for a host who disagrees: undo the split, award by hand.
+        table.accept(UndoLast(ANNA))
+        val state = table.accept(AwardPot(ANNA, CARME, MAIN_POT, 50))
+        assertEquals(50, state.player(CARME)!!.stack)
+        assertTrue(state.balanced)
+    }
+
+    @Test
     fun `a new hand clears the last one and drops nothing`() {
         val table = pokerTable()
         table.accept(StartHand(ANNA))

@@ -190,6 +190,11 @@ object Rules {
         if (!isHost(state, command.actor)) return fail(RuleError.NOT_HOST)
         val pot = state.pot(command.pot) ?: return fail(RuleError.UNKNOWN_POT)
         val winner = state.player(command.to) ?: return fail(RuleError.INVALID_TARGET)
+        // A side pot is only winnable by those who paid into it. The clients
+        // hide the others, but the rule lives here: the whole point of the
+        // split is that an all-in for less cannot be handed more than its share.
+        // A host who disagrees with the split undoes it and awards by hand.
+        pot.eligible?.let { if (winner.id !in it) return fail(RuleError.INVALID_TARGET) }
         val amount = command.amount ?: pot.amount
         if (amount <= 0) return fail(RuleError.INVALID_AMOUNT)
         if (amount > pot.amount) return fail(RuleError.POT_TOO_SMALL)
