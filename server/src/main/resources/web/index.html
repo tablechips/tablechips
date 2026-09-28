@@ -282,6 +282,9 @@ button[disabled] { opacity: .4; cursor: default; }
             font-size: 16px; display: flex; align-items: center;
             justify-content: space-between; gap: 10px; padding: 0 15px; width: 100%; }
 .awardBtn .g { font-family: var(--mono); font-weight: 600; font-size: 16px; color: var(--gain); }
+.awardBtn.picked { background: var(--surface); border-color: var(--accent); color: var(--accent); }
+.hostHand { display: flex; gap: 9px; }
+.hostHand > .secondary { height: 52px; font-size: 14px; }
 .hrow { display: flex; align-items: center; gap: 9px; padding: 11px 12px;
         background: var(--surface); border: 1px solid var(--line); border-radius: 11px; }
 .hrow .who { flex: 1; min-width: 0; }
@@ -440,6 +443,7 @@ button[disabled] { opacity: .4; cursor: default; }
     </div>
 
     <div class="metrics" id="pots"></div>
+    <div class="hostHand" id="hostHand" hidden></div>
 
     <div class="undoCard" id="undoBar" hidden>
       <div class="txt">
@@ -505,13 +509,27 @@ button[disabled] { opacity: .4; cursor: default; }
         <span class="cap" id="awardCap" data-i18n="hostPanel.awardPot"></span>
         <span class="v num" id="awardPot">0</span>
       </div>
+      <div class="pills" id="awardPots" style="margin-top:11px" hidden></div>
+      <div class="s" id="tieHint" style="margin-top:13px;color:var(--text2)" hidden
+           data-i18n="hostPanel.tieHint"></div>
       <div class="rows" id="awardRows" style="margin-top:13px"></div>
-      <div class="row" style="display:flex;gap:7px;margin-top:7px">
+      <div class="row" id="awardTools" style="display:flex;gap:7px;margin-top:7px">
         <button class="secondary" style="height:52px;font-size:14px" id="splitBtn"
                 data-i18n="hostPanel.split"></button>
+        <button class="secondary" style="height:52px;font-size:14px" id="tieBtn"
+                data-i18n="hostPanel.tie"></button>
         <button class="secondary" style="height:52px;font-size:14px" id="newPotBtn"
                 data-i18n="hostPanel.newPot"></button>
       </div>
+      <div class="row" id="tieTools" style="display:flex;gap:7px;margin-top:7px" hidden>
+        <button class="secondary" style="height:52px;font-size:14px" id="tieCancel"
+                data-i18n="common.cancel"></button>
+        <button class="secondary" style="height:52px;font-size:14px" id="tieOk"></button>
+      </div>
+    </div>
+    <div class="rows" id="pokerBlock" hidden>
+      <div class="cap" data-i18n="mode.poker"></div>
+      <div class="rows" id="pokerRows"></div>
     </div>
     <div class="rows">
       <div class="cap" data-i18n="hostPanel.players"></div>
@@ -520,10 +538,6 @@ button[disabled] { opacity: .4; cursor: default; }
     <div class="rows" id="handsBlock" hidden>
       <div class="cap" data-i18n="bank.hands"></div>
       <div class="rows" id="handRows"></div>
-    </div>
-    <div class="rows" id="pokerBlock" hidden>
-      <div class="cap" data-i18n="mode.poker"></div>
-      <div class="rows" id="pokerRows"></div>
     </div>
     <div class="rows">
       <div class="cap" id="seatsCap" data-i18n="seats.title"></div>
@@ -616,6 +630,7 @@ button[disabled] { opacity: .4; cursor: default; }
     <button id="mHost" data-i18n="hostPanel.title"></button>
     <button id="mLog" data-i18n="log.title"></button>
     <button id="mRename" data-i18n="menu.rename"></button>
+    <button id="mStand" data-i18n="action.stand"></button>
     <div class="langRow">
       <span class="cap" data-i18n="menu.language"></span>
       <div class="pills" id="menuLangs"></div>
@@ -656,7 +671,7 @@ const DICT = {
     "table.free": "lliure",
     "table.free_seats.one": "%s lloc lliure", "table.free_seats.other": "%s llocs lliures",
     "sit.action": "Seure a la taula", "sit.title": "Compra inicial",
-    "sit.sub": "Lloc %s · compra per defecte %s", "sit.confirm": "Seure amb",
+    "sit.sub": "Lloc %s · compra per defecte %s", "sit.confirm": "Seure amb", "sit.back": "Tornar a seure amb", "sit.other": "Altre import",
     "action.bet": "Apostar", "action.rebuy": "Comprar més", "action.stand": "Aixecar-se",
     "leave.action": "Marxar de la taula",
     "leave.confirm": "Vols deixar la taula i traure les teues fitxes del joc?",
@@ -668,6 +683,8 @@ const DICT = {
     "hostPanel.title": "Panell d'amfitrió", "hostPanel.awardPot": "Assignar el pot",
     "hostPanel.awardPart": "Repartir %s", "hostPanel.wins": "%s guanya el pot",
     "hostPanel.split": "Repartir", "hostPanel.newPot": "Pot nou",
+    "hostPanel.tie": "Empat", "hostPanel.tieHint": "Toca els jugadors que han empatat",
+    "hostPanel.tieConfirm": "Repartir entre %s",
     "hostPanel.players": "Jugadors", "hostPanel.give": "Donar", "hostPanel.take": "Llevar",
     "hostPanel.noChips": "%s · sense fitxes",
     "hostPanel.buyIn": "Compra per defecte", "hostPanel.buyInNow": "Ara: %s · toca per canviar-la",
@@ -744,7 +761,7 @@ const DICT = {
     "rules.blackjack.count": "Qui no té la banca aposta abans de repartir; doblar és tornar a apostar la mateixa quantitat. Quan acaba la mà, l'amfitrió resol cada aposta: guanya, perd, empat o blackjack (la banca paga el que marca aquesta taula). Una mà separada es resol en dues parts.",
     "rules.blackjack.people": "Quan es planta la banca, si es pot doblar o separar, i qui ha guanyat cada mà. Les regles de la casa les poseu vosaltres.",
     "rules.poker.play": "Texas hold'em: cadascú rep dues cartes i n'hi ha cinc de comunes, que surten en tres tongades. Hi ha una ronda d'apostes abans i després de cada tongada, i guanya la millor jugada de cinc cartes.",
-    "rules.poker.count": "«Mà nova» mou el repartidor i posa les cegues. El botó gran diu exactament quant costa igualar. Entre tongades, l'amfitrió tanca la ronda. Si algú va all-in amb menys fitxes, «Dividir el pot» separa els pots que pot guanyar cadascú, i l'amfitrió els dona un a un. Quan s'ha donat tot el pot, la mà següent comença sola.",
+    "rules.poker.count": "«Mà nova» mou el repartidor i posa les cegues. El botó gran diu exactament quant costa igualar. Entre tongades, l'amfitrió tanca la ronda. Si algú va all-in amb menys fitxes, «Dividir el pot» separa els pots que pot guanyar cadascú, i l'amfitrió els dona un a un. Quan s'ha donat tot el pot, la mà següent comença sola. Si tothom es retira menys un, el pot és seu sense que ningú hagi de fer res. En un empat, «Empat» reparteix el pot a parts iguals.",
     "rules.poker.people": "De qui és el torn, quan es pot passar i qui guanya la mà. L'app compta les fitxes; el joc el porteu vosaltres.",
     "log.undo": "Desfer", "log.sub": "%s moviments",
     "undo.window": "Es pot desfer",
@@ -799,6 +816,7 @@ const DICT = {
     "poker.fold": "Retirar-se", "poker.folded": "Estàs fora d'aquesta mà",
     "poker.toCall": "Per igualar", "poker.betColumn": "Aposta", "poker.newHand": "Mà nova",
     "poker.closeRound": "Tancar la ronda", "poker.split": "Dividir el pot",
+    "poker.award": "Donar el pot", "poker.betTotal": "La teva aposta quedaria en",
     "poker.blinds": "Cegues", "poker.blindsSub": "Escriu la cega gran: la petita és la meitat", "poker.blindsNow": "%s / %s · toca per canviar-les",
     "poker.button": "Repartidor", "poker.sidePot": "Pot lateral %s",
     "poker.onlyEligible": "Només qui hi juga pot endur-se aquest pot",
@@ -831,7 +849,7 @@ const DICT = {
     "table.free": "libre",
     "table.free_seats.one": "%s puesto libre", "table.free_seats.other": "%s puestos libres",
     "sit.action": "Sentarse a la mesa", "sit.title": "Compra inicial",
-    "sit.sub": "Puesto %s · compra por defecto %s", "sit.confirm": "Sentarse con",
+    "sit.sub": "Puesto %s · compra por defecto %s", "sit.confirm": "Sentarse con", "sit.back": "Volver a sentarse con", "sit.other": "Otro importe",
     "action.bet": "Apostar", "action.rebuy": "Comprar más", "action.stand": "Levantarse",
     "leave.action": "Salir de la mesa",
     "leave.confirm": "¿Quieres dejar la mesa y sacar tus fichas del juego?",
@@ -843,6 +861,8 @@ const DICT = {
     "hostPanel.title": "Panel de anfitrión", "hostPanel.awardPot": "Asignar el bote",
     "hostPanel.awardPart": "Repartir %s", "hostPanel.wins": "%s gana el bote",
     "hostPanel.split": "Repartir", "hostPanel.newPot": "Bote nuevo",
+    "hostPanel.tie": "Empate", "hostPanel.tieHint": "Toca a los jugadores que han empatado",
+    "hostPanel.tieConfirm": "Repartir entre %s",
     "hostPanel.players": "Jugadores", "hostPanel.give": "Dar", "hostPanel.take": "Quitar",
     "hostPanel.noChips": "%s · sin fichas",
     "hostPanel.buyIn": "Compra por defecto", "hostPanel.buyInNow": "Ahora: %s · toca para cambiarla",
@@ -919,7 +939,7 @@ const DICT = {
     "rules.blackjack.count": "Quien no tiene la banca apuesta antes de repartir; doblar es volver a apostar la misma cantidad. Cuando acaba la mano, el anfitrión resuelve cada apuesta: gana, pierde, empate o blackjack (la banca paga lo que marca esta mesa). Una mano separada se resuelve en dos partes.",
     "rules.blackjack.people": "Cuándo se planta la banca, si se puede doblar o separar, y quién ha ganado cada mano. Las reglas de la casa las ponéis vosotros.",
     "rules.poker.play": "Texas hold'em: cada uno recibe dos cartas y hay cinco comunes, que salen en tres tandas. Hay una ronda de apuestas antes y después de cada tanda, y gana la mejor jugada de cinco cartas.",
-    "rules.poker.count": "«Mano nueva» mueve el repartidor y pone las ciegas. El botón grande dice exactamente cuánto cuesta igualar. Entre tandas, el anfitrión cierra la ronda. Si alguien va all-in con menos fichas, «Dividir el bote» separa los botes que puede ganar cada uno, y el anfitrión los da uno a uno. Cuando se ha dado todo el bote, la mano siguiente empieza sola.",
+    "rules.poker.count": "«Mano nueva» mueve el repartidor y pone las ciegas. El botón grande dice exactamente cuánto cuesta igualar. Entre tandas, el anfitrión cierra la ronda. Si alguien va all-in con menos fichas, «Dividir el bote» separa los botes que puede ganar cada uno, y el anfitrión los da uno a uno. Cuando se ha dado todo el bote, la mano siguiente empieza sola. Si todos se retiran menos uno, el bote es suyo sin que nadie tenga que hacer nada. En un empate, «Empate» reparte el bote a partes iguales.",
     "rules.poker.people": "De quién es el turno, cuándo se puede pasar y quién gana la mano. La app cuenta las fichas; el juego lo lleváis vosotros.",
     "log.undo": "Deshacer", "log.sub": "%s movimientos",
     "undo.window": "Se puede deshacer",
@@ -975,6 +995,7 @@ const DICT = {
     "poker.fold": "Retirarse", "poker.folded": "Estás fuera de esta mano",
     "poker.toCall": "Para igualar", "poker.betColumn": "Apuesta", "poker.newHand": "Mano nueva",
     "poker.closeRound": "Cerrar la ronda", "poker.split": "Dividir el bote",
+    "poker.award": "Dar el bote", "poker.betTotal": "Tu apuesta quedaría en",
     "poker.blinds": "Ciegas", "poker.blindsSub": "Escribe la ciega grande: la pequeña es la mitad", "poker.blindsNow": "%s / %s · toca para cambiarlas",
     "poker.button": "Repartidor", "poker.sidePot": "Bote lateral %s",
     "poker.onlyEligible": "Solo quien sigue en la mano puede llevarse este bote",
@@ -1007,7 +1028,7 @@ const DICT = {
     "table.free": "free",
     "table.free_seats.one": "%s free seat", "table.free_seats.other": "%s free seats",
     "sit.action": "Take a seat", "sit.title": "Buy-in",
-    "sit.sub": "Seat %s · table default %s", "sit.confirm": "Sit with",
+    "sit.sub": "Seat %s · table default %s", "sit.confirm": "Sit with", "sit.back": "Sit back down with", "sit.other": "Other amount",
     "action.bet": "Bet", "action.rebuy": "Buy more", "action.stand": "Stand up",
     "leave.action": "Leave the table",
     "leave.confirm": "Leave the table and take your chips out of the game?",
@@ -1019,6 +1040,8 @@ const DICT = {
     "hostPanel.title": "Host panel", "hostPanel.awardPot": "Award the pot",
     "hostPanel.awardPart": "Give out %s", "hostPanel.wins": "%s wins the pot",
     "hostPanel.split": "Split", "hostPanel.newPot": "New pot",
+    "hostPanel.tie": "Tie", "hostPanel.tieHint": "Tap the players who tied",
+    "hostPanel.tieConfirm": "Share between %s",
     "hostPanel.players": "Players", "hostPanel.give": "Give", "hostPanel.take": "Take",
     "hostPanel.noChips": "%s · no chips",
     "hostPanel.buyIn": "Default buy-in", "hostPanel.buyInNow": "Now: %s · tap to change it",
@@ -1096,7 +1119,7 @@ const DICT = {
     "rules.blackjack.count": "Whoever does not hold the bank stakes before the deal; doubling is staking the same amount again. When the hand is over, the host settles each stake: wins, loses, push or blackjack (the bank pays what this table says). A split hand is settled in two parts.",
     "rules.blackjack.people": "When the bank stands, whether doubling and splitting are allowed, and who won each hand. The house rules are yours to set.",
     "rules.poker.play": "Texas hold'em: each player gets two cards and five are shared, dealt in three rounds. There is a round of betting before and after each, and the best five-card hand wins.",
-    "rules.poker.count": "New hand moves the dealer and posts the blinds. The big button says exactly what a call costs. Between rounds, the host closes the round. If somebody goes all-in with fewer chips, Split the pot separates the pots each player can win, and the host awards them one by one. Once the last of the pot is awarded, the next hand deals itself.",
+    "rules.poker.count": "New hand moves the dealer and posts the blinds. The big button says exactly what a call costs. Between rounds, the host closes the round. If somebody goes all-in with fewer chips, Split the pot separates the pots each player can win, and the host awards them one by one. Once the last of the pot is awarded, the next hand deals itself. If everybody but one folds, the pot is theirs without anybody doing a thing. On a tie, Tie shares the pot evenly.",
     "rules.poker.people": "Whose turn it is, when you may check, and who wins the hand. The app counts the chips; the game is yours.",
     "log.undo": "Undo", "log.sub": "%s moves",
     "undo.window": "Can still be undone",
@@ -1151,6 +1174,7 @@ const DICT = {
     "poker.fold": "Fold", "poker.folded": "You are out of this hand",
     "poker.toCall": "To call", "poker.betColumn": "Bet", "poker.newHand": "New hand",
     "poker.closeRound": "Close the round", "poker.split": "Split the pot",
+    "poker.award": "Award the pot", "poker.betTotal": "Your bet would be",
     "poker.blinds": "Blinds", "poker.blindsSub": "Type the big blind: the small one is half of it", "poker.blindsNow": "%s / %s · tap to change them",
     "poker.button": "Dealer", "poker.sidePot": "Side pot %s",
     "poker.onlyEligible": "Only players still in the hand can take this pot",
@@ -1392,9 +1416,16 @@ function eligibleFor(pot) {
   return pot.eligible.map((id) => player(id)).filter(Boolean);
 }
 function potTotal() { return state ? state.pots.reduce((sum, pot) => sum + pot.amount, 0) : 0; }
+/**
+ * The pot the screens act on: the one picked, until it has been given away;
+ * then the next one that still holds chips, so a host handing out side pots
+ * never has to go and find the next one.
+ */
 function currentPot() {
   if (!state) return null;
-  return state.pots.find((p) => p.id === selectedPot) || state.pots[0];
+  return state.pots.find((p) => p.id === selectedPot && p.amount > 0)
+    || state.pots.find((p) => p.amount > 0)
+    || state.pots.find((p) => p.id === selectedPot) || state.pots[0];
 }
 let selectedPot = "main";
 
@@ -1471,6 +1502,7 @@ function render() {
   if (view === "log") renderLog();
   if (view === "rules") renderRules();
   document.getElementById("mHost").hidden = !iAmHost();
+  document.getElementById("mStand").hidden = !seated();
 }
 
 // ---------------------------------------------------------------- table
@@ -1491,9 +1523,30 @@ function renderTable() {
   }
 
   renderPots();
+  renderHostHand();
   renderUndoBar();
   renderSeats();
   renderTableActions();
+}
+
+/**
+ * What the host does between the players' moves, where the host already is:
+ * closing a street, saying who won, dealing when no hand is on. Each shows
+ * only when it would do something.
+ */
+function renderHostHand() {
+  const bar = document.getElementById("hostHand");
+  const nodes = [];
+  if (mode === "poker" && iAmHost()) {
+    const bets = state.players.some((p) => (p.roundBet || 0) > 0);
+    const canDeal = state.players.filter((p) => p.seat !== null && p.stack > 0).length >= 2;
+    const button = (key, onClick) => { const b = el("button", "secondary", t(key)); b.onclick = onClick; return b; };
+    if (bets) nodes.push(button("poker.closeRound", () => hostCommand({ type: "close_round" })));
+    if (potTotal() > 0) nodes.push(button("poker.award", () => { pendingSplit = null; showView("host"); }));
+    else if (canDeal) nodes.push(button("poker.newHand", () => hostCommand({ type: "start_hand" })));
+  }
+  bar.replaceChildren(...nodes);
+  bar.hidden = nodes.length === 0;
 }
 
 function renderPots() {
@@ -1506,7 +1559,7 @@ function renderPots() {
     figure(value, fmt(pot.amount));
     node.append(value);
     if (pots.length > 1) {
-      if (pot.id === selectedPot) node.classList.add("sel");
+      if (pot.id === currentPot().id) node.classList.add("sel");
       node.onclick = () => { selectedPot = pot.id; render(); };
     }
     return node;
@@ -1651,9 +1704,17 @@ function renderTableActions() {
   const bar = document.getElementById("tableActions");
   const nodes = [];
   if (!seated()) {
-    const sit = el("button", "primary", t("sit.action"));
-    sit.onclick = () => askBuyIn(null);
-    bar.replaceChildren(sit);
+    // One tap sits down with what the table deals, or back down with the chips
+    // kept; any other amount is the exception, one tap further.
+    const who = mine();
+    const back = !!who && who.stack > 0;
+    const sit = el("button", "primary");
+    sit.append(el("span", null, t(back ? "sit.back" : "sit.confirm")),
+               el("span", "n", fmt(back ? who.stack : state.config.defaultBuyIn)));
+    sit.onclick = () => send({ type: "sit", seat: null, buyIn: back ? 0 : null });
+    const nodes = [sit];
+    if (!back) nodes.push(action(t("sit.other"), () => askBuyIn(null)));
+    bar.replaceChildren(...nodes);
     return;
   }
   const who = mine();
@@ -1665,12 +1726,9 @@ function renderTableActions() {
     bet.onclick = () => openBet();
     nodes.push(bet);
   }
-  const row = el("div", "row");
-  row.append(
-    action(t("action.rebuy"), () => openRebuy()),
-    action(t("action.stand"), () => act({ type: "stand_up" }))
-  );
-  nodes.push(row);
+  // Standing up is in the menu: next to call and fold, one stray tap would
+  // take a player out of the hand and off the table.
+  nodes.push(action(t("action.rebuy"), () => openRebuy()));
   bar.replaceChildren(...nodes);
 }
 
@@ -1740,9 +1798,11 @@ function openRaise(owed) {
   openAmount({
     title: t("poker.raise"), sub: ["poker.raiseSub", num(fmt(owed))],
     confirm: t("poker.raise"), initial: owed, max: who.stack,
+    poker: { raise: true, roundBet: who.roundBet || 0 },
+    // Where the raise leaves you against the others; the stack is above.
     rest: (value) => value <= owed
       ? { label: t("poker.raiseMin"), value: owed + 1, bad: true }
-      : { label: t("amount.remaining"), value: who.stack - value, bad: value > who.stack },
+      : { label: t("poker.betTotal"), value: (who.roundBet || 0) + value, bad: value > who.stack },
     run: (value) => act({ type: "bet", amount: value, pot: "main" })
   });
 }
@@ -1802,8 +1862,12 @@ function openBet() {
   openAmount({
     title: t("bet.title"), sub: ["bet.sub", num(fmt(mine().stack))],
     confirm: t("bet.confirm"), max: mine().stack, potRelative: true,
-    rest: (value) => ({ label: t("amount.remaining"), value: mine().stack - value,
-                        bad: value > mine().stack }),
+    poker: mode === "poker" ? { raise: false, roundBet: mine().roundBet || 0 } : null,
+    // At poker what matters is where the bet leaves you against the others;
+    // the stack is in the line above.
+    rest: (value) => mode === "poker"
+      ? { label: t("poker.betTotal"), value: (mine().roundBet || 0) + value, bad: value > mine().stack }
+      : { label: t("amount.remaining"), value: mine().stack - value, bad: value > mine().stack },
     run: (value) => act({ type: "bet", amount: value, pot: pot.id })
   });
 }
@@ -1963,16 +2027,31 @@ function renderQuick() {
     button.onclick = () => setAmount(amount);
     return button;
   };
-  const nodes = [add(5), add(25), add(100)];
-  if (flow.potRelative) {
+  const cap = (amount) => (flow.max ? Math.min(flow.max, amount) : amount);
+  const sizes = flow.poker;
+  const nodes = [];
+  if (sizes && sizes.raise) {
+    // A raise is sized in multiples of the bet it raises; the amount is what
+    // goes in now, so twice the bet less what is already in front of you.
+    nodes.push(...[2, 3].map((times) => set("\u00d7" + times, cap(state.currentBet * times - sizes.roundBet))),
+               set(t("amount.pot"), cap(potTotal())), set(t("amount.all"), flow.max || 0, "all"));
+  } else if (sizes && state.config.bigBlind > 0) {
+    // A bet is sized in big blinds, or against the pot.
     const pot = currentPot().amount;
-    nodes.push(set(t("amount.halfPot"), Math.floor(pot / 2)),
+    nodes.push(...[2, 3].map((times) => set(fmt(state.config.bigBlind * times), cap(state.config.bigBlind * times))),
+               set(t("amount.halfPot"), cap(Math.floor(pot / 2))), set(t("amount.pot"), cap(pot)),
+               set(t("amount.all"), flow.max || 0, "all"));
+  } else if (flow.potRelative) {
+    const pot = currentPot().amount;
+    nodes.push(add(5), add(25), add(100),
+               set(t("amount.halfPot"), Math.floor(pot / 2)),
                set(t("amount.pot"), pot),
                set(t("amount.all"), flow.max || 0, "all"));
   } else {
     // No "pot" here: this is not a bet against a pot (a stake, a buy-in, a
     // correction), and offering one where there is none sets a meaningless 0.
-    nodes.push(add(500), set(t("amount.all"), flow.max || state.config.defaultBuyIn, "all"));
+    nodes.push(add(5), add(25), add(100),
+               add(500), set(t("amount.all"), flow.max || state.config.defaultBuyIn, "all"));
   }
   document.getElementById("quick").replaceChildren(...nodes);
 }
@@ -2008,18 +2087,50 @@ function renderHost() {
   figure(document.getElementById("awardPot"), fmt(pot ? pot.amount : 0));
 
   const amount = pendingSplit === null ? (pot ? pot.amount : 0) : pendingSplit;
-  const rows = (pot ? eligibleFor(pot) : seatedPlayers()).map((who) => {
+  if (tying && tying.pot !== (pot && pot.id)) tying = null;
+  // More than one pot: which one is being given is picked here, where it is
+  // given, not back on the table.
+  const potPills = document.getElementById("awardPots");
+  potPills.hidden = state.pots.length < 2;
+  potPills.replaceChildren(...(state.pots.length < 2 ? [] : state.pots.map((each) => {
+    const pill = el("button", "pill" + (pot && each.id === pot.id ? " on" : ""),
+                    potName(each) + " \u00b7 " + fmt(each.amount));
+    pill.onclick = () => { selectedPot = each.id; pendingSplit = null; tying = null; render(); };
+    return pill;
+  })));
+  const winners = pot ? eligibleFor(pot) : seatedPlayers();
+  const rows = winners.map((who) => {
+    if (tying) {
+      const picked = tying.players.includes(who.id);
+      const button = el("button", "awardBtn" + (picked ? " picked" : ""),
+                        (picked ? "\u2713 " : "") + who.name);
+      button.disabled = amount <= 0;
+      button.onclick = () => {
+        tying.players = picked ? tying.players.filter((id) => id !== who.id) : tying.players.concat(who.id);
+        render();
+      };
+      return button;
+    }
     const button = el("button", "awardBtn");
     button.append(el("span", null, t("hostPanel.wins", who.name)), el("span", "g", signed(amount)));
     button.disabled = amount <= 0;
     button.onclick = () => {
-      hostCommand({ type: "award_pot", to: who.id, pot: pot.id,
-                    amount: pendingSplit === null ? null : pendingSplit });
+      const whole = pendingSplit === null;
+      hostCommand({ type: "award_pot", to: who.id, pot: pot.id, amount: whole ? null : pendingSplit });
       pendingSplit = null;
+      if (whole && handOverAfter(pot)) showView("table");
     };
     return button;
   });
   document.getElementById("awardRows").replaceChildren(...rows);
+  document.getElementById("tieHint").hidden = !tying;
+  document.getElementById("awardTools").hidden = !!tying;
+  document.getElementById("tieTools").hidden = !tying;
+  document.getElementById("tieBtn").hidden = winners.length < 2 || pendingSplit !== null;
+  document.getElementById("tieBtn").disabled = !pot || pot.amount <= 0;
+  const tieOk = document.getElementById("tieOk");
+  tieOk.textContent = t("hostPanel.tieConfirm", fmt(tying ? tying.players.length : 0));
+  tieOk.disabled = !tying || tying.players.length < 2;
 
   const playerRows = state.players.map((who) => {
     const row = el("div", "hrow");
@@ -2149,6 +2260,18 @@ function bankerPicker() {
 }
 
 /** Running a hand of poker: the button, the streets, and the side pots. */
+/**
+ * Whether giving away the whole of this pot ends the hand: nothing left in any
+ * other. The host is then done in the panel and goes back to the table, where
+ * the next hand has already been dealt.
+ */
+function handOverAfter(pot) {
+  return mode === "poker" && !state.pots.some((each) => each.id !== pot.id && each.amount > 0);
+}
+
+// Picking the players who tied, rather than the one who won: { pot, players }.
+let tying = null;
+
 function renderPokerPanel() {
   const block = document.getElementById("pokerBlock");
   block.hidden = mode !== "poker";
@@ -2489,6 +2612,7 @@ document.getElementById("menu").onclick = (event) => {
 };
 document.getElementById("mHost").onclick = () => showView("host");
 document.getElementById("mLog").onclick = () => showView("log");
+document.getElementById("mStand").onclick = () => { act({ type: "stand_up" }); showView("table"); };
 document.getElementById("mLeave").onclick = () => {
   if (!confirm(t("leave.confirm"))) return;
   send({ type: "leave" });
@@ -2547,6 +2671,14 @@ document.getElementById("splitBtn").onclick = () => {
     run: (value) => { pendingSplit = value; },
     back: "host"
   });
+};
+document.getElementById("tieBtn").onclick = () => { tying = { pot: currentPot().id, players: [] }; render(); };
+document.getElementById("tieCancel").onclick = () => { tying = null; render(); };
+document.getElementById("tieOk").onclick = () => {
+  const pot = currentPot();
+  hostCommand({ type: "share_pot", winners: tying.players, pot: pot.id });
+  tying = null;
+  if (handOverAfter(pot)) showView("table"); else render();
 };
 document.getElementById("newPotBtn").onclick = () =>
   hostCommand({ type: "create_pot", name: t("newPot.name") });

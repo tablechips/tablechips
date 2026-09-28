@@ -31,7 +31,9 @@ import io.github.victormico.tablechips.app.ui.Type
 import io.github.victormico.tablechips.app.ui.chips
 import io.github.victormico.tablechips.core.Player
 import io.github.victormico.tablechips.core.PotId
+import io.github.victormico.tablechips.core.GameMode
 import io.github.victormico.tablechips.core.TableConfig
+import io.github.victormico.tablechips.core.TableState
 import io.github.victormico.tablechips.core.MAIN_POT
 import io.github.victormico.tablechips.protocol.Action
 import io.github.victormico.tablechips.protocol.AdjustStackCommand
@@ -47,6 +49,7 @@ import io.github.victormico.tablechips.protocol.RebuyAction
 import io.github.victormico.tablechips.protocol.SetBankerCommand
 import io.github.victormico.tablechips.protocol.SetConfigCommand
 import io.github.victormico.tablechips.protocol.SettleCommand
+import io.github.victormico.tablechips.protocol.SharePotCommand
 import io.github.victormico.tablechips.protocol.SplitPotsCommand
 import io.github.victormico.tablechips.protocol.StakeAction
 import io.github.victormico.tablechips.protocol.StartHandCommand
@@ -78,6 +81,7 @@ private class AppTexts(
     val pokerRaise: String,
     val pokerRaiseSub: String,
     val pokerRaiseMin: String,
+    val pokerBetTotal: String,
     val pokerBlindsSub: String,
     val buyInConfirm: String,
     val buyInSub: String,
@@ -110,6 +114,7 @@ private fun appTexts(): AppTexts = AppTexts(
     pokerRaise = stringResource(R.string.poker_raise),
     pokerRaiseSub = stringResource(R.string.poker_raise_sub),
     pokerRaiseMin = stringResource(R.string.poker_raise_min),
+    pokerBetTotal = stringResource(R.string.poker_bet_total),
     pokerBlindsSub = stringResource(R.string.poker_blinds_sub),
     buyInConfirm = stringResource(R.string.buy_in_confirm),
     buyInSub = stringResource(R.string.buy_in_sub),
@@ -229,6 +234,15 @@ fun App(
     val undoable = remember(state.table?.rev, tick) {
         lastEntry?.takeIf { System.currentTimeMillis() - it.at < UNDO_WINDOW_MILLIS }
     }
+
+    // The pot the screens act on: the one picked, until it has been given
+    // away; then the next one that still holds chips, so a host handing out
+    // side pots never has to go and find the next one.
+    val livePot = table?.let { t ->
+        (t.pots.firstOrNull { it.id == selectedPot && it.amount > 0 }
+            ?: t.pots.firstOrNull { it.amount > 0 }
+            ?: t.pots.firstOrNull { it.id == selectedPot })?.id
+    } ?: selectedPot
 
     fun openAmount(next: AmountRequest) {
         request = next
@@ -413,7 +427,7 @@ fun App(
 
             Screen.Table -> TableScreen(
                 state = state,
-                selectedPot = selectedPot,
+                selectedPot = livePot,
                 onSelectPot = { selectedPot = it },
                 undoable = undoable?.let { entry -> table?.let { logLine(entry, it) } },
                 onUndo = { Session.act(HostCommandMessage(UndoCommand)) },
@@ -421,7 +435,8 @@ fun App(
                 onRules = { rulesFrom = Screen.Table; screen = Screen.Rules },
                 onBet = {
                     val me = state.me ?: return@TableScreen
-                    val pot = table?.pots?.firstOrNull { it.id == selectedPot }?.amount ?: 0
+                    val pot = table?.pots?.firstOrNull { it.id == livePot }?.amount ?: 0
+                    val poker = table?.config?.mode == GameMode.POKER
                     openAmount(
                         AmountRequest(
                             title = texts.betTitle,
@@ -429,10 +444,17 @@ fun App(
                             confirm = texts.actionBet,
                             max = me.stack,
                             pot = pot,
-                            restLabel = texts.amountRemaining,
-                            rest = { me.stack - it },
+                            poker = if (poker) {
+                                PokerSizes(table!!.config.bigBlind, table.currentBet, me.roundBet, raise = false)
+                            } else {
+                                null
+                            },
+                            // At poker, what matters is where the bet leaves you
+                            // against the others; the stack is in the subtitle.
+                            restLabel = if (poker) texts.pokerBetTotal else texts.amountRemaining,
+                            rest = { if (poker) me.roundBet + it else me.stack - it },
                             onConfirm = { amount ->
-                                Session.act(Action(BetAction(amount, selectedPot)))
+                                Session.act(Action(BetAction(amount, livePot)))
                                 back()
                             },
                         ),
@@ -456,7 +478,6 @@ fun App(
                         ),
                     )
                 },
-                onStand = { Session.act(Action(StandUpAction)) },
                 onStake = {
                     val me = state.me ?: return@TableScreen
                     openAmount(
@@ -493,8 +514,12 @@ fun App(
                             min = owed + 1,
                             minLabel = texts.pokerRaiseMin,
                             max = me.stack,
-                            restLabel = texts.amountRemaining,
-                            rest = { me.stack - it },
+                            pot = table?.pots?.sumOf { it.amount },
+                            poker = table?.let {
+                                PokerSizes(it.config.bigBlind, it.currentBet, me.roundBet, raise = true)
+                            },
+                            restLabel = texts.pokerBetTotal,
+                            rest = { me.roundBet + it },
                             onConfirm = { amount ->
                                 Session.act(Action(BetAction(amount, MAIN_POT)))
                                 back()
@@ -503,12 +528,12 @@ fun App(
                     )
                 },
                 onSit = {
-                    // Back from the bar with chips: sit straight down with them.
-                    // The buy-in screen is for somebody bringing chips in.
-                    if ((state.me?.stack ?: 0) > 0) {
-                        Session.act(Sit(seat = null, buyIn = 0))
-                        return@TableScreen
-                    }
+                    // Back from the bar with chips, sit straight down with them;
+                    // otherwise with what the table deals.
+                    val back = (state.me?.stack ?: 0) > 0
+                    Session.act(Sit(seat = null, buyIn = if (back) 0 else null))
+                },
+                onSitOther = {
                     openAmount(
                         AmountRequest(
                             title = texts.sitTitle,
@@ -526,6 +551,9 @@ fun App(
                         ),
                     )
                 },
+                onCloseRound = { Session.act(HostCommandMessage(CloseRoundCommand)) },
+                onAwardPot = { pendingSplit = null; screen = Screen.HostPanel },
+                onNewHand = { Session.act(HostCommandMessage(StartHandCommand)) },
             )
 
             Screen.Amount -> if (request == null) back() else request?.let { current ->
@@ -553,16 +581,23 @@ fun App(
 
             Screen.HostPanel -> HostPanelScreen(
                 state = state,
-                selectedPot = selectedPot,
+                selectedPot = livePot,
+                onSelectPot = { selectedPot = it; pendingSplit = null },
                 pendingSplit = pendingSplit,
                 onAward = { player, part ->
                     Session.act(
-                        HostCommandMessage(AwardPotCommand(player.id, selectedPot, part)),
+                        HostCommandMessage(AwardPotCommand(player.id, livePot, part)),
                     )
                     pendingSplit = null
+                    if (part == null && handOverAfter(table, livePot)) screen = Screen.Table
+                },
+                onShare = { winners ->
+                    Session.act(HostCommandMessage(SharePotCommand(winners.map { it.id }, livePot)))
+                    pendingSplit = null
+                    if (handOverAfter(table, livePot)) screen = Screen.Table
                 },
                 onSplit = {
-                    val pot = table?.pots?.firstOrNull { it.id == selectedPot }?.amount ?: 0
+                    val pot = table?.pots?.firstOrNull { it.id == livePot }?.amount ?: 0
                     openAmount(
                         AmountRequest(
                             title = texts.splitTitle,
@@ -777,6 +812,8 @@ fun App(
             TableMenu(
                 hosting = hostStatus.running,
                 isHost = state.isHost,
+                seated = state.seated,
+                onStand = { menuOpen = false; Session.act(Action(StandUpAction)) },
                 onConnection = { menuOpen = false; screen = Screen.Connection },
                 onHostPanel = { menuOpen = false; screen = Screen.HostPanel },
                 onLog = { menuOpen = false; screen = Screen.Log },
@@ -790,6 +827,15 @@ fun App(
         }
     }
 }
+
+/**
+ * Whether giving away the whole of [pot] ends the hand: nothing else left in
+ * any pot. The host is then done here and goes back to the table, where the
+ * next hand has already been dealt.
+ */
+private fun handOverAfter(table: TableState?, pot: PotId): Boolean =
+    table != null && table.config.mode == GameMode.POKER &&
+        table.pots.none { it.id != pot && it.amount > 0 }
 
 /** Host correction, in either direction, through the same amount screen. */
 private fun adjustRequest(
@@ -819,6 +865,8 @@ private fun adjustRequest(
 private fun TableMenu(
     hosting: Boolean,
     isHost: Boolean,
+    seated: Boolean,
+    onStand: () -> Unit,
     onConnection: () -> Unit,
     onHostPanel: () -> Unit,
     onLog: () -> Unit,
@@ -839,6 +887,7 @@ private fun TableMenu(
                 if (isHost) MenuItem(stringResource(R.string.host_panel_title), onHostPanel)
                 MenuItem(stringResource(R.string.log_title), onLog)
                 MenuItem(stringResource(R.string.menu_rename), onRename)
+                if (seated) MenuItem(stringResource(R.string.action_stand), onStand)
                 MenuItem(stringResource(R.string.action_leave), onLeave, Refugi.loss)
                 MenuItem(stringResource(R.string.common_cancel), onClose, Refugi.text2)
             }

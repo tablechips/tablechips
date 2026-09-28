@@ -227,6 +227,14 @@
     <string name="poker_to_call">To call</string>
     <string name="poker_new_hand">New hand</string>
     <string name="poker_close_round">Close the round</string>
+    <string name="poker_award">Award the pot</string>
+    <string name="host_panel_tie">Tie</string>
+    <string name="host_panel_tie_hint">Tap the players who tied</string>
+    <string name="host_panel_tie_confirm">Share between %1$s</string>
+    <string name="host_panel_pot_pick">Which pot</string>
+    <string name="action_sit_back">Sit back down with</string>
+    <string name="action_sit_other">Other amount</string>
+    <string name="poker_bet_total">Your bet would be</string>
     <string name="poker_split">Split the pot</string>
     <string name="poker_blinds">Blinds</string>
     <string name="poker_blinds_sub">Type the big blind: the small one is half of it</string>
@@ -285,7 +293,7 @@
     <string name="rules_blackjack_count">Whoever does not hold the bank stakes before the deal; doubling is staking the same amount again. When the hand is over, the host settles each stake: wins, loses, push or blackjack (the bank pays what this table says). A split hand is settled in two parts.</string>
     <string name="rules_blackjack_people">When the bank stands, whether doubling and splitting are allowed, and who won each hand. The house rules are yours to set.</string>
     <string name="rules_poker_play">Texas hold\'em: each player gets two cards and five are shared, dealt in three rounds. There is a round of betting before and after each, and the best five-card hand wins.</string>
-    <string name="rules_poker_count">New hand moves the dealer and posts the blinds. The big button says exactly what a call costs. Between rounds, the host closes the round. If somebody goes all-in with fewer chips, Split the pot separates the pots each player can win, and the host awards them one by one. Once the last of the pot is awarded, the next hand deals itself.</string>
+    <string name="rules_poker_count">New hand moves the dealer and posts the blinds. The big button says exactly what a call costs. Between rounds, the host closes the round. If somebody goes all-in with fewer chips, Split the pot separates the pots each player can win, and the host awards them one by one. Once the last of the pot is awarded, the next hand deals itself. If everybody but one folds, the pot is theirs without anybody doing a thing. On a tie, Tie shares the pot evenly.</string>
     <string name="rules_poker_people">Whose turn it is, when you may check, and who wins the hand. The app counts the chips; the game is yours.</string>
     <string name="common_back">Back</string>
     <string name="bank_take">Take the bank</string>

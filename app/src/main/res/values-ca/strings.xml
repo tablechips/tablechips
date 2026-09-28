@@ -212,6 +212,14 @@
     <string name="poker_to_call">Per igualar</string>
     <string name="poker_new_hand">Mà nova</string>
     <string name="poker_close_round">Tancar la ronda</string>
+    <string name="poker_award">Donar el pot</string>
+    <string name="host_panel_tie">Empat</string>
+    <string name="host_panel_tie_hint">Toca els jugadors que han empatat</string>
+    <string name="host_panel_tie_confirm">Repartir entre %1$s</string>
+    <string name="host_panel_pot_pick">Quin pot</string>
+    <string name="action_sit_back">Tornar a seure amb</string>
+    <string name="action_sit_other">Altre import</string>
+    <string name="poker_bet_total">La teva aposta quedaria en</string>
     <string name="poker_split">Dividir el pot</string>
     <string name="poker_blinds">Cegues</string>
     <string name="poker_blinds_sub">Escriu la cega gran: la petita és la meitat</string>
@@ -270,7 +278,7 @@
     <string name="rules_blackjack_count">Qui no té la banca aposta abans de repartir; doblar és tornar a apostar la mateixa quantitat. Quan acaba la mà, l\'amfitrió resol cada aposta: guanya, perd, empat o blackjack (la banca paga el que marca aquesta taula). Una mà separada es resol en dues parts.</string>
     <string name="rules_blackjack_people">Quan es planta la banca, si es pot doblar o separar, i qui ha guanyat cada mà. Les regles de la casa les poseu vosaltres.</string>
     <string name="rules_poker_play">Texas hold\'em: cadascú rep dues cartes i n\'hi ha cinc de comunes, que surten en tres tongades. Hi ha una ronda d\'apostes abans i després de cada tongada, i guanya la millor jugada de cinc cartes.</string>
-    <string name="rules_poker_count">«Mà nova» mou el repartidor i posa les cegues. El botó gran diu exactament quant costa igualar. Entre tongades, l\'amfitrió tanca la ronda. Si algú va all-in amb menys fitxes, «Dividir el pot» separa els pots que pot guanyar cadascú, i l\'amfitrió els dona un a un. Quan s\'ha donat tot el pot, la mà següent comença sola.</string>
+    <string name="rules_poker_count">«Mà nova» mou el repartidor i posa les cegues. El botó gran diu exactament quant costa igualar. Entre tongades, l\'amfitrió tanca la ronda. Si algú va all-in amb menys fitxes, «Dividir el pot» separa els pots que pot guanyar cadascú, i l\'amfitrió els dona un a un. Quan s\'ha donat tot el pot, la mà següent comença sola. Si tothom es retira menys un, el pot és seu sense que ningú hagi de fer res. En un empat, «Empat» reparteix el pot a parts iguals.</string>
     <string name="rules_poker_people">De qui és el torn, quan es pot passar i qui guanya la mà. L\'app compta les fitxes; el joc el porteu vosaltres.</string>
     <string name="common_back">Enrere</string>
     <string name="bank_take">Agafar la banca</string>

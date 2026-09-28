@@ -40,6 +40,7 @@ import io.github.victormico.tablechips.core.GameMode
 import io.github.victormico.tablechips.core.HandOutcome
 import io.github.victormico.tablechips.core.Payout
 import io.github.victormico.tablechips.core.Player
+import io.github.victormico.tablechips.core.PlayerId
 import io.github.victormico.tablechips.core.PotId
 import io.github.victormico.tablechips.protocol.ClientState
 
@@ -52,8 +53,11 @@ import io.github.victormico.tablechips.protocol.ClientState
 fun HostPanelScreen(
     state: ClientState,
     selectedPot: PotId,
+    onSelectPot: (PotId) -> Unit = {},
     pendingSplit: Long?,
     onAward: (Player, Long?) -> Unit,
+    /** A tie: the pot shared evenly between these players. */
+    onShare: (List<Player>) -> Unit = {},
     onSplit: () -> Unit,
     onNewPot: () -> Unit,
     onGive: (Player) -> Unit,
@@ -81,6 +85,9 @@ fun HostPanelScreen(
         else -> seated
     }
     val amount = pendingSplit ?: pot.amount
+    // Picking the players who tied, rather than the one who won.
+    var tying by remember(pot.id) { mutableStateOf(false) }
+    var tied by remember(pot.id) { mutableStateOf(emptySet<PlayerId>()) }
 
     Frame(
         header = {
@@ -127,14 +134,32 @@ fun HostPanelScreen(
                     )
                     Figure(chips(pot.amount), Type.metric.copy(fontSize = 28.sp), color = Refugi.accent)
                 }
+                // More than one pot: which one is being given is picked here,
+                // where it is given, not back on the table.
+                if (table.pots.size > 1) {
+                    Spacer(Modifier.height(11.dp))
+                    Pills(
+                        options = table.pots.map { it.id to potName(it) + " \u00b7 " + chips(it.amount) },
+                        selected = pot.id,
+                        onSelect = onSelectPot,
+                    )
+                }
                 Spacer(Modifier.height(13.dp))
+                if (tying) {
+                    TcText(stringResource(R.string.host_panel_tie_hint), Type.body, color = Refugi.text2)
+                    Spacer(Modifier.height(9.dp))
+                }
                 eligible.forEach { player ->
+                    val picked = player.id in tied
                     ClickableSurface(
-                        onClick = { onAward(player, pendingSplit) },
+                        onClick = {
+                            if (tying) tied = if (picked) tied - player.id else tied + player.id
+                            else onAward(player, pendingSplit)
+                        },
                         modifier = Modifier.fillMaxWidth().height(58.dp).padding(bottom = 7.dp),
                         enabled = amount > 0,
-                        fill = Refugi.surfaceHigh,
-                        border = Refugi.lineAccent,
+                        fill = if (picked) Refugi.surface else Refugi.surfaceHigh,
+                        border = if (picked) Refugi.accent else Refugi.lineAccent,
                         radius = 11.dp,
                         padding = 15.dp,
                     ) {
@@ -144,25 +169,62 @@ fun HostPanelScreen(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             TcText(
-                                stringResource(R.string.host_panel_wins, player.name),
+                                if (tying) (if (picked) "\u2713 " else "") + player.name
+                                else stringResource(R.string.host_panel_wins, player.name),
                                 Type.secondary,
                                 maxLines = 1,
+                                color = if (picked) Refugi.accent else Refugi.text,
                             )
-                            TcText("+" + chips(amount), Type.chips, color = Refugi.gain)
+                            if (!tying) TcText("+" + chips(amount), Type.chips, color = Refugi.gain)
                         }
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                    SecondaryButton(
-                        stringResource(R.string.host_panel_split), onSplit, Modifier.weight(1f),
-                        height = 52.dp, style = Type.secondary.copy(fontSize = 14.sp),
-                    )
-                    SecondaryButton(
-                        stringResource(R.string.host_panel_new_pot), onNewPot, Modifier.weight(1f),
-                        height = 52.dp, style = Type.secondary.copy(fontSize = 14.sp),
-                    )
+                if (tying) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                        SecondaryButton(
+                            stringResource(R.string.common_cancel),
+                            { tying = false; tied = emptySet() },
+                            Modifier.weight(1f),
+                            height = 52.dp, style = Type.secondary.copy(fontSize = 14.sp),
+                        )
+                        SecondaryButton(
+                            stringResource(R.string.host_panel_tie_confirm, chips(tied.size.toLong())),
+                            {
+                                onShare(eligible.filter { it.id in tied })
+                                tying = false
+                                tied = emptySet()
+                            },
+                            Modifier.weight(1f),
+                            enabled = tied.size >= 2,
+                            height = 52.dp, style = Type.secondary.copy(fontSize = 14.sp),
+                        )
+                    }
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                        SecondaryButton(
+                            stringResource(R.string.host_panel_split), onSplit, Modifier.weight(1f),
+                            height = 52.dp, style = Type.secondary.copy(fontSize = 14.sp),
+                        )
+                        if (eligible.size >= 2 && pendingSplit == null) {
+                            SecondaryButton(
+                                stringResource(R.string.host_panel_tie), { tying = true }, Modifier.weight(1f),
+                                enabled = pot.amount > 0,
+                                height = 52.dp, style = Type.secondary.copy(fontSize = 14.sp),
+                            )
+                        }
+                        SecondaryButton(
+                            stringResource(R.string.host_panel_new_pot), onNewPot, Modifier.weight(1f),
+                            height = 52.dp, style = Type.secondary.copy(fontSize = 14.sp),
+                        )
+                    }
                 }
             }
+        }
+
+        // The hand is run from here as often as anything else, so it comes
+        // before the corrections.
+        if (table.config.mode == GameMode.POKER) {
+            PokerBlock(table.config.smallBlind, table.config.bigBlind, onNewHand, onCloseRound, onSplitPots, onBlinds)
         }
 
         Caption(stringResource(R.string.host_panel_players))
@@ -207,38 +269,6 @@ fun HostPanelScreen(
             val staked = table.players.filter { it.stake > 0 }
             if (staked.isEmpty()) Note(stringResource(R.string.bank_no_hands))
             staked.forEach { player -> HandCard(player, table.config.mode, onSettle) }
-        }
-
-        if (table.config.mode == GameMode.POKER) {
-            Caption(stringResource(R.string.mode_poker))
-            SecondaryButton(
-                label = stringResource(R.string.poker_new_hand),
-                onClick = onNewHand,
-                modifier = Modifier.fillMaxWidth(),
-                height = 52.dp,
-                style = Type.secondary.copy(fontSize = 15.sp),
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                SecondaryButton(
-                    stringResource(R.string.poker_close_round), onCloseRound, Modifier.weight(1f),
-                    height = 52.dp, style = Type.secondary.copy(fontSize = 14.sp),
-                )
-                SecondaryButton(
-                    stringResource(R.string.poker_split), onSplitPots, Modifier.weight(1f),
-                    height = 52.dp, style = Type.secondary.copy(fontSize = 14.sp),
-                )
-            }
-            SecondaryButton(
-                label = stringResource(
-                    R.string.poker_blinds_now,
-                    chips(table.config.smallBlind),
-                    chips(table.config.bigBlind),
-                ),
-                onClick = onBlinds,
-                modifier = Modifier.fillMaxWidth(),
-                height = 52.dp,
-                style = Type.secondary.copy(fontSize = 14.sp),
-            )
         }
 
         Caption(stringResource(R.string.host_panel_seats))
@@ -459,4 +489,44 @@ private fun clockTime(epochMillis: Long): String {
     val hour = calendar.get(java.util.Calendar.HOUR_OF_DAY)
     val minute = calendar.get(java.util.Calendar.MINUTE)
     return hour.toString().padStart(2, '0') + ":" + minute.toString().padStart(2, '0')
+}
+
+@Composable
+private fun PokerBlock(
+    smallBlind: Long,
+    bigBlind: Long,
+    onNewHand: () -> Unit,
+    onCloseRound: () -> Unit,
+    onSplitPots: () -> Unit,
+    onBlinds: () -> Unit,
+) {
+    Caption(stringResource(R.string.mode_poker))
+    SecondaryButton(
+        label = stringResource(R.string.poker_new_hand),
+        onClick = onNewHand,
+        modifier = Modifier.fillMaxWidth(),
+        height = 52.dp,
+        style = Type.secondary.copy(fontSize = 15.sp),
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+        SecondaryButton(
+            stringResource(R.string.poker_close_round), onCloseRound, Modifier.weight(1f),
+            height = 52.dp, style = Type.secondary.copy(fontSize = 14.sp),
+        )
+        SecondaryButton(
+            stringResource(R.string.poker_split), onSplitPots, Modifier.weight(1f),
+            height = 52.dp, style = Type.secondary.copy(fontSize = 14.sp),
+        )
+    }
+    SecondaryButton(
+        label = stringResource(
+            R.string.poker_blinds_now,
+            chips(smallBlind),
+            chips(bigBlind),
+        ),
+        onClick = onBlinds,
+        modifier = Modifier.fillMaxWidth(),
+        height = 52.dp,
+        style = Type.secondary.copy(fontSize = 14.sp),
+    )
 }

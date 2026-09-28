@@ -88,7 +88,6 @@ class ScreensTest {
                 onMenu = {},
                 onBet = {},
                 onRebuy = {},
-                onStand = {},
                 onSit = {},
             )
         }
@@ -110,7 +109,7 @@ class ScreensTest {
                 TableScreen(
                     state = playing(), selectedPot = MAIN_POT, onSelectPot = {},
                     undoable = null, onUndo = {}, onMenu = {},
-                    onBet = { opened = true }, onRebuy = {}, onStand = {}, onSit = {},
+                    onBet = { opened = true }, onRebuy = {}, onSit = {},
                 )
             }
         }
@@ -392,7 +391,7 @@ class ScreensTest {
             TableScreen(
                 state = playing(), selectedPot = MAIN_POT, onSelectPot = {},
                 undoable = null, onUndo = {}, onMenu = {}, onRules = { asked = true },
-                onBet = {}, onRebuy = {}, onStand = {}, onSit = {},
+                onBet = {}, onRebuy = {}, onSit = {},
             )
         }
 
@@ -579,7 +578,7 @@ class ScreensTest {
             TableScreen(
                 state = bankTable(), selectedPot = MAIN_POT, onSelectPot = {},
                 undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {},
-                onStand = {}, onSit = {}, onStake = { staked = true },
+                onSit = {}, onStake = { staked = true },
             )
         }
 
@@ -601,7 +600,7 @@ class ScreensTest {
             TableScreen(
                 state = state, selectedPot = MAIN_POT, onSelectPot = {},
                 undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {},
-                onStand = {}, onSit = {},
+                onSit = {},
             )
         }
 
@@ -670,7 +669,7 @@ class ScreensTest {
             TableScreen(
                 state = pokerState(), selectedPot = MAIN_POT, onSelectPot = {},
                 undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {},
-                onStand = {}, onSit = {},
+                onSit = {},
                 onCall = { called = it }, onFold = { folded = true },
             )
         }
@@ -692,7 +691,7 @@ class ScreensTest {
             TableScreen(
                 state = state, selectedPot = MAIN_POT, onSelectPot = {},
                 undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {},
-                onStand = {}, onSit = {}, onCall = { called = it },
+                onSit = {}, onCall = { called = it },
             )
         }
 
@@ -700,6 +699,126 @@ class ScreensTest {
         compose.onNodeWithText("Igualar 10").performClick()
 
         assertEquals(10L, called)
+    }
+
+    @Test
+    fun `the host closes the round and awards the pot from the table itself`() {
+        var closed = false
+        var awarding = false
+        compose.setContent {
+            TableScreen(
+                state = pokerState().copy(you = anna), selectedPot = MAIN_POT, onSelectPot = {},
+                undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {}, onSit = {},
+                onCloseRound = { closed = true }, onAwardPot = { awarding = true },
+            )
+        }
+
+        compose.onNodeWithText("Tancar la ronda").performScrollTo().performClick()
+        compose.onNodeWithText("Donar el pot").performScrollTo().performClick()
+        assertEquals(true, closed)
+        assertEquals(true, awarding)
+    }
+
+    @Test
+    fun `only the host sees how the hand is run`() {
+        compose.setContent {
+            TableScreen(
+                state = pokerState(), selectedPot = MAIN_POT, onSelectPot = {},
+                undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {}, onSit = {},
+            )
+        }
+
+        compose.onNodeWithText("Tancar la ronda").assertDoesNotExist()
+        compose.onNodeWithText("Donar el pot").assertDoesNotExist()
+    }
+
+    /** Next to call and fold, one stray tap on it would end a player's night. */
+    @Test
+    fun `standing up is not next to the moves of a hand`() {
+        compose.setContent {
+            TableScreen(
+                state = pokerState(), selectedPot = MAIN_POT, onSelectPot = {},
+                undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {}, onSit = {},
+            )
+        }
+
+        compose.onNodeWithText("Aixecar-se").assertDoesNotExist()
+        compose.onNodeWithText("Comprar més").assertIsDisplayed()
+    }
+
+    @Test
+    fun `one tap sits down with what the table deals`() {
+        var sat = false
+        var other = false
+        val table = Table("ZGWH", TableConfig(), clock = { 0 })
+        table.execute(JoinTable(anna, "Anna"))
+        val state = ClientState(connection = Connection.ONLINE, table = table.snapshot(), you = anna)
+        compose.setContent {
+            TableScreen(
+                state = state, selectedPot = MAIN_POT, onSelectPot = {},
+                undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {},
+                onSit = { sat = true }, onSitOther = { other = true },
+            )
+        }
+
+        compose.onNodeWithText("Seure amb").assertIsDisplayed()
+        compose.onNodeWithText("905").assertIsDisplayed()
+        compose.onNodeWithText("Seure amb").performClick()
+        compose.onNodeWithText("Altre import").performClick()
+        assertEquals(true, sat)
+        assertEquals(true, other)
+    }
+
+    @Test
+    fun `a tie is the players who tied, and the pot shared between them`() {
+        var shared: List<PlayerId>? = null
+        compose.setContent {
+            HostPanelScreen(
+                state = pokerState().copy(you = anna), selectedPot = MAIN_POT, pendingSplit = null,
+                onAward = { _, _ -> }, onShare = { players -> shared = players.map { it.id } },
+                onSplit = {}, onNewPot = {}, onGive = {}, onTake = {},
+                onBuyIn = {}, onSeats = {}, onBanker = {}, onSettle = { _, _ -> },
+                onMode = {}, onNaturalPays = {}, onNewHand = {},
+                onCloseRound = {}, onSplitPots = {}, onBlinds = {}, onLog = {},
+                onClose = {}, onBack = {},
+            )
+        }
+
+        compose.onNodeWithText("Empat").performClick()
+        compose.onNodeWithText("Repartir entre 0").assertIsDisplayed()
+        compose.onAllNodesWithText("Anna").onFirst().performClick()
+        compose.onAllNodesWithText("Bru").onFirst().performClick()
+        compose.onNodeWithText("Repartir entre 2").performClick()
+
+        assertEquals(listOf(anna, bru), shared)
+    }
+
+    @Test
+    fun `poker sizes a bet in big blinds and a raise in multiples of the bet`() {
+        var typed = ""
+        compose.setContent {
+            AmountScreen(
+                request = betRequest(max = 1000).copy(poker = PokerSizes(20, 0, 0, raise = false), pot = 30),
+                typed = typed, untouched = true,
+                onType = {}, onSet = { typed = it.toString() }, onBack = {},
+            )
+        }
+        compose.onNodeWithText("40").performClick()
+        assertEquals("40", typed)
+    }
+
+    @Test
+    fun `a raise to twice the bet counts what is already in front of you`() {
+        var typed = ""
+        compose.setContent {
+            AmountScreen(
+                request = betRequest(max = 1000).copy(poker = PokerSizes(20, 20, 10, raise = true)),
+                typed = typed, untouched = true,
+                onType = {}, onSet = { typed = it.toString() }, onBack = {},
+            )
+        }
+        compose.onNodeWithText("\u00d72").performClick()
+        assertEquals("30", typed)
     }
 
     @Test
@@ -780,7 +899,7 @@ class ScreensTest {
             TableScreen(
                 state = state, selectedPot = MAIN_POT, onSelectPot = {},
                 undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {},
-                onStand = {}, onSit = {}, onTakeBank = { taken = true },
+                onSit = {}, onTakeBank = { taken = true },
             )
         }
 
@@ -874,7 +993,7 @@ class ScreensTest {
             TableScreen(
                 state = pokerState(), selectedPot = MAIN_POT, onSelectPot = {},
                 undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {},
-                onStand = {}, onSit = {},
+                onSit = {},
             )
         }
 
@@ -916,7 +1035,7 @@ class ScreensTest {
             TableScreen(
                 state = state, selectedPot = MAIN_POT, onSelectPot = {},
                 undoable = null, onUndo = {}, onMenu = {}, onBet = {}, onRebuy = {},
-                onStand = {}, onSit = {}, onRaise = { raised = it },
+                onSit = {}, onRaise = { raised = it },
             )
         }
 

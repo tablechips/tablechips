@@ -60,14 +60,22 @@ fun TableScreen(
     onRules: () -> Unit = {},
     onBet: () -> Unit,
     onRebuy: () -> Unit,
-    onStand: () -> Unit,
+    /** Sits down with the table's buy-in, or back down with the chips kept. */
     onSit: () -> Unit,
+    /** Sits down with an amount other than the table's buy-in. */
+    onSitOther: () -> Unit = {},
     onStake: () -> Unit = {},
     onCancelStake: () -> Unit = {},
     onTakeBank: () -> Unit = {},
     onCall: (Long) -> Unit = {},
     onRaise: (Long) -> Unit = {},
     onFold: () -> Unit = {},
+    /** Host, poker: the street is over. */
+    onCloseRound: () -> Unit = {},
+    /** Host, poker: say who won. Opens the host panel at the pot. */
+    onAwardPot: () -> Unit = {},
+    /** Host, poker: deal a hand when none is being played. */
+    onNewHand: () -> Unit = {},
 ) {
     val table = state.table ?: return
     val me = state.me
@@ -96,16 +104,25 @@ fun TableScreen(
                     table.config.mode == GameMode.POKER -> PokerActions(state, onBet, onCall, onRaise, onFold)
                     else -> PrimaryButton(stringResource(R.string.action_bet), onBet)
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                // Standing up is in the menu: next to call and fold, one stray
+                // tap would take a player out of the hand and off the table.
+                SecondaryButton(
+                    stringResource(R.string.action_rebuy), onRebuy, Modifier.fillMaxWidth(),
+                )
+            } else {
+                // One tap sits down with what the table deals; anything else is
+                // the exception, and one tap further.
+                val back = (me?.stack ?: 0L) > 0
+                PrimaryButton(
+                    label = stringResource(if (back) R.string.action_sit_back else R.string.sit_confirm),
+                    value = chips(if (back) me!!.stack else table.config.defaultBuyIn),
+                    onClick = onSit,
+                )
+                if (!back) {
                     SecondaryButton(
-                        stringResource(R.string.action_rebuy), onRebuy, Modifier.weight(1f),
-                    )
-                    SecondaryButton(
-                        stringResource(R.string.action_stand), onStand, Modifier.weight(1f),
+                        stringResource(R.string.action_sit_other), onSitOther, Modifier.fillMaxWidth(),
                     )
                 }
-            } else {
-                PrimaryButton(stringResource(R.string.action_sit), onSit)
             }
         },
     ) {
@@ -189,6 +206,10 @@ fun TableScreen(
                     }
                 }
             }
+        }
+
+        if (state.isHost && table.config.mode == GameMode.POKER) {
+            HostHand(state, onCloseRound, onAwardPot, onNewHand)
         }
 
         if (state.isHost && undoable != null && state.undoDepth > 0) {
@@ -336,6 +357,44 @@ private fun PokerActions(
             modifier = Modifier.weight(1f),
             danger = true,
         )
+    }
+}
+
+/**
+ * What the host does between the players' moves, where the host already is:
+ * closing a street, saying who won, dealing when no hand is on. Each shows only
+ * when it would do something.
+ */
+@Composable
+private fun HostHand(
+    state: ClientState,
+    onCloseRound: () -> Unit,
+    onAwardPot: () -> Unit,
+    onNewHand: () -> Unit,
+) {
+    val table = state.table ?: return
+    val bets = table.players.any { it.roundBet > 0 }
+    val pot = table.pots.sumOf { it.amount }
+    val canDeal = table.players.count { it.seat != null && it.stack > 0 } >= 2
+    if (!bets && pot == 0L && !canDeal) return
+    Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+        if (bets) {
+            SecondaryButton(
+                stringResource(R.string.poker_close_round), onCloseRound, Modifier.weight(1f),
+                height = 52.dp, style = Type.secondary.copy(fontSize = 14.sp),
+            )
+        }
+        if (pot > 0) {
+            SecondaryButton(
+                stringResource(R.string.poker_award), onAwardPot, Modifier.weight(1f),
+                height = 52.dp, style = Type.secondary.copy(fontSize = 14.sp),
+            )
+        } else if (canDeal) {
+            SecondaryButton(
+                stringResource(R.string.poker_new_hand), onNewHand, Modifier.weight(1f),
+                height = 52.dp, style = Type.secondary.copy(fontSize = 14.sp),
+            )
+        }
     }
 }
 

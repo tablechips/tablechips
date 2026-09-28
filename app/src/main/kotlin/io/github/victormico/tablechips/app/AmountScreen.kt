@@ -68,11 +68,26 @@ data class AmountRequest(
     val dealt: Boolean = false,
     /** The pot, when the shortcuts should offer half of it and all of it. */
     val pot: Long? = null,
+    /** A poker bet or raise: the shortcuts are then the sizes poker bets in. */
+    val poker: PokerSizes? = null,
     val restLabel: String,
     val rest: (Long) -> Long,
     val onConfirm: (Long) -> Unit,
     /** Where cancelling goes, when it is not back to the table. */
     val onCancel: (() -> Unit)? = null,
+)
+
+/**
+ * What poker shortcuts are measured against. A bet is sized in big blinds; a
+ * raise in multiples of the bet it raises, and the amount is always what goes
+ * in now, so a raise to twice the bet is that bet times two, less what the
+ * player already has in front of them.
+ */
+data class PokerSizes(
+    val bigBlind: Long,
+    val currentBet: Long,
+    val roundBet: Long,
+    val raise: Boolean,
 )
 
 /**
@@ -180,7 +195,31 @@ fun AmountScreen(
 
         Caption(stringResource(R.string.amount_quick))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            if (request.pot != null) {
+            val sizes = request.poker
+            val cap = { amount: Long -> request.max?.let { minOf(it, amount) } ?: amount }
+            if (sizes != null && (sizes.raise || sizes.bigBlind > 0)) {
+                if (sizes.raise) {
+                    listOf(2L, 3L).forEach { times ->
+                        Quick("\u00d7$times", Modifier.weight(1f), mono = true) {
+                            onSet(cap(sizes.currentBet * times - sizes.roundBet))
+                        }
+                    }
+                } else {
+                    listOf(2L, 3L).forEach { times ->
+                        Quick(chips(sizes.bigBlind * times), Modifier.weight(1f), mono = true) {
+                            onSet(cap(sizes.bigBlind * times))
+                        }
+                    }
+                    if (request.pot != null) {
+                        Quick(stringResource(R.string.amount_half_pot), Modifier.weight(1f)) {
+                            onSet(cap(request.pot / 2))
+                        }
+                    }
+                }
+                if (request.pot != null) {
+                    Quick(stringResource(R.string.amount_pot), Modifier.weight(1f)) { onSet(cap(request.pot)) }
+                }
+            } else if (request.pot != null) {
                 Quick(stringResource(R.string.amount_half_pot), Modifier.weight(1f)) {
                     onSet(request.pot / 2)
                 }
@@ -225,8 +264,9 @@ fun AmountScreen(
 /**
  * The amount as chips pushed forward, one row per value: how many of each go
  * in. It starts from the amount already there, in the fewest chips, because
- * that is how a bet is pushed — or, for a buy-in, the way the chips are dealt. The figure above is always the total, and it
- * is the total that is confirmed: the app counts amounts, not chips.
+ * that is how a bet is pushed — or, for a buy-in, the way the chips are dealt.
+ * The figure above is always the total, and it is the total that is
+ * confirmed: the app counts amounts, not chips.
  */
 @Composable
 private fun ColumnScope.ChipPad(value: Long, max: Long?, dealt: Boolean, onSet: (Long) -> Unit) {
