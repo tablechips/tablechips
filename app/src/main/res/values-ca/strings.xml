@@ -289,4 +289,34 @@
     <string name="poker_raise_sub">Per igualar calen %1$s: la pujada ha de passar-ne</string>
     <string name="poker_raise_min">Mínim per pujar</string>
     <string name="error_below_call">Cal igualar l\'aposta com a mínim</string>
+
+    <!-- Poker hand rankings, highest first -->
+    <string name="hands_title">Ordre de les jugades</string>
+    <string name="hands_sub">De la més alta a la més baixa</string>
+    <string name="hands_ties">Desempats</string>
+    <string name="hand_royal_flush">Escala reial</string>
+    <string name="hand_royal_flush_desc">A, K, Q, J i 10 del mateix pal</string>
+    <string name="hand_straight_flush">Escala de color</string>
+    <string name="hand_straight_flush_desc">Cinc cartes seguides del mateix pal</string>
+    <string name="hand_four_kind">Pòquer</string>
+    <string name="hand_four_kind_desc">Quatre cartes del mateix valor</string>
+    <string name="hand_full_house">Full</string>
+    <string name="hand_full_house_desc">Un trio i una parella</string>
+    <string name="hand_flush">Color</string>
+    <string name="hand_flush_desc">Cinc cartes del mateix pal</string>
+    <string name="hand_straight">Escala</string>
+    <string name="hand_straight_desc">Cinc cartes seguides, de pals diferents</string>
+    <string name="hand_three_kind">Trio</string>
+    <string name="hand_three_kind_desc">Tres cartes del mateix valor</string>
+    <string name="hand_two_pair">Doble parella</string>
+    <string name="hand_two_pair_desc">Dues parelles</string>
+    <string name="hand_pair">Parella</string>
+    <string name="hand_pair_desc">Dues cartes del mateix valor</string>
+    <string name="hand_high_card">Carta alta</string>
+    <string name="hand_high_card_desc">Cap de les anteriors: mana la carta més alta</string>
+    <string name="hands_note_1">Compten les cinc millors cartes entre les dues teues i les cinc comunes.</string>
+    <string name="hands_note_2">Amb la mateixa jugada guanya la més alta: primer la parella, el trio o l\'escala, i després, carta a carta, la resta.</string>
+    <string name="hands_note_3">Al full mana el trio: 8-8-8-K-K guanya 7-7-7-A-A.</string>
+    <string name="hands_note_4">L\'as és la carta més alta, però també obre l\'escala més baixa: A-2-3-4-5. Una escala no dona la volta: Q-K-A-2-3 no ho és.</string>
+    <string name="hands_note_5">Els pals no tenen ordre: dues jugades iguals es reparteixen el pot.</string>
 </resources>

@@ -289,4 +289,34 @@
     <string name="poker_raise_sub">Para igualar hacen falta %1$s: la subida tiene que pasar de ahí</string>
     <string name="poker_raise_min">Mínimo para subir</string>
     <string name="error_below_call">Hay que igualar la apuesta como mínimo</string>
+
+    <!-- Poker hand rankings, highest first -->
+    <string name="hands_title">Orden de las jugadas</string>
+    <string name="hands_sub">De la más alta a la más baja</string>
+    <string name="hands_ties">Desempates</string>
+    <string name="hand_royal_flush">Escalera real</string>
+    <string name="hand_royal_flush_desc">A, K, Q, J y 10 del mismo palo</string>
+    <string name="hand_straight_flush">Escalera de color</string>
+    <string name="hand_straight_flush_desc">Cinco cartas seguidas del mismo palo</string>
+    <string name="hand_four_kind">Póquer</string>
+    <string name="hand_four_kind_desc">Cuatro cartas del mismo valor</string>
+    <string name="hand_full_house">Full</string>
+    <string name="hand_full_house_desc">Un trío y una pareja</string>
+    <string name="hand_flush">Color</string>
+    <string name="hand_flush_desc">Cinco cartas del mismo palo</string>
+    <string name="hand_straight">Escalera</string>
+    <string name="hand_straight_desc">Cinco cartas seguidas, de palos distintos</string>
+    <string name="hand_three_kind">Trío</string>
+    <string name="hand_three_kind_desc">Tres cartas del mismo valor</string>
+    <string name="hand_two_pair">Doble pareja</string>
+    <string name="hand_two_pair_desc">Dos parejas</string>
+    <string name="hand_pair">Pareja</string>
+    <string name="hand_pair_desc">Dos cartas del mismo valor</string>
+    <string name="hand_high_card">Carta alta</string>
+    <string name="hand_high_card_desc">Ninguna de las anteriores: manda la carta más alta</string>
+    <string name="hands_note_1">Cuentan las cinco mejores cartas entre tus dos y las cinco comunes.</string>
+    <string name="hands_note_2">Con la misma jugada gana la más alta: primero la pareja, el trío o la escalera, y después, carta a carta, el resto.</string>
+    <string name="hands_note_3">En el full manda el trío: 8-8-8-K-K gana a 7-7-7-A-A.</string>
+    <string name="hands_note_4">El as es la carta más alta, pero también abre la escalera más baja: A-2-3-4-5. Una escalera no da la vuelta: Q-K-A-2-3 no lo es.</string>
+    <string name="hands_note_5">Los palos no tienen orden: dos jugadas iguales se reparten el bote.</string>
 </resources>

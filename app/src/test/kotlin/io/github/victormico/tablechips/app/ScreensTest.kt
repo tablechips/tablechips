@@ -940,4 +940,26 @@ class ScreensTest {
         compose.onAllNodesWithText("Pujar").onLast().performClick()
         assertEquals(55L, confirmed)
     }
+
+    /** Which hand beats which, where it gets looked up: the poker rules. */
+    @Test
+    fun `the poker rules rank the hands, highest first`() {
+        compose.setContent {
+            RulesScreen(config = TableConfig(mode = GameMode.POKER, smallBlind = 5, bigBlind = 10), onBack = {})
+        }
+
+        compose.onNodeWithText("Ordre de les jugades".uppercase()).performScrollTo().assertIsDisplayed()
+        val royal = compose.onNodeWithText("Escala reial").fetchSemanticsNode().positionInRoot.y
+        val twoPair = compose.onNodeWithText("Doble parella").fetchSemanticsNode().positionInRoot.y
+        val pair = compose.onNodeWithText("Parella").fetchSemanticsNode().positionInRoot.y
+        assertEquals(true, royal < twoPair && twoPair < pair)
+        compose.onNodeWithText("Al full mana el trio: 8-8-8-K-K guanya 7-7-7-A-A.").assertExists()
+    }
+
+    @Test
+    fun `other games have no hand rankings`() {
+        compose.setContent { RulesScreen(config = TableConfig(mode = GameMode.BLACKJACK), onBack = {}) }
+
+        compose.onNodeWithText("Ordre de les jugades".uppercase()).assertDoesNotExist()
+    }
 }

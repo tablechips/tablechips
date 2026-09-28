@@ -201,6 +201,13 @@ button[disabled] { opacity: .4; cursor: default; }
 .ruleCard { background: var(--surface); border: 1px solid var(--line); border-radius: 11px;
             padding: 12px 14px; font-size: 15px; line-height: 1.4; text-wrap: pretty; }
 .ruleCard.strong { border-color: var(--lineAccent); }
+.handRow { display: flex; gap: 12px; padding-top: 10px; }
+.handRow .rank { width: 20px; flex: none; font-family: var(--mono); font-size: 14px; color: var(--text2); }
+.handRow .hn { font-weight: 600; font-size: 15px; }
+.handRow .hd { font-size: 13px; color: var(--text2); }
+.cards { display: flex; gap: 7px; padding: 3px 0; font-family: var(--mono); font-size: 15px; }
+.cards .red { color: var(--loss); }
+.handNotes { display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.4; }
 .ruleCard.values { font-family: var(--mono); font-size: 14px; line-height: 1.6;
                    font-variant-numeric: tabular-nums; }
 
@@ -574,6 +581,7 @@ button[disabled] { opacity: .4; cursor: default; }
   <div class="scroll" style="gap:8px">
     <div class="cap" data-i18n="rules.play"></div>
     <div class="ruleCard" id="rulesPlay"></div>
+    <div class="rows" id="rulesHands" hidden></div>
     <div class="cap" data-i18n="rules.count"></div>
     <div class="ruleCard" id="rulesCount"></div>
     <div class="cap" data-i18n="rules.people"></div>
@@ -671,6 +679,34 @@ const DICT = {
     "buyIn.confirm": "Fixar a",
     "newPot.name": "poso",
     "log.title": "Registre d'activitat", "log.short": "Registre", "log.back": "Tornar a la taula",
+    "hands.title": "Ordre de les jugades",
+    "hands.sub": "De la més alta a la més baixa",
+    "hands.ties": "Desempats",
+    "hand.royal_flush": "Escala reial",
+    "hand.royal_flush.desc": "A, K, Q, J i 10 del mateix pal",
+    "hand.straight_flush": "Escala de color",
+    "hand.straight_flush.desc": "Cinc cartes seguides del mateix pal",
+    "hand.four_kind": "Pòquer",
+    "hand.four_kind.desc": "Quatre cartes del mateix valor",
+    "hand.full_house": "Full",
+    "hand.full_house.desc": "Un trio i una parella",
+    "hand.flush": "Color",
+    "hand.flush.desc": "Cinc cartes del mateix pal",
+    "hand.straight": "Escala",
+    "hand.straight.desc": "Cinc cartes seguides, de pals diferents",
+    "hand.three_kind": "Trio",
+    "hand.three_kind.desc": "Tres cartes del mateix valor",
+    "hand.two_pair": "Doble parella",
+    "hand.two_pair.desc": "Dues parelles",
+    "hand.pair": "Parella",
+    "hand.pair.desc": "Dues cartes del mateix valor",
+    "hand.high_card": "Carta alta",
+    "hand.high_card.desc": "Cap de les anteriors: mana la carta més alta",
+    "hands.note1": "Compten les cinc millors cartes entre les dues teues i les cinc comunes.",
+    "hands.note2": "Amb la mateixa jugada guanya la més alta: primer la parella, el trio o l'escala, i després, carta a carta, la resta.",
+    "hands.note3": "Al full mana el trio: 8-8-8-K-K guanya 7-7-7-A-A.",
+    "hands.note4": "L'as és la carta més alta, però també obre l'escala més baixa: A-2-3-4-5. Una escala no dona la volta: Q-K-A-2-3 no ho és.",
+    "hands.note5": "Els pals no tenen ordre: dues jugades iguals es reparteixen el pot.",
     "poker.raiseSub": "Per igualar calen %s: la pujada ha de passar-ne",
     "poker.raiseMin": "Mínim per pujar",
     "error.below_call": "Cal igualar l'aposta com a mínim",
@@ -818,6 +854,34 @@ const DICT = {
     "buyIn.confirm": "Fijar en",
     "newPot.name": "bote",
     "log.title": "Registro de actividad", "log.short": "Registro", "log.back": "Volver a la mesa",
+    "hands.title": "Orden de las jugadas",
+    "hands.sub": "De la más alta a la más baja",
+    "hands.ties": "Desempates",
+    "hand.royal_flush": "Escalera real",
+    "hand.royal_flush.desc": "A, K, Q, J y 10 del mismo palo",
+    "hand.straight_flush": "Escalera de color",
+    "hand.straight_flush.desc": "Cinco cartas seguidas del mismo palo",
+    "hand.four_kind": "Póquer",
+    "hand.four_kind.desc": "Cuatro cartas del mismo valor",
+    "hand.full_house": "Full",
+    "hand.full_house.desc": "Un trío y una pareja",
+    "hand.flush": "Color",
+    "hand.flush.desc": "Cinco cartas del mismo palo",
+    "hand.straight": "Escalera",
+    "hand.straight.desc": "Cinco cartas seguidas, de palos distintos",
+    "hand.three_kind": "Trío",
+    "hand.three_kind.desc": "Tres cartas del mismo valor",
+    "hand.two_pair": "Doble pareja",
+    "hand.two_pair.desc": "Dos parejas",
+    "hand.pair": "Pareja",
+    "hand.pair.desc": "Dos cartas del mismo valor",
+    "hand.high_card": "Carta alta",
+    "hand.high_card.desc": "Ninguna de las anteriores: manda la carta más alta",
+    "hands.note1": "Cuentan las cinco mejores cartas entre tus dos y las cinco comunes.",
+    "hands.note2": "Con la misma jugada gana la más alta: primero la pareja, el trío o la escalera, y después, carta a carta, el resto.",
+    "hands.note3": "En el full manda el trío: 8-8-8-K-K gana a 7-7-7-A-A.",
+    "hands.note4": "El as es la carta más alta, pero también abre la escalera más baja: A-2-3-4-5. Una escalera no da la vuelta: Q-K-A-2-3 no lo es.",
+    "hands.note5": "Los palos no tienen orden: dos jugadas iguales se reparten el bote.",
     "poker.raiseSub": "Para igualar hacen falta %s: la subida tiene que pasar de ahí",
     "poker.raiseMin": "Mínimo para subir",
     "error.below_call": "Hay que igualar la apuesta como mínimo",
@@ -967,6 +1031,34 @@ const DICT = {
     "buyIn.confirm": "Set to",
     "newPot.name": "side pot",
     "log.title": "Activity log", "log.short": "Log", "log.back": "Back to the table",
+    "hands.title": "Hand rankings",
+    "hands.sub": "From the highest to the lowest",
+    "hands.ties": "Ties",
+    "hand.royal_flush": "Royal flush",
+    "hand.royal_flush.desc": "A, K, Q, J and 10 of the same suit",
+    "hand.straight_flush": "Straight flush",
+    "hand.straight_flush.desc": "Five cards in a row of the same suit",
+    "hand.four_kind": "Four of a kind",
+    "hand.four_kind.desc": "Four cards of the same rank",
+    "hand.full_house": "Full house",
+    "hand.full_house.desc": "Three of a kind and a pair",
+    "hand.flush": "Flush",
+    "hand.flush.desc": "Five cards of the same suit",
+    "hand.straight": "Straight",
+    "hand.straight.desc": "Five cards in a row, of mixed suits",
+    "hand.three_kind": "Three of a kind",
+    "hand.three_kind.desc": "Three cards of the same rank",
+    "hand.two_pair": "Two pair",
+    "hand.two_pair.desc": "Two different pairs",
+    "hand.pair": "One pair",
+    "hand.pair.desc": "Two cards of the same rank",
+    "hand.high_card": "High card",
+    "hand.high_card.desc": "None of the above: the highest card plays",
+    "hands.note1": "The best five cards count, out of your two and the five shared.",
+    "hands.note2": "With the same hand the higher one wins: first the pair, the three or the straight, then card by card the rest.",
+    "hands.note3": "In a full house the three decide: 8-8-8-K-K beats 7-7-7-A-A.",
+    "hands.note4": "The ace is the highest card, but it also starts the lowest straight: A-2-3-4-5. A straight does not wrap: Q-K-A-2-3 is not one.",
+    "hands.note5": "Suits have no order: two equal hands split the pot.",
     "poker.raiseSub": "To call it takes %s: a raise goes over that",
     "poker.raiseMin": "Lowest raise",
     "error.below_call": "You have to at least call",
@@ -2264,6 +2356,7 @@ function renderRules() {
   document.getElementById("rulesPlay").textContent = t("rules." + mode + ".play");
   document.getElementById("rulesCount").textContent = t("rules." + mode + ".count");
   document.getElementById("rulesPeople").textContent = t("rules." + mode + ".people");
+  renderHands();
   const lines = [t("rules.buyIn", fmt(config.defaultBuyIn)), t("rules.seats", fmt(config.seatCount))];
   if (bankGame()) {
     const pays = config.naturalPays || { numerator: 3, denominator: 2 };
@@ -2275,6 +2368,49 @@ function renderRules() {
       : t("rules.noBlinds"));
   }
   document.getElementById("rulesValues").replaceChildren(...lines.map((line) => el("div", null, line)));
+}
+
+/** Highest first. The example cards read the same in every language. */
+const HANDS = [
+  ["royal_flush", "A♠ K♠ Q♠ J♠ 10♠"],
+  ["straight_flush", "9♥ 8♥ 7♥ 6♥ 5♥"],
+  ["four_kind", "Q♣ Q♦ Q♥ Q♠ 7♦"],
+  ["full_house", "8♠ 8♥ 8♦ K♣ K♥"],
+  ["flush", "K♦ 10♦ 7♦ 4♦ 2♦"],
+  ["straight", "7♣ 6♦ 5♠ 4♥ 3♣"],
+  ["three_kind", "9♠ 9♥ 9♦ K♣ 4♠"],
+  ["two_pair", "J♥ J♣ 4♦ 4♠ A♥"],
+  ["pair", "10♠ 10♦ K♥ 6♣ 3♦"],
+  ["high_card", "A♣ J♦ 8♥ 6♠ 2♣"]
+];
+
+/**
+ * Which hand beats which, and the ties that start arguments: near the top of
+ * the poker rules, because it is what gets looked up mid-hand, and a hotspot
+ * has no internet to look it up on.
+ */
+function renderHands() {
+  const block = document.getElementById("rulesHands");
+  block.hidden = mode !== "poker";
+  if (block.hidden) return;
+  const list = el("div", "ruleCard");
+  list.append(el("div", "hd", t("hands.sub")));
+  HANDS.forEach(([key, cards], index) => {
+    const row = el("div", "handRow");
+    const body = el("div");
+    const shown = el("div", "cards");
+    cards.split(" ").forEach((card) => {
+      const red = card.endsWith("\u2665") || card.endsWith("\u2666");
+      shown.append(el("span", red ? "red" : null, card));
+    });
+    body.append(el("div", "hn", t("hand." + key)), shown, el("div", "hd", t("hand." + key + ".desc")));
+    row.append(el("span", "rank", String(index + 1)), body);
+    list.append(row);
+  });
+  const notes = el("div", "ruleCard handNotes");
+  [1, 2, 3, 4, 5].forEach((n) => notes.append(el("div", null, t("hands.note" + n))));
+  block.replaceChildren(el("div", "cap", t("hands.title")), list,
+                        el("div", "cap", t("hands.ties")), notes);
 }
 
 // ---------------------------------------------------------------- log

@@ -304,4 +304,34 @@
     <string name="poker_raise_sub">To call it takes %1$s: a raise goes over that</string>
     <string name="poker_raise_min">Lowest raise</string>
     <string name="error_below_call">You have to at least call</string>
+
+    <!-- Poker hand rankings, highest first -->
+    <string name="hands_title">Hand rankings</string>
+    <string name="hands_sub">From the highest to the lowest</string>
+    <string name="hands_ties">Ties</string>
+    <string name="hand_royal_flush">Royal flush</string>
+    <string name="hand_royal_flush_desc">A, K, Q, J and 10 of the same suit</string>
+    <string name="hand_straight_flush">Straight flush</string>
+    <string name="hand_straight_flush_desc">Five cards in a row of the same suit</string>
+    <string name="hand_four_kind">Four of a kind</string>
+    <string name="hand_four_kind_desc">Four cards of the same rank</string>
+    <string name="hand_full_house">Full house</string>
+    <string name="hand_full_house_desc">Three of a kind and a pair</string>
+    <string name="hand_flush">Flush</string>
+    <string name="hand_flush_desc">Five cards of the same suit</string>
+    <string name="hand_straight">Straight</string>
+    <string name="hand_straight_desc">Five cards in a row, of mixed suits</string>
+    <string name="hand_three_kind">Three of a kind</string>
+    <string name="hand_three_kind_desc">Three cards of the same rank</string>
+    <string name="hand_two_pair">Two pair</string>
+    <string name="hand_two_pair_desc">Two different pairs</string>
+    <string name="hand_pair">One pair</string>
+    <string name="hand_pair_desc">Two cards of the same rank</string>
+    <string name="hand_high_card">High card</string>
+    <string name="hand_high_card_desc">None of the above: the highest card plays</string>
+    <string name="hands_note_1">The best five cards count, out of your two and the five shared.</string>
+    <string name="hands_note_2">With the same hand the higher one wins: first the pair, the three or the straight, then card by card the rest.</string>
+    <string name="hands_note_3">In a full house the three decide: 8-8-8-K-K beats 7-7-7-A-A.</string>
+    <string name="hands_note_4">The ace is the highest card, but it also starts the lowest straight: A-2-3-4-5. A straight does not wrap: Q-K-A-2-3 is not one.</string>
+    <string name="hands_note_5">Suits have no order: two equal hands split the pot.</string>
 </resources>
