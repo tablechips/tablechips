@@ -171,6 +171,9 @@ off by a test suite:
 - **No Termux.** The embedded server avoids native arm64 binaries, gets a
   supported lifecycle, and spares everyone a terminal.
 - **No card dealing.** Play with a real deck.
+- **Not every game gets a mode.** Which ones do, and why the manual mode covers
+  the rest, is argued game by game in
+  [docs/primitives-i-jocs.md](docs/primitives-i-jocs.md).
 - **No online mode.** It would turn a local tool into an operated service, with
   the availability, abuse and risk profile that implies.
 
