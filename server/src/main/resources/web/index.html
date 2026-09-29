@@ -2484,7 +2484,7 @@ function renderRules() {
   document.getElementById("rulesPlay").textContent = t("rules." + mode + ".play");
   document.getElementById("rulesCount").textContent = t("rules." + mode + ".count");
   document.getElementById("rulesPeople").textContent = t("rules." + mode + ".people");
-  renderHands();
+  renderHandRankings();
   const lines = [t("rules.buyIn", fmt(config.defaultBuyIn)), t("rules.seats", fmt(config.seatCount))];
   if (bankGame()) {
     const pays = config.naturalPays || { numerator: 3, denominator: 2 };
@@ -2517,7 +2517,7 @@ const HANDS = [
  * the poker rules, because it is what gets looked up mid-hand, and a hotspot
  * has no internet to look it up on.
  */
-function renderHands() {
+function renderHandRankings() {
   const block = document.getElementById("rulesHands");
   block.hidden = mode !== "poker";
   if (block.hidden) return;
