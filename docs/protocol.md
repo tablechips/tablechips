@@ -33,7 +33,7 @@ computes nothing that matters.
 `action` is one of `bet` (`amount`, `pot`), `rebuy` (`amount`), `transfer`
 (`to`, `amount`), `rename` (`name`), `stand_up`, `stake` (`amount`, bank games),
 `cancel_stake` (bank games), `take_bank` (bank games, only while nobody holds
-it), `fold` (poker).
+it), `double` and `split` (`hand`, blackjack), `fold` (poker).
 
 `sit` with no `seat` returns a player to the seat they last stood up from while
 it is free, and with no `buyIn` a player who still has chips sits down with
@@ -43,7 +43,10 @@ them: coming back from the bar is not a buy-in.
 whole pot), `share_pot` (`winners`, `pot` — a tie), `adjust_stack` (`player`, `delta`), `create_pot` (`name?`),
 `set_config` (`config`), `kick` (`player`), `transfer_seat` (`from`, `to`),
 `set_banker` (`player`, bank games), `settle` (`player`, `outcome`, `amount?`,
-bank games), `start_hand`, `close_round`, `split_pots` (poker), `undo`.
+`hand?`, bank games), `settle_all` (`outcome`, bank games), `fund_house`
+(`amount`, blackjack), `start_hand`, `close_round`, `split_pots` (poker),
+`undo`. `settle`, `settle_all` and `fund_house` also come from whoever holds
+the bank: the rules, not the frame, decide who may send them.
 
 **No frame carries the id of who sent it.** The server takes that from the
 connection, so a client cannot act on behalf of another player by editing a
@@ -87,12 +90,24 @@ the mode is the shape of the money.
 
 **Bank games** (`seven_half`, `blackjack`). One seated player holds the bank
 (`state.banker`). Everybody else puts chips up with `stake`; those chips leave
-the stack and sit in `player.stake`, on the table but nobody's yet. The host
-ends each hand with `settle`, whose `outcome` is `win`, `lose`, `push` or
-`natural`; `natural` is paid at `config.naturalPays` (3:2 for blackjack, usually
-2:1 for set i mig), rounded down. Settling part of a stake is how a split hand
-is expressed: two outcomes over one pile. The bank must be able to cover what it
-owes, or the command is refused.
+the stack and sit in `player.stake`, on the table but nobody's yet, played as
+`player.hands` (one, until a blackjack hand is split). Whoever holds the bank,
+or the host, ends each hand with `settle`, whose `outcome` is `win`, `lose`,
+`push`, `natural` or `surrender`: `natural` is paid at `config.naturalPays`
+(3:2 for blackjack, usually 2:1 for set i mig), rounded down, and `surrender`
+gives half the stake back. `hand` settles one hand of a split stake; `amount`
+still settles part of a stake by hand. `settle_all` ends every stake still
+waiting with `win`, `lose` or `push`. The bank must be able to cover what it
+owes, or the command is refused with `bank_cannot_pay`.
+
+At blackjack the bank is the house: `state.house`, chips bought in with
+`fund_house` that sit nowhere and are nobody's. `state.banker` is whoever deals
+for it, and their own stack never moves. At set i mig the bank is the banker's
+stack, and with `config.naturalTakesBank` a `natural` hands the bank to that
+player once every stake has been settled (`state.pendingBanker` until then).
+
+Each player keeps `lastStake`, what they staked last time, to stake it again in
+one tap, and `settled`, how their hands ended, until they stake again.
 
 **Poker.** `start_hand` moves the button, posts `config.smallBlind` and
 `config.bigBlind` (capped by the stacks behind them) and clears the last hand.

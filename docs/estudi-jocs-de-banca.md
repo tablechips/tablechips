@@ -91,10 +91,44 @@ Per ordre d'impacte:
 | 8 | Si la banca no pot pagar, dir qui no pot i quant falta, i oferir-li «Comprar més» en un toc; opcionalment, la norma de la banca rebentada | La banca que no pot pagar passa de 7 tocs a 2 |
 | 9 | Blackjack: una «casa» amb fons propi que no ocupa cap lloc (decisió pendent) | — |
 
-## Decisions pendents
+## Decisions preses
 
-- **La banca del blackjack:** continuar amb un jugador assegut o fer una casa amb fons propi.
-- **Les mans partides:** si l'app ha de conèixer les mans de cada jugador o si n'hi ha prou amb liquidar una part de l'aposta.
-- **Quan la banca no pot pagar:** si s'aplica la norma de la banca rebentada o simplement es bloqueja fins que compri.
+- **La banca del blackjack:** és una casa amb fons propi que no ocupa cap lloc. Es compra com la d'un jugador («Posar 905 a la casa»), i qui reparteix la porta sense que la seva pila es mogui.
+- **Les mans partides:** l'app coneix les mans de cada jugador. «Partir» crea una segona mà amb la mateixa aposta, cadascuna es liquida per separat, i cada mà es pot doblar pel seu compte.
+- **Quan la banca no pot pagar:** la banca no queda rebentada. Abans d'enviar res, l'app diu quant falta, i la banca hi pot afegir fitxes amb un toc.
+- **Propostes implementades:** 1, 2, 3, 5, 6, 7, 8 i 9. De la 4 s'han fet doblar, partir i rendir-se; l'assegurança queda pendent.
 
-Quan es decideixi, es farà una segona simulació amb la mateixa llavor per comparar-ne els tocs.
+## Després dels canvis
+
+La mateixa simulació, amb la mateixa llavor, les mateixes apostes i els mateixos resultats, amb les pantalles noves del client web:
+- Liquida la mà qui té la banca, des de la taula.
+- Tornar a apostar el mateix és un toc.
+- Doblar i partir són un toc.
+- Quan tots els que queden acaben igual, es resolen d'un cop.
+
+| | Blackjack abans | Blackjack ara | Set i mig abans | Set i mig ara |
+|---|---|---|---|---|
+| Tocs per portar la banca en 20 mans (amfitrió i banca) | 132 | 51 | 141 | 49 |
+| Tocs per mà per portar la banca (mínim / mitjana / màxim) | 5 / 6,6 / 11 | 1 / 2,5 / 5 | 5 / 7,0 / 12 | 1 / 2,5 / 7 |
+| Tocs de tots els jugadors | 312 | 183 | 299 | 212 |
+| Tocs per aposta | 4,1 | 2,7 | 4,2 | 3,0 |
+| Mans partides pagades malament | 2 | 0 | — | — |
+| Tocs amb la pantalla desplaçada | 1 | 0 | 1 | 0 |
+| Errors | 1 («No tens prou fitxes») | 0 | 0 | 0 |
+
+Què ha passat en aquesta segona simulació:
+- «Paga a tots» i «Guanya a tots» s'han fet servir 13 vegades al blackjack i 14 al set i mig.
+- Al set i mig, qui ha fet set i mig s'ha quedat la banca sol 3 vegades, sense cap toc.
+- Al blackjack, la banca que no podia pagar ha costat 2 tocs: afegir fitxes i tornar a tocar el resultat.
+
+**Les fitxes quadren als dos jocs.**
+- Al set i mig, cada jugador acaba exactament amb les mateixes fitxes que a la primera simulació. Les dreceres no canvien cap càlcul.
+- Al blackjack, el resultat canvia, i és el que s'esperava: ara paga la casa i les mans partides es paguen bé.
+
+La preparació de la taula costa alguns tocs més:
+- al blackjack, 1 toc per posar fitxes a la casa;
+- al set i mig, 4 tocs per activar la norma del set i mig des del panell. També es pot triar en crear la taula.
+
+**Pendent:**
+- La simulació s'ha fet només al client web. L'app té les mateixes pantalles i tests de pantalla, però no s'ha provat en un mòbil de veritat.
+- Tampoc s'ha jugat amb gent.
