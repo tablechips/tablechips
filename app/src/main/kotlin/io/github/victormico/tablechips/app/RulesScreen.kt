@@ -34,7 +34,12 @@ import io.github.victormico.tablechips.core.TableConfig
  * the argument at a real table.
  */
 @Composable
-fun RulesScreen(config: TableConfig, onBack: () -> Unit) {
+fun RulesScreen(
+    config: TableConfig,
+    onBack: () -> Unit,
+    /** Blackjack at a table already open: what the house holds. */
+    house: Long? = null,
+) {
     val texts = rulesFor(config.mode)
     Frame(
         header = {
@@ -67,6 +72,12 @@ fun RulesScreen(config: TableConfig, onBack: () -> Unit) {
                             config.naturalPays.numerator.toString() + ":" + config.naturalPays.denominator,
                         ),
                     )
+                }
+                if (config.mode == GameMode.SEVEN_HALF && config.naturalTakesBank) {
+                    TableLine(stringResource(R.string.rules_natural_takes))
+                }
+                if (config.mode == GameMode.BLACKJACK && house != null) {
+                    TableLine(stringResource(R.string.rules_house, chips(house)))
                 }
                 if (config.mode == GameMode.POKER) {
                     TableLine(

@@ -49,6 +49,10 @@ import io.github.victormico.tablechips.protocol.RebuyAction
 import io.github.victormico.tablechips.protocol.SetBankerCommand
 import io.github.victormico.tablechips.protocol.SetConfigCommand
 import io.github.victormico.tablechips.protocol.SettleCommand
+import io.github.victormico.tablechips.protocol.FundHouseCommand
+import io.github.victormico.tablechips.protocol.SettleAllCommand
+import io.github.victormico.tablechips.protocol.SplitAction
+import io.github.victormico.tablechips.protocol.DoubleAction
 import io.github.victormico.tablechips.protocol.SharePotCommand
 import io.github.victormico.tablechips.protocol.SplitPotsCommand
 import io.github.victormico.tablechips.protocol.StakeAction
@@ -422,6 +426,7 @@ fun App(
 
             Screen.Rules -> RulesScreen(
                 config = if (rulesFrom == Screen.Setup) setup else table?.config ?: setup,
+                house = table?.house?.takeIf { rulesFrom != Screen.Setup },
                 onBack = { screen = rulesFrom },
             )
 
@@ -495,8 +500,18 @@ fun App(
                         ),
                     )
                 },
+                onStakeAgain = { amount -> Session.act(Action(StakeAction(amount))) },
                 onCancelStake = { Session.act(Action(CancelStakeAction)) },
                 onTakeBank = { Session.act(Action(TakeBankAction)) },
+                onDouble = { hand -> Session.act(Action(DoubleAction(hand))) },
+                onSplit = { hand -> Session.act(Action(SplitAction(hand))) },
+                // Whoever holds the bank settles from the table, as does the host.
+                onSettle = { player, outcome, hand ->
+                    Session.act(HostCommandMessage(SettleCommand(player.id, outcome, hand = hand)))
+                },
+                onSettleAll = { outcome -> Session.act(HostCommandMessage(SettleAllCommand(outcome))) },
+                onFundHouse = { amount -> Session.act(HostCommandMessage(FundHouseCommand(amount))) },
+                onTopUp = { amount -> Session.act(Action(RebuyAction(amount))) },
                 // A call goes into the pot being played for, not into whichever
                 // side pot the screen happens to be showing.
                 onCall = { amount -> Session.act(Action(BetAction(amount, MAIN_POT))) },
@@ -667,9 +682,6 @@ fun App(
                 },
                 onSeats = { screen = Screen.Seats },
                 onBanker = { player -> Session.act(HostCommandMessage(SetBankerCommand(player?.id))) },
-                onSettle = { player, outcome ->
-                    Session.act(HostCommandMessage(SettleCommand(player.id, outcome)))
-                },
                 onMode = { mode ->
                     val config = table?.config ?: return@HostPanelScreen
                     Session.act(HostCommandMessage(SetConfigCommand(config.copy(mode = mode))))
@@ -677,6 +689,10 @@ fun App(
                 onNaturalPays = { pays ->
                     val config = table?.config ?: return@HostPanelScreen
                     Session.act(HostCommandMessage(SetConfigCommand(config.copy(naturalPays = pays))))
+                },
+                onNaturalTakesBank = { takes ->
+                    val config = table?.config ?: return@HostPanelScreen
+                    Session.act(HostCommandMessage(SetConfigCommand(config.copy(naturalTakesBank = takes))))
                 },
                 onNewHand = { Session.act(HostCommandMessage(StartHandCommand)) },
                 onCloseRound = { Session.act(HostCommandMessage(CloseRoundCommand)) },

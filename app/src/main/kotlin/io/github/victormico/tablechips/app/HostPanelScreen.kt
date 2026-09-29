@@ -29,7 +29,6 @@ import io.github.victormico.tablechips.app.ui.Caption
 import io.github.victormico.tablechips.app.ui.Card
 import io.github.victormico.tablechips.app.ui.ClickableSurface
 import io.github.victormico.tablechips.app.ui.Frame
-import io.github.victormico.tablechips.app.ui.Note
 import io.github.victormico.tablechips.app.ui.Pills
 import io.github.victormico.tablechips.app.ui.Refugi
 import io.github.victormico.tablechips.app.ui.SecondaryButton
@@ -37,7 +36,6 @@ import io.github.victormico.tablechips.app.ui.TcText
 import io.github.victormico.tablechips.app.ui.Type
 import io.github.victormico.tablechips.app.ui.chips
 import io.github.victormico.tablechips.core.GameMode
-import io.github.victormico.tablechips.core.HandOutcome
 import io.github.victormico.tablechips.core.Payout
 import io.github.victormico.tablechips.core.Player
 import io.github.victormico.tablechips.core.PlayerId
@@ -65,9 +63,9 @@ fun HostPanelScreen(
     onBuyIn: () -> Unit,
     onSeats: () -> Unit,
     onBanker: (Player?) -> Unit,
-    onSettle: (Player, HandOutcome) -> Unit,
     onMode: (GameMode) -> Unit,
     onNaturalPays: (Payout) -> Unit,
+    onNaturalTakesBank: (Boolean) -> Unit = {},
     onNewHand: () -> Unit,
     onCloseRound: () -> Unit,
     onSplitPots: () -> Unit,
@@ -263,12 +261,11 @@ fun HostPanelScreen(
             }
         }
 
+        // The hands themselves are settled on the table, where the bank is;
+        // here is only who holds it.
         if (table.config.mode.isBankGame) {
-            Caption(stringResource(R.string.bank_hands))
+            Caption(stringResource(R.string.bank_title))
             BankerRow(state, onBanker)
-            val staked = table.players.filter { it.stake > 0 }
-            if (staked.isEmpty()) Note(stringResource(R.string.bank_no_hands))
-            staked.forEach { player -> HandCard(player, table.config.mode, onSettle) }
         }
 
         Caption(stringResource(R.string.host_panel_seats))
@@ -293,6 +290,14 @@ fun HostPanelScreen(
                     .map { it to it.numerator.toString() + ":" + it.denominator },
                 selected = table.config.naturalPays,
                 onSelect = onNaturalPays,
+            )
+        }
+        if (table.config.mode == GameMode.SEVEN_HALF) {
+            Caption(stringResource(R.string.bank_natural_takes))
+            Pills(
+                options = listOf(true to stringResource(R.string.common_yes), false to stringResource(R.string.common_no)),
+                selected = table.config.naturalTakesBank,
+                onSelect = onNaturalTakesBank,
             )
         }
 
@@ -321,7 +326,13 @@ private fun BankerRow(state: ClientState, onBanker: (Player?) -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(9.dp),
         ) {
             Column(Modifier.weight(1f)) {
-                TcText(stringResource(R.string.bank_title), Type.nameStrong, maxLines = 1)
+                TcText(
+                    stringResource(
+                        if (table.config.mode == GameMode.BLACKJACK) R.string.poker_button else R.string.bank_title,
+                    ),
+                    Type.nameStrong,
+                    maxLines = 1,
+                )
                 TcText(
                     banker?.name ?: stringResource(R.string.bank_none),
                     Type.body.copy(fontSize = 13.sp),
@@ -367,52 +378,6 @@ private fun BankerRow(state: ClientState, onBanker: (Player?) -> Unit) {
         )
     }
 }
-
-/**
- * One hand waiting for the host to say how it ended. The app saw no cards, so
- * these four buttons are the whole of its opinion on the matter.
- */
-@Composable
-private fun HandCard(player: Player, mode: GameMode, onSettle: (Player, HandOutcome) -> Unit) {
-    Card(
-        Modifier.fillMaxWidth(),
-        padding = 0.dp,
-        radius = 11.dp,
-        border = Refugi.lineAccent,
-    ) {
-        Column(Modifier.fillMaxWidth().padding(12.dp, 11.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-            Column {
-                TcText(player.name, Type.nameStrong, maxLines = 1)
-                TcText(chips(player.stake), Type.chips.copy(fontSize = 13.sp), color = Refugi.accent)
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                SecondaryButton(
-                    stringResource(R.string.bank_win), { onSettle(player, HandOutcome.WIN) },
-                    Modifier.weight(1f), height = 44.dp,
-                    style = Type.secondary.copy(fontSize = 13.sp),
-                )
-                SecondaryButton(
-                    naturalName(mode), { onSettle(player, HandOutcome.NATURAL) },
-                    Modifier.weight(1f), height = 44.dp,
-                    style = Type.secondary.copy(fontSize = 13.sp),
-                )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                SecondaryButton(
-                    stringResource(R.string.bank_push), { onSettle(player, HandOutcome.PUSH) },
-                    Modifier.weight(1f), height = 44.dp,
-                    style = Type.secondary.copy(fontSize = 13.sp),
-                )
-                SecondaryButton(
-                    stringResource(R.string.bank_lose), { onSettle(player, HandOutcome.LOSE) },
-                    Modifier.weight(1f), height = 44.dp, danger = true,
-                    style = Type.secondary.copy(fontSize = 13.sp),
-                )
-            }
-        }
-    }
-}
-
 
 /**
  * The log settles arguments and takes moves back. Undo has no depth limit: at

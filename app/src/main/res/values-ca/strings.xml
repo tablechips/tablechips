@@ -354,4 +354,5 @@
     <string name="log_hand_surrendered">s\'ha rendit i ha perdut %1$s</string>
     <string name="error_bank_cannot_pay">La banca no pot pagar</string>
     <string name="error_no_such_hand">Aquesta mà no existeix</string>
+    <string name="bank_holder">Banca: %1$s</string>
 </resources>

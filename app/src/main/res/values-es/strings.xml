@@ -354,4 +354,5 @@
     <string name="log_hand_surrendered">se ha rendido y ha perdido %1$s</string>
     <string name="error_bank_cannot_pay">La banca no puede pagar</string>
     <string name="error_no_such_hand">Esa mano no existe</string>
+    <string name="bank_holder">Banca: %1$s</string>
 </resources>
