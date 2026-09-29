@@ -51,7 +51,7 @@ fun seatedTable(defaultBuyIn: Long = 100): Table = newTable(defaultBuyIn).apply 
 
 /** The same three players, playing a game with a bank. */
 fun bankTable(
-    mode: GameMode = GameMode.BLACKJACK,
+    mode: GameMode = GameMode.SEVEN_HALF,
     defaultBuyIn: Long = 100,
     naturalPays: Payout = Payout(),
 ): Table = seatedTable(defaultBuyIn).apply {

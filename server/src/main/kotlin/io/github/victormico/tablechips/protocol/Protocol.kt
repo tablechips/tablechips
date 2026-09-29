@@ -111,6 +111,16 @@ data class StakeAction(val amount: Long) : PlayerAction
 @SerialName("take_bank")
 data object TakeBankAction : PlayerAction
 
+/** Blackjack: the same chips again on one of your hands. */
+@Serializable
+@SerialName("double")
+data class DoubleAction(val hand: Int = 0) : PlayerAction
+
+/** Blackjack: split one of your hands in two, the new one staked like the first. */
+@Serializable
+@SerialName("split")
+data class SplitAction(val hand: Int = 0) : PlayerAction
+
 /** Bank games: take an unsettled stake back. */
 @Serializable
 @SerialName("cancel_stake")
@@ -162,14 +172,28 @@ data class KickCommand(val player: PlayerId) : HostCommand
 @SerialName("set_banker")
 data class SetBankerCommand(val player: PlayerId? = null) : HostCommand
 
-/** Bank games. A null amount settles the whole stake; part of it is a split hand. */
+/**
+ * Bank games, from the host or whoever holds the bank. [hand] settles one hand
+ * of a split blackjack stake; otherwise a null amount settles the whole stake.
+ */
 @Serializable
 @SerialName("settle")
 data class SettleCommand(
     val player: PlayerId,
     val outcome: HandOutcome,
     val amount: Long? = null,
+    val hand: Int? = null,
 ) : HostCommand
+
+/** Bank games, from the host or the bank: every hand still waiting ends the same way. */
+@Serializable
+@SerialName("settle_all")
+data class SettleAllCommand(val outcome: HandOutcome) : HostCommand
+
+/** Blackjack, from the host or the dealer: chips into the house. */
+@Serializable
+@SerialName("fund_house")
+data class FundHouseCommand(val amount: Long) : HostCommand
 
 /** Poker: move the button, post the blinds, clear the last hand. */
 @Serializable
