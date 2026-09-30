@@ -45,7 +45,7 @@ project.
      ```
      intent://join?host=<ip>&port=<port>&room=XXXX#Intent;
        scheme=tablechips;
-       package=io.github.victormico.tablechips;
+       package=io.github.tablechips;
        S.browser_fallback_url=<url of the web client>;
      end
      ```

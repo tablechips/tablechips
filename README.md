@@ -177,7 +177,7 @@ off by a test suite:
 - **No online mode.** It would turn a local tool into an operated service, with
   the availability, abuse and risk profile that implies.
 
-The app id is `io.github.victormico.tablechips`. It is the one irreversible
+The app id is `io.github.tablechips`. It is the one irreversible
 decision in the project — everything else, the repository name included, can be
 changed tomorrow.
 
