@@ -12,15 +12,19 @@ import io.github.victormico.tablechips.protocol.BetAction
 import io.github.victormico.tablechips.protocol.CancelStakeAction
 import io.github.victormico.tablechips.protocol.ClientMessage
 import io.github.victormico.tablechips.protocol.CloseRoundCommand
+import io.github.victormico.tablechips.protocol.DoubleAction
 import io.github.victormico.tablechips.protocol.ErrorMessage
 import io.github.victormico.tablechips.protocol.FoldAction
+import io.github.victormico.tablechips.protocol.FundHouseCommand
 import io.github.victormico.tablechips.protocol.HostCommandMessage
 import io.github.victormico.tablechips.protocol.Join
 import io.github.victormico.tablechips.protocol.RebuyAction
 import io.github.victormico.tablechips.protocol.SetBankerCommand
 import io.github.victormico.tablechips.protocol.SetConfigCommand
+import io.github.victormico.tablechips.protocol.SettleAllCommand
 import io.github.victormico.tablechips.protocol.SettleCommand
 import io.github.victormico.tablechips.protocol.Sit
+import io.github.victormico.tablechips.protocol.SplitAction
 import io.github.victormico.tablechips.protocol.SplitPotsCommand
 import io.github.victormico.tablechips.protocol.StakeAction
 import io.github.victormico.tablechips.protocol.StartHandCommand
@@ -72,20 +76,58 @@ class ModesTest {
         play(c, Join(name = "Carme"))
         play(c, Sit())
 
+        // Anna deals; the house has chips of its own, and pays from them.
         play(a, HostCommandMessage(SetBankerCommand(anna)))
+        play(a, HostCommandMessage(FundHouseCommand(200)))
         play(b, Action(StakeAction(30)))
         play(c, Action(StakeAction(20)))
         play(c, Action(CancelStakeAction))
-        play(c, Action(StakeAction(40)))
+        play(c, Action(StakeAction(20)))
+        play(c, Action(SplitAction()))
+        play(c, Action(DoubleAction(hand = 1)))
+        assertEquals(listOf(20L, 40L), a.lastState().state.player(carme)!!.hands)
         play(a, HostCommandMessage(SettleCommand(bru, HandOutcome.NATURAL)))
-        play(a, HostCommandMessage(SettleCommand(carme, HandOutcome.LOSE)))
+        play(a, HostCommandMessage(SettleCommand(carme, HandOutcome.LOSE, hand = 0)))
+        play(a, HostCommandMessage(SettleCommand(carme, HandOutcome.WIN, hand = 0)))
 
         val state = a.lastState().state
         assertEquals(anna, state.banker)
         assertEquals(70 + 30 + 45, state.player(bru)!!.stack)
-        assertEquals(60, state.player(carme)!!.stack)
-        assertEquals(100 - 45 + 40, state.player(anna)!!.stack)
+        assertEquals(40 + 40 + 40, state.player(carme)!!.stack)
+        assertEquals(100, state.player(anna)!!.stack)
+        assertEquals(200 - 45 + 20 - 40, state.house)
         assertTrue(state.balanced)
+        listOf(a, b, c).forEach { it.close() }
+    }
+
+    @Test
+    fun `whoever holds the bank settles against it, without being the host`() = runTest {
+        val host = host(GameMode.SEVEN_HALF)
+        val a = TestTransport()
+        val b = TestTransport()
+        val c = TestTransport()
+        listOf(a, b, c).forEach { connect(host, it) }
+        play(a, Join(name = "Anna"))
+        play(a, Sit())
+        play(b, Join(name = "Bru"))
+        play(b, Sit())
+        play(c, Join(name = "Carme"))
+        play(c, Sit())
+
+        play(b, Action(TakeBankAction))
+        play(a, Action(StakeAction(10)))
+        play(c, Action(StakeAction(20)))
+        play(b, HostCommandMessage(SettleCommand(anna, HandOutcome.LOSE)))
+        play(b, HostCommandMessage(SettleAllCommand(HandOutcome.WIN)))
+
+        val state = b.lastState().state
+        assertEquals(90, state.player(anna)!!.stack)
+        assertEquals(120, state.player(carme)!!.stack)
+        assertEquals(90, state.player(bru)!!.stack)
+        // Somebody playing against the bank does not settle their own hand.
+        play(c, Action(StakeAction(20)))
+        play(c, HostCommandMessage(SettleCommand(carme, HandOutcome.WIN)))
+        assertEquals("not_host", (c.lastMessage() as ErrorMessage).code)
         listOf(a, b, c).forEach { it.close() }
     }
 

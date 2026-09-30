@@ -39,6 +39,8 @@ import io.github.victormico.tablechips.app.ui.TcText
 import io.github.victormico.tablechips.app.ui.Type
 import io.github.victormico.tablechips.app.ui.chips
 import io.github.victormico.tablechips.core.GameMode
+import io.github.victormico.tablechips.core.HandOutcome
+import io.github.victormico.tablechips.core.Player
 import io.github.victormico.tablechips.core.chipsIn
 import io.github.victormico.tablechips.core.Pot
 import io.github.victormico.tablechips.core.PotId
@@ -65,8 +67,18 @@ fun TableScreen(
     /** Sits down with an amount other than the table's buy-in. */
     onSitOther: () -> Unit = {},
     onStake: () -> Unit = {},
+    /** Bank games: the same stake as last time, in one tap. */
+    onStakeAgain: (Long) -> Unit = {},
     onCancelStake: () -> Unit = {},
     onTakeBank: () -> Unit = {},
+    /** Blackjack: the same chips again on one hand, or that hand split in two. */
+    onDouble: (Int) -> Unit = {},
+    onSplit: (Int) -> Unit = {},
+    /** The bank, or the host: how a hand ended, or how every hand left ended. */
+    onSettle: (Player, HandOutcome, Int?) -> Unit = { _, _, _ -> },
+    onSettleAll: (HandOutcome) -> Unit = {},
+    onFundHouse: (Long) -> Unit = {},
+    onTopUp: (Long) -> Unit = {},
     onCall: (Long) -> Unit = {},
     onRaise: (Long) -> Unit = {},
     onFold: () -> Unit = {},
@@ -100,7 +112,9 @@ fun TableScreen(
         actions = {
             if (state.seated) {
                 when {
-                    table.config.mode.isBankGame -> BankActions(state, onStake, onCancelStake, onTakeBank)
+                    table.config.mode.isBankGame -> BankActions(
+                        state, onStake, onStakeAgain, onCancelStake, onTakeBank, onDouble, onSplit,
+                    )
                     table.config.mode == GameMode.POKER -> PokerActions(state, onBet, onCall, onRaise, onFold)
                     else -> PrimaryButton(stringResource(R.string.action_bet), onBet)
                 }
@@ -173,17 +187,21 @@ fun TableScreen(
                         )
                     }
                 }
-                val banker = table.banker?.let { id -> table.players.firstOrNull { it.id == id } }
+                // What the bank pays from: the house's chips at blackjack, the
+                // banker's stack at set i mig. The number the table watches.
+                val banker = table.bankerPlayer
                 Box(Modifier.weight(1f)) {
-                    MetricCard(
-                        label = stringResource(R.string.bank_title),
-                        value = when {
-                            banker == null -> stringResource(R.string.bank_none)
-                            banker.id == state.you -> stringResource(R.string.bank_you)
-                            else -> banker.name
-                        },
-                        small = true,
-                    )
+                    when {
+                        table.config.mode == GameMode.BLACKJACK ->
+                            MetricCard(stringResource(R.string.bank_house), chips(table.house))
+                        banker != null ->
+                            MetricCard(stringResource(R.string.bank_holder, banker.name), chips(banker.stack))
+                        else -> MetricCard(
+                            label = stringResource(R.string.bank_title),
+                            value = stringResource(R.string.bank_none),
+                            small = true,
+                        )
+                    }
                 }
             }
         } else if (table.pots.size == 1) {
@@ -212,6 +230,13 @@ fun TableScreen(
             HostHand(state, onCloseRound, onAwardPot, onNewHand)
         }
 
+        val runsBank = state.isHost || (table.banker != null && table.banker == state.you)
+        if (table.config.mode.isBankGame && runsBank &&
+            (table.config.mode == GameMode.BLACKJACK || table.banker != null)
+        ) {
+            BankHands(state, onSettle, onSettleAll, onFundHouse, onTopUp)
+        }
+
         if (state.isHost && undoable != null && state.undoDepth > 0) {
             UndoCard(undoable, stringResource(R.string.undo_always), onUndo)
         }
@@ -221,10 +246,11 @@ fun TableScreen(
         // pushed forward this round, not what they have behind: that is the
         // number the row shows, in the brass of chips in play.
         val poker = table.config.mode == GameMode.POKER
+        val bank = table.config.mode.isBankGame
         Row(verticalAlignment = Alignment.Bottom) {
             Caption(stringResource(R.string.player_at_table))
             Box(Modifier.weight(1f))
-            if (poker) {
+            if (poker || bank) {
                 Caption(stringResource(R.string.poker_bet_column))
             } else {
                 TcText(chips(seated.size.toLong()), Type.caption, color = Refugi.text2)
@@ -233,12 +259,34 @@ fun TableScreen(
         seated.forEach { player ->
             PlayerRow(
                 name = player.name,
+                // Against the bank, what matters is what each player has up
+                // and, once settled, what their hand came to.
                 chips = when {
+                    bank -> when {
+                        player.id == table.banker -> "\u2014"
+                        player.stake > 0 -> player.hands.ifEmpty { listOf(player.stake) }.joinToString(" + ") { chips(it) }
+                        player.settled.isNotEmpty() -> signedChips(player.settled.sumOf { it.delta })
+                        else -> "\u2014"
+                    }
                     !poker -> chips(player.stack)
                     player.roundBet > 0 -> chips(player.roundBet)
                     else -> "\u2014"
                 },
-                chipsColor = if (poker && player.roundBet > 0) Refugi.accent else if (poker) Refugi.text2 else Refugi.text,
+                chipsColor = when {
+                    bank -> {
+                        val result = player.settled.sumOf { it.delta }
+                        when {
+                            player.id == table.banker -> Refugi.text2
+                            player.stake > 0 -> Refugi.accent
+                            player.settled.isEmpty() || result == 0L -> Refugi.text2
+                            result > 0 -> Refugi.gain
+                            else -> Refugi.loss
+                        }
+                    }
+                    poker && player.roundBet > 0 -> Refugi.accent
+                    poker -> Refugi.text2
+                    else -> Refugi.text
+                },
                 dot = when {
                     player.id == state.you -> Refugi.accent
                     player.connected -> Refugi.gain
@@ -248,7 +296,13 @@ fun TableScreen(
                 dim = !player.connected || (poker && player.folded),
                 tags = buildList {
                     if (player.isHost) add(stringResource(R.string.host_role))
-                    if (table.banker == player.id) add(stringResource(R.string.bank_title))
+                    if (table.banker == player.id) {
+                        add(
+                            stringResource(
+                                if (table.config.mode == GameMode.BLACKJACK) R.string.poker_button else R.string.bank_title,
+                            ),
+                        )
+                    }
                     if (table.config.mode == GameMode.POKER) {
                         if (table.button == player.seat) add(stringResource(R.string.poker_button))
                         if (player.folded) add(stringResource(R.string.poker_folded_tag))
@@ -281,32 +335,77 @@ fun TableScreen(
 }
 
 /**
- * Against the bank there is one thing to do — put chips up — and one way back
- * out of it, until the host says how the hand ended.
+ * Against the bank: put chips up — the same as last time in one tap — and at
+ * blackjack double or split them. The bank itself only waits: it settles the
+ * hands from the table.
  */
 @Composable
 private fun BankActions(
     state: ClientState,
     onStake: () -> Unit,
+    onStakeAgain: (Long) -> Unit,
     onCancel: () -> Unit,
     onTakeBank: () -> Unit,
+    onDouble: (Int) -> Unit,
+    onSplit: (Int) -> Unit,
 ) {
     val table = state.table ?: return
     val me = state.me ?: return
+    val blackjack = table.config.mode == GameMode.BLACKJACK
     when {
-        table.banker == me.id -> Note(stringResource(R.string.bank_you_sub))
-        // Nothing can be staked until somebody banks, so taking the bank is
-        // the one thing to do, and anybody seated may do it.
-        table.banker == null -> PrimaryButton(stringResource(R.string.bank_take), onTakeBank)
+        table.banker == me.id ->
+            Note(stringResource(if (blackjack) R.string.bank_dealing else R.string.bank_you_sub))
+        // Nothing can be staked until somebody banks — at blackjack, deals for
+        // the house — and anybody seated may.
+        table.banker == null ->
+            PrimaryButton(stringResource(if (blackjack) R.string.bank_deal else R.string.bank_take), onTakeBank)
+        me.stake > 0 -> {
+            if (blackjack) {
+                val hands = me.hands.ifEmpty { listOf(me.stake) }
+                Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                    if (hands.size == 1) {
+                        SecondaryButton(
+                            stringResource(R.string.bank_double), { onDouble(0) }, Modifier.weight(1f),
+                            enabled = me.stack >= hands[0],
+                        )
+                        SecondaryButton(
+                            stringResource(R.string.bank_split), { onSplit(0) }, Modifier.weight(1f),
+                            enabled = me.stack >= hands[0],
+                        )
+                    } else {
+                        hands.forEachIndexed { index, amount ->
+                            SecondaryButton(
+                                stringResource(R.string.bank_double_hand, chips(index + 1L)),
+                                { onDouble(index) },
+                                Modifier.weight(1f),
+                                enabled = me.stack >= amount,
+                                style = Type.secondary.copy(fontSize = 13.sp),
+                            )
+                        }
+                    }
+                }
+            } else {
+                PrimaryButton(stringResource(R.string.bank_stake), onStake)
+            }
+            SecondaryButton(
+                label = stringResource(R.string.bank_cancel),
+                onClick = onCancel,
+                modifier = Modifier.fillMaxWidth(),
+                warn = true,
+            )
+        }
         else -> {
-            PrimaryButton(stringResource(R.string.bank_stake), onStake)
-            if (me.stake > 0) {
-                SecondaryButton(
-                    label = stringResource(R.string.bank_cancel),
-                    onClick = onCancel,
-                    modifier = Modifier.fillMaxWidth(),
-                    warn = true,
+            // Most hands are staked like the last one: that is one tap.
+            val again = me.lastStake in 1..me.stack
+            if (again) {
+                PrimaryButton(
+                    label = stringResource(R.string.bank_stake_again),
+                    value = chips(me.lastStake),
+                    onClick = { onStakeAgain(me.lastStake) },
                 )
+                SecondaryButton(stringResource(R.string.action_sit_other), onStake, Modifier.fillMaxWidth())
+            } else {
+                PrimaryButton(stringResource(R.string.bank_stake), onStake)
             }
         }
     }

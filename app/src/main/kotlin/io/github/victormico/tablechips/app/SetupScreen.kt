@@ -116,6 +116,14 @@ fun SetupScreen(
                 onSelect = { onConfig(config.copy(naturalPays = it)) },
             )
         }
+        if (config.mode == GameMode.SEVEN_HALF) {
+            Caption(stringResource(R.string.bank_natural_takes))
+            Pills(
+                options = listOf(true to stringResource(R.string.common_yes), false to stringResource(R.string.common_no)),
+                selected = config.naturalTakesBank,
+                onSelect = { onConfig(config.copy(naturalTakesBank = it)) },
+            )
+        }
         if (config.mode == GameMode.POKER) {
             Caption(stringResource(R.string.poker_blinds))
             SecondaryButton(

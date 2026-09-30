@@ -6,6 +6,9 @@ import kotlinx.serialization.Serializable
 /** Upper bound on seats at a table. Ten is a hard product requirement, not a hint. */
 const val MAX_SEATS: Int = 10
 
+/** Blackjack: how many hands one stake may be split into. */
+const val MAX_HANDS: Int = 4
+
 /** Identifier a client persists locally (DataStore on the app, localStorage on the web). */
 @JvmInline
 @Serializable
@@ -70,6 +73,11 @@ data class TableConfig(
     /** Poker: posted at the start of every hand. Zero means no blinds. */
     val smallBlind: Long = 0,
     val bigBlind: Long = 0,
+    /**
+     * Set i mig, a house rule: whoever makes an exact set i mig takes the bank
+     * once the hand has been settled.
+     */
+    val naturalTakesBank: Boolean = false,
 )
 
 /** What a hand of a bank game ended up being worth to the player. */
@@ -88,7 +96,15 @@ enum class HandOutcome {
     /** A blackjack, a set i mig: paid at [TableConfig.naturalPays]. */
     @SerialName("natural")
     NATURAL,
+
+    /** Blackjack: the player gives the hand up and gets half the stake back. */
+    @SerialName("surrender")
+    SURRENDER,
 }
+
+/** How one hand of a bank game ended, kept on show until the player stakes again. */
+@Serializable
+data class SettledHand(val outcome: HandOutcome, val delta: Long)
 
 @Serializable
 data class Player(
@@ -112,6 +128,15 @@ data class Player(
      * real table, so they count as being on the table.
      */
     val stake: Long = 0,
+    /**
+     * Bank games: the stake as the hands it is played in, which is one until a
+     * blackjack hand is split. Always adds up to [stake].
+     */
+    val hands: List<Long> = emptyList(),
+    /** Bank games: what this player staked last time, to stake it again in one tap. */
+    val lastStake: Long = 0,
+    /** Bank games: how this player's hands ended, until they stake again. */
+    val settled: List<SettledHand> = emptyList(),
     /**
      * Poker: everything this player has put into the pot during the current
      * hand. Side pots are built from these, so it is what makes an all-in for
@@ -191,8 +216,19 @@ data class TableState(
     val players: List<Player> = emptyList(),
     val pots: List<Pot> = listOf(Pot(MAIN_POT)),
     val bank: Bank = Bank(),
-    /** Bank games: who is holding the bank, if anybody is. */
+    /**
+     * Bank games: who is holding the bank, if anybody is. At blackjack this is
+     * whoever deals for the house: the chips are the house's, not theirs.
+     */
     val banker: PlayerId? = null,
+    /**
+     * Blackjack: the house's chips. The house plays against everybody and sits
+     * nowhere; it is bought into like a player, and pays and collects every
+     * hand. Kept when the game changes, because chips are never dropped.
+     */
+    val house: Long = 0,
+    /** Set i mig with [TableConfig.naturalTakesBank]: who takes the bank once the hand is settled. */
+    val pendingBanker: PlayerId? = null,
     /** Poker: the seat with the dealer button, or null before the first hand. */
     val button: Int? = null,
     /** Poker: the highest [Player.roundBet] of the current round; what a call matches. */
@@ -215,7 +251,14 @@ data class TableState(
      * pot. Must always equal what was bought in.
      */
     val chipsOnTable: Long
-        get() = players.sumOf { it.stack + it.stake } + pots.sumOf { it.amount }
+        get() = players.sumOf { it.stack + it.stake } + pots.sumOf { it.amount } + house
+
+    /**
+     * Bank games: the chips the bank pays from and collects into — the house's
+     * at blackjack, the banker's stack at set i mig. Null with no bank to pay.
+     */
+    val bankFunds: Long?
+        get() = if (config.mode == GameMode.BLACKJACK) house else bankerPlayer?.stack
 
     /** Bank games: the player holding the bank, if they are still at the table. */
     val bankerPlayer: Player?

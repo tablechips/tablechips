@@ -269,17 +269,25 @@ data class StakeReturned(
 @SerialName("hand_settled")
 data class HandSettled(
     val player: PlayerId,
-    val banker: PlayerId,
+    /** Who held the bank; at blackjack, who was dealing for the house. */
+    val banker: PlayerId?,
     val outcome: HandOutcome,
     val stake: Long,
     val delta: Long,
     override val at: Long,
+    /** Which of the player's hands, when it was split; null for the whole stake. */
+    val hand: Int? = null,
+    /** Blackjack: the house paid or collected, not the banker's stack. */
+    val house: Boolean = false,
+    /** Set i mig with the house rule: this player takes the bank once the hand is over. */
+    val takesBank: Boolean = false,
 ) : TableEvent {
     override val logKey: String get() = when (outcome) {
         HandOutcome.WIN -> "log.hand_won"
         HandOutcome.LOSE -> "log.hand_lost"
         HandOutcome.PUSH -> "log.hand_push"
         HandOutcome.NATURAL -> "log.hand_natural"
+        HandOutcome.SURRENDER -> "log.hand_surrendered"
     }
 
     override val logActor: PlayerId get() = player
@@ -287,6 +295,47 @@ data class HandSettled(
         "amount" to (if (delta < 0) -delta else delta).toString(),
         "stake" to stake.toString(),
     )
+}
+
+/** Blackjack: chips bought into the house, which pays and collects every hand. */
+@Serializable
+@SerialName("house_funded")
+data class HouseFunded(
+    val by: PlayerId,
+    val amount: Long,
+    override val at: Long,
+) : TableEvent {
+    override val logKey: String get() = "log.house_funded"
+    override val logActor: PlayerId get() = by
+    override fun logArgs(): Map<String, String> = mapOf("amount" to amount.toString())
+}
+
+/** Blackjack: a hand doubled, the same chips again on it. */
+@Serializable
+@SerialName("stake_doubled")
+data class StakeDoubled(
+    val player: PlayerId,
+    val hand: Int,
+    val amount: Long,
+    override val at: Long,
+) : TableEvent {
+    override val logKey: String get() = "log.stake_doubled"
+    override val logActor: PlayerId get() = player
+    override fun logArgs(): Map<String, String> = mapOf("amount" to amount.toString())
+}
+
+/** Blackjack: a hand split in two, the second with the same stake as the first. */
+@Serializable
+@SerialName("stake_split")
+data class StakeSplit(
+    val player: PlayerId,
+    val hand: Int,
+    val amount: Long,
+    override val at: Long,
+) : TableEvent {
+    override val logKey: String get() = "log.stake_split"
+    override val logActor: PlayerId get() = player
+    override fun logArgs(): Map<String, String> = mapOf("amount" to amount.toString())
 }
 
 // -------------------------------------------------------------------- poker

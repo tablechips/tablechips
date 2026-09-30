@@ -300,6 +300,13 @@ button[disabled] { opacity: .4; cursor: default; }
             padding: 11px 12px; display: flex; flex-direction: column; gap: 9px; }
 .handCard .hrow { background: none; border: 0; padding: 0; }
 .handBtns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.handBtns.five { grid-template-columns: repeat(5, 1fr); }
+.handBtns.four { grid-template-columns: repeat(4, 1fr); }
+.handBtns.five .rowBtn, .handBtns.four .rowBtn { font-size: 13px; padding: 0 2px; }
+.handCard.done { border-color: var(--line); opacity: .72; }
+.handLine { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 2px 0 6px; }
+.handLine .num { font-family: var(--mono); font-weight: 600; }
+.pchips.gain { color: var(--gain); } .pchips.loss { color: var(--loss); }
 .handBtns .rowBtn { width: 100%; height: 44px; padding: 0 6px; }
 .pills { flex-wrap: wrap; }
 
@@ -444,6 +451,7 @@ button[disabled] { opacity: .4; cursor: default; }
 
     <div class="metrics" id="pots"></div>
     <div class="hostHand" id="hostHand" hidden></div>
+    <div class="rows" id="bankHands" hidden></div>
 
     <div class="undoCard" id="undoBar" hidden>
       <div class="txt">
@@ -536,7 +544,7 @@ button[disabled] { opacity: .4; cursor: default; }
       <div class="rows" id="hostRows"></div>
     </div>
     <div class="rows" id="handsBlock" hidden>
-      <div class="cap" data-i18n="bank.hands"></div>
+      <div class="cap" data-i18n="bank.title"></div>
       <div class="rows" id="handRows"></div>
     </div>
     <div class="rows">
@@ -755,11 +763,11 @@ const DICT = {
     "rules.manual.count": "Cadascú aposta al pot des del seu mòbil. L'amfitrió dona el pot a qui l'ha guanyat, sencer o a parts, i pot obrir pots nous. Un pot que ningú no s'endú es queda a la taula per a la mà següent.",
     "rules.manual.people": "Les regles, els torns i qui guanya cada mà. L'app només anota el que diu l'amfitrió, i tot es pot desfer des del registre.",
     "rules.seven_half.play": "Es juga amb baralla espanyola de 40 cartes. Les cartes de número valen el seu número i les figures (sota, cavall i rei), mig punt. Cadascú demana cartes per acostar-se a set i mig sense passar-se'n, i juga sol contra la banca.",
-    "rules.seven_half.count": "Qui no té la banca aposta abans de repartir. Quan acaba la mà, l'amfitrió resol cada aposta: guanya (la banca paga el mateix), perd (l'aposta és per a la banca), empat (torna l'aposta) o set i mig (la banca paga el que marca aquesta taula). Qui vulga la banca l'agafa mentre està lliure; passar-la a una altra persona es fa des del panell d'amfitrió.",
-    "rules.seven_half.people": "Qui té la banca i quan passa, quina jugada compta com a set i mig, i qui s'endú l'empat: a molts llocs, la banca, i llavors el botó que cal prémer és «Perd».",
-    "rules.blackjack.play": "Cadascú intenta acostar-se a 21 sense passar-se'n. Les figures valen 10, l'as 1 o 11, i la resta el seu número. Un as i una carta de 10 com a primeres cartes és blackjack. Tothom juga contra la banca.",
-    "rules.blackjack.count": "Qui no té la banca aposta abans de repartir; doblar és tornar a apostar la mateixa quantitat. Quan acaba la mà, l'amfitrió resol cada aposta: guanya, perd, empat o blackjack (la banca paga el que marca aquesta taula). Una mà separada es resol en dues parts.",
-    "rules.blackjack.people": "Quan es planta la banca, si es pot doblar o separar, i qui ha guanyat cada mà. Les regles de la casa les poseu vosaltres.",
+    "rules.seven_half.count": "Qui té la banca la porta amb les seves fitxes, i els altres hi aposten en contra abans de repartir. Quan acaba la mà, la banca (o l'amfitrió) resol cada aposta des de la taula: guanya (la banca paga el mateix), perd (l'aposta és per a la banca), empat (torna l'aposta) o set i mig (la banca paga el que marca aquesta taula). Si la banca es passa, «Paga a tots» resol d'un cop tots els que queden. Si la banca no pot pagar, ha d'afegir-hi fitxes. Qui vulga la banca l'agafa mentre està lliure.",
+    "rules.seven_half.people": "Qui té la banca i quan passa, quina jugada compta com a set i mig, i qui s'endú l'empat: a molts llocs, la banca, i llavors cal prémer «Perd». La banca decideix lliurement si demana carta o es planta, segons el que veu als altres.",
+    "rules.blackjack.play": "Cadascú intenta acostar-se a 21 sense passar-se'n. Les figures valen 10, l'as 1 o 11, i la resta el seu número. Un as i una carta de 10 com a primeres cartes és blackjack. Tothom juga contra la casa.",
+    "rules.blackjack.count": "La banca és la casa: té fitxes pròpies, no ocupa cap lloc i no aposta; qui reparteix la porta. Els jugadors aposten abans de repartir i poden doblar o partir amb un toc; cada mà partida es resol per separat. Quan acaba la mà, qui reparteix (o l'amfitrió) resol cada mà des de la taula: guanya, perd, empat, blackjack (la casa paga el que marca aquesta taula) o es rendeix (torna la meitat de l'aposta).",
+    "rules.blackjack.people": "La casa no decideix res: demana carta amb 16 o menys i es planta amb 17 o més. Qui ha guanyat cada mà, i les altres normes de la casa, les poseu vosaltres.",
     "rules.poker.play": "Texas hold'em: cadascú rep dues cartes i n'hi ha cinc de comunes, que surten en tres tongades. Hi ha una ronda d'apostes abans i després de cada tongada, i guanya la millor jugada de cinc cartes.",
     "rules.poker.count": "«Mà nova» mou el repartidor i posa les cegues. El botó gran diu exactament quant costa igualar. Entre tongades, l'amfitrió tanca la ronda. Si algú va all-in amb menys fitxes, «Dividir el pot» separa els pots que pot guanyar cadascú, i l'amfitrió els dona un a un. Quan s'ha donat tot el pot, la mà següent comença sola. Si tothom es retira menys un, el pot és seu sense que ningú hagi de fer res. En un empat, «Empat» reparteix el pot a parts iguals.",
     "rules.poker.people": "De qui és el torn, quan es pot passar i qui guanya la mà. L'app compta les fitxes; el joc el porteu vosaltres.",
@@ -805,13 +813,40 @@ const DICT = {
     "mode.blackjack": "Blackjack", "mode.poker": "Pòquer",
     "game.title": "Joc", "game.sub": "%s · canvia'l quan vulgues",
     "bank.title": "La banca", "bank.none": "Ningú", "bank.you": "Tens la banca",
-    "bank.youSub": "Els altres juguen contra tu. Resol cada mà des del panell.",
+    "bank.youSub": "Els altres juguen contra tu. Resol cada mà aquí sota.",
     "bank.holder": "Banca: %s",
     "bank.yourStake": "La teua aposta", "bank.stake": "Apostar",
     "bank.cancel": "Retirar l'aposta", "bank.hands": "Mans per resoldre",
     "bank.noHands": "Encara no ha apostat ningú",
     "bank.win": "Guanya", "bank.lose": "Perd", "bank.push": "Empat", "bank.natural": "Natural",
     "bank.pays": "La natural paga", "bank.stakeTitle": "Quant apostes?",
+    "bank.house": "La casa",
+    "bank.deal": "Repartir per la casa",
+    "bank.dealing": "Reparteixes per la casa. Resol cada mà aquí sota.",
+    "bank.fund": "Posar %s a la casa",
+    "bank.topUp": "Afegir %s a la banca",
+    "bank.short": "La banca no pot pagar: li falten %s",
+    "bank.shortOther": "%s ha d'afegir fitxes a la banca per pagar",
+    "bank.double": "Doblar",
+    "bank.split": "Partir",
+    "bank.doubleHand": "Doblar la mà %s",
+    "bank.hand": "Mà %s",
+    "bank.surrender": "Es rendeix",
+    "bank.bust": "La banca es passa: paga a tots",
+    "bank.sweep": "La banca guanya a tots",
+    "bank.restHint": "Per a tots els que queden. Els que han acabat diferent, resol-los abans un a un.",
+    "bank.naturalTakes": "El set i mig es queda la banca",
+    "bank.stakeAgain": "Apostar",
+    "common.yes": "Sí",
+    "common.no": "No",
+    "rules.naturalTakes": "Qui fa set i mig es queda la banca quan s'ha resolt la mà.",
+    "rules.house": "La casa té %s.",
+    "log.house_funded": "ha posat %{amount} a la casa",
+    "log.stake_doubled": "ha doblat: %{amount} més",
+    "log.stake_split": "ha partit la mà: %{amount} més",
+    "log.hand_surrendered": "s'ha rendit i ha perdut %{amount}",
+    "error.bank_cannot_pay": "La banca no pot pagar",
+    "error.no_such_hand": "Aquesta mà no existeix",
     "poker.call": "Igualar %s", "poker.bet": "Apostar", "poker.raise": "Pujar",
     "poker.fold": "Retirar-se", "poker.folded": "Estàs fora d'aquesta mà",
     "poker.toCall": "Per igualar", "poker.betColumn": "Aposta", "poker.newHand": "Mà nova",
@@ -933,11 +968,11 @@ const DICT = {
     "rules.manual.count": "Cada uno apuesta al bote desde su móvil. El anfitrión da el bote a quien lo ha ganado, entero o a partes, y puede abrir botes nuevos. Un bote que nadie se lleva se queda en la mesa para la mano siguiente.",
     "rules.manual.people": "Las reglas, los turnos y quién gana cada mano. La app solo apunta lo que dice el anfitrión, y todo se puede deshacer desde el registro.",
     "rules.seven_half.play": "Se juega con baraja española de 40 cartas. Las cartas de número valen su número y las figuras (sota, caballo y rey), medio punto. Cada uno pide cartas para acercarse a siete y media sin pasarse, y juega solo contra la banca.",
-    "rules.seven_half.count": "Quien no tiene la banca apuesta antes de repartir. Cuando acaba la mano, el anfitrión resuelve cada apuesta: gana (la banca paga lo mismo), pierde (la apuesta es para la banca), empate (vuelve la apuesta) o siete y media (la banca paga lo que marca esta mesa). Quien quiera la banca la coge mientras está libre; pasarla a otra persona se hace desde el panel de anfitrión.",
-    "rules.seven_half.people": "Quién tiene la banca y cuándo pasa, qué jugada cuenta como siete y media, y quién se lleva el empate: en muchos sitios, la banca, y entonces el botón que hay que pulsar es «Pierde».",
-    "rules.blackjack.play": "Cada uno intenta acercarse a 21 sin pasarse. Las figuras valen 10, el as 1 u 11, y el resto su número. Un as y una carta de 10 como primeras cartas es blackjack. Todos juegan contra la banca.",
-    "rules.blackjack.count": "Quien no tiene la banca apuesta antes de repartir; doblar es volver a apostar la misma cantidad. Cuando acaba la mano, el anfitrión resuelve cada apuesta: gana, pierde, empate o blackjack (la banca paga lo que marca esta mesa). Una mano separada se resuelve en dos partes.",
-    "rules.blackjack.people": "Cuándo se planta la banca, si se puede doblar o separar, y quién ha ganado cada mano. Las reglas de la casa las ponéis vosotros.",
+    "rules.seven_half.count": "Quien tiene la banca la lleva con sus fichas, y los demás apuestan contra ella antes de repartir. Cuando acaba la mano, la banca (o el anfitrión) resuelve cada apuesta desde la mesa: gana (la banca paga lo mismo), pierde (la apuesta es para la banca), empate (vuelve la apuesta) o siete y media (la banca paga lo que marca esta mesa). Si la banca se pasa, «Paga a todos» resuelve de una vez a todos los que quedan. Si la banca no puede pagar, tiene que añadir fichas. Quien quiera la banca la coge mientras está libre.",
+    "rules.seven_half.people": "Quién tiene la banca y cuándo pasa, qué jugada cuenta como siete y media, y quién se lleva el empate: en muchos sitios, la banca, y entonces hay que pulsar «Pierde». La banca decide libremente si pide carta o se planta, según lo que ve en los demás.",
+    "rules.blackjack.play": "Cada uno intenta acercarse a 21 sin pasarse. Las figuras valen 10, el as 1 u 11, y el resto su número. Un as y una carta de 10 como primeras cartas es blackjack. Todos juegan contra la casa.",
+    "rules.blackjack.count": "La banca es la casa: tiene fichas propias, no ocupa ningún puesto y no apuesta; quien reparte la lleva. Los jugadores apuestan antes de repartir y pueden doblar o separar con un toque; cada mano separada se resuelve por separado. Cuando acaba la mano, quien reparte (o el anfitrión) resuelve cada mano desde la mesa: gana, pierde, empate, blackjack (la casa paga lo que marca esta mesa) o se rinde (vuelve la mitad de la apuesta).",
+    "rules.blackjack.people": "La casa no decide nada: pide carta con 16 o menos y se planta con 17 o más. Quién ha ganado cada mano, y las demás normas de la casa, las ponéis vosotros.",
     "rules.poker.play": "Texas hold'em: cada uno recibe dos cartas y hay cinco comunes, que salen en tres tandas. Hay una ronda de apuestas antes y después de cada tanda, y gana la mejor jugada de cinco cartas.",
     "rules.poker.count": "«Mano nueva» mueve el repartidor y pone las ciegas. El botón grande dice exactamente cuánto cuesta igualar. Entre tandas, el anfitrión cierra la ronda. Si alguien va all-in con menos fichas, «Dividir el bote» separa los botes que puede ganar cada uno, y el anfitrión los da uno a uno. Cuando se ha dado todo el bote, la mano siguiente empieza sola. Si todos se retiran menos uno, el bote es suyo sin que nadie tenga que hacer nada. En un empate, «Empate» reparte el bote a partes iguales.",
     "rules.poker.people": "De quién es el turno, cuándo se puede pasar y quién gana la mano. La app cuenta las fichas; el juego lo lleváis vosotros.",
@@ -984,13 +1019,40 @@ const DICT = {
     "mode.blackjack": "Blackjack", "mode.poker": "Póquer",
     "game.title": "Juego", "game.sub": "%s · cámbialo cuando quieras",
     "bank.title": "La banca", "bank.none": "Nadie", "bank.you": "Tienes la banca",
-    "bank.youSub": "Los demás juegan contra ti. Resuelve cada mano desde el panel.",
+    "bank.youSub": "Los demás juegan contra ti. Resuelve cada mano aquí debajo.",
     "bank.holder": "Banca: %s",
     "bank.yourStake": "Tu apuesta", "bank.stake": "Apostar",
     "bank.cancel": "Retirar la apuesta", "bank.hands": "Manos por resolver",
     "bank.noHands": "Todavía no ha apostado nadie",
     "bank.win": "Gana", "bank.lose": "Pierde", "bank.push": "Empate", "bank.natural": "Natural",
     "bank.pays": "La natural paga", "bank.stakeTitle": "¿Cuánto apuestas?",
+    "bank.house": "La casa",
+    "bank.deal": "Repartir por la casa",
+    "bank.dealing": "Repartes por la casa. Resuelve cada mano aquí debajo.",
+    "bank.fund": "Poner %s en la casa",
+    "bank.topUp": "Añadir %s a la banca",
+    "bank.short": "La banca no puede pagar: le faltan %s",
+    "bank.shortOther": "%s tiene que añadir fichas a la banca para pagar",
+    "bank.double": "Doblar",
+    "bank.split": "Separar",
+    "bank.doubleHand": "Doblar la mano %s",
+    "bank.hand": "Mano %s",
+    "bank.surrender": "Se rinde",
+    "bank.bust": "La banca se pasa: paga a todos",
+    "bank.sweep": "La banca gana a todos",
+    "bank.restHint": "Para todos los que quedan. A los que han acabado distinto, resuélvelos antes uno a uno.",
+    "bank.naturalTakes": "El siete y medio se queda la banca",
+    "bank.stakeAgain": "Apostar",
+    "common.yes": "Sí",
+    "common.no": "No",
+    "rules.naturalTakes": "Quien hace siete y media se queda la banca cuando se ha resuelto la mano.",
+    "rules.house": "La casa tiene %s.",
+    "log.house_funded": "ha puesto %{amount} en la casa",
+    "log.stake_doubled": "ha doblado: %{amount} más",
+    "log.stake_split": "ha separado la mano: %{amount} más",
+    "log.hand_surrendered": "se ha rendido y ha perdido %{amount}",
+    "error.bank_cannot_pay": "La banca no puede pagar",
+    "error.no_such_hand": "Esa mano no existe",
     "poker.call": "Igualar %s", "poker.bet": "Apostar", "poker.raise": "Subir",
     "poker.fold": "Retirarse", "poker.folded": "Estás fuera de esta mano",
     "poker.toCall": "Para igualar", "poker.betColumn": "Apuesta", "poker.newHand": "Mano nueva",
@@ -1113,11 +1175,11 @@ const DICT = {
     "rules.manual.count": "Everyone bets into the pot from their own phone. The host gives the pot to whoever won it, whole or in parts, and can open more pots. A pot nobody takes stays on the table for the next hand.",
     "rules.manual.people": "The rules, the turns and who wins each hand. The app only writes down what the host says, and anything can be undone from the log.",
     "rules.seven_half.play": "Played with a 40-card Spanish deck. Number cards are worth their number and the face cards (sota, caballo, rey) half a point. Each player draws to get as close to seven and a half as possible without going over, playing alone against the bank.",
-    "rules.seven_half.count": "Whoever does not hold the bank stakes before the deal. When the hand is over, the host settles each stake: wins (the bank pays the same again), loses (the stake goes to the bank), push (the stake comes back) or seven and a half (the bank pays what this table says). Whoever wants the bank takes it while it is free; handing it to somebody else is done from the host panel.",
-    "rules.seven_half.people": "Who holds the bank and when it passes on, which hand counts as a seven and a half, and who takes a tie: in many places the bank does, and then the button to press is Loses.",
-    "rules.blackjack.play": "Each player tries to get as close to 21 as possible without going over. Face cards are worth 10, an ace 1 or 11, the rest their number. An ace and a ten-card as the first two cards is a blackjack. Everyone plays against the bank.",
-    "rules.blackjack.count": "Whoever does not hold the bank stakes before the deal; doubling is staking the same amount again. When the hand is over, the host settles each stake: wins, loses, push or blackjack (the bank pays what this table says). A split hand is settled in two parts.",
-    "rules.blackjack.people": "When the bank stands, whether doubling and splitting are allowed, and who won each hand. The house rules are yours to set.",
+    "rules.seven_half.count": "Whoever holds the bank banks it with their own chips, and the others stake against it before the deal. When the hand is over, the bank (or the host) settles each stake from the table: wins (the bank pays the same again), loses (the stake goes to the bank), push (the stake comes back) or seven and a half (the bank pays what this table says). If the bank busts, Pay everyone settles everybody left at once. If the bank cannot pay, it has to add chips. Anybody may take the bank while nobody holds it.",
+    "rules.seven_half.people": "Who holds the bank and when it passes on, which hand counts as a seven and a half, and who takes a tie: in many places the bank does, and then the button to press is Loses. The bank is free to draw or stand, going by what it sees of the others.",
+    "rules.blackjack.play": "Each player tries to get as close to 21 as possible without going over. Face cards are worth 10, an ace 1 or 11, the rest their number. An ace and a ten-card as the first two cards is a blackjack. Everyone plays against the house.",
+    "rules.blackjack.count": "The bank is the house: it has chips of its own, takes no seat and does not bet; whoever deals runs it. Players stake before the deal and can double or split in one tap; each split hand is settled on its own. When the hand is over, the dealer (or the host) settles each hand from the table: wins, loses, push, blackjack (the house pays what this table says) or surrenders (half the stake back).",
+    "rules.blackjack.people": "The house decides nothing: it draws on 16 or less and stands on 17 or more. Who won each hand, and the other house rules, are yours to settle.",
     "rules.poker.play": "Texas hold'em: each player gets two cards and five are shared, dealt in three rounds. There is a round of betting before and after each, and the best five-card hand wins.",
     "rules.poker.count": "New hand moves the dealer and posts the blinds. The big button says exactly what a call costs. Between rounds, the host closes the round. If somebody goes all-in with fewer chips, Split the pot separates the pots each player can win, and the host awards them one by one. Once the last of the pot is awarded, the next hand deals itself. If everybody but one folds, the pot is theirs without anybody doing a thing. On a tie, Tie shares the pot evenly.",
     "rules.poker.people": "Whose turn it is, when you may check, and who wins the hand. The app counts the chips; the game is yours.",
@@ -1163,13 +1225,40 @@ const DICT = {
     "mode.blackjack": "Blackjack", "mode.poker": "Poker",
     "game.title": "Game", "game.sub": "%s · change it whenever",
     "bank.title": "The bank", "bank.none": "Nobody", "bank.you": "You hold the bank",
-    "bank.youSub": "Everybody plays against you. Settle each hand from the panel.",
+    "bank.youSub": "The others play against you. Settle each hand below.",
     "bank.holder": "Bank: %s",
     "bank.yourStake": "Your stake", "bank.stake": "Stake",
     "bank.cancel": "Take the stake back", "bank.hands": "Hands to settle",
     "bank.noHands": "Nobody has staked yet",
     "bank.win": "Wins", "bank.lose": "Loses", "bank.push": "Push", "bank.natural": "Natural",
     "bank.pays": "A natural pays", "bank.stakeTitle": "How much do you stake?",
+    "bank.house": "The house",
+    "bank.deal": "Deal for the house",
+    "bank.dealing": "You deal for the house. Settle each hand below.",
+    "bank.fund": "Put %s into the house",
+    "bank.topUp": "Add %s to the bank",
+    "bank.short": "The bank cannot pay: it is %s short",
+    "bank.shortOther": "%s has to add chips to the bank to pay",
+    "bank.double": "Double",
+    "bank.split": "Split",
+    "bank.doubleHand": "Double hand %s",
+    "bank.hand": "Hand %s",
+    "bank.surrender": "Surrenders",
+    "bank.bust": "The bank busts: pay everyone",
+    "bank.sweep": "The bank beats everyone",
+    "bank.restHint": "For everyone still waiting. Settle the odd ones out one by one first.",
+    "bank.naturalTakes": "A seven and a half takes the bank",
+    "bank.stakeAgain": "Stake",
+    "common.yes": "Yes",
+    "common.no": "No",
+    "rules.naturalTakes": "Whoever makes a seven and a half takes the bank once the hand is settled.",
+    "rules.house": "The house holds %s.",
+    "log.house_funded": "put %{amount} into the house",
+    "log.stake_doubled": "doubled: %{amount} more",
+    "log.stake_split": "split a hand: %{amount} more",
+    "log.hand_surrendered": "surrendered and lost %{amount}",
+    "error.bank_cannot_pay": "The bank cannot pay",
+    "error.no_such_hand": "No such hand",
     "poker.call": "Call %s", "poker.bet": "Bet", "poker.raise": "Raise",
     "poker.fold": "Fold", "poker.folded": "You are out of this hand",
     "poker.toCall": "To call", "poker.betColumn": "Bet", "poker.newHand": "New hand",
@@ -1524,6 +1613,7 @@ function renderTable() {
 
   renderPots();
   renderHostHand();
+  renderBankHands();
   renderUndoBar();
   renderSeats();
   renderTableActions();
@@ -1603,14 +1693,19 @@ function renderBankMetrics() {
     stake.append(value);
     cards.push(stake);
   }
+  // What the bank pays from: the house's chips at blackjack, the banker's
+  // stack at set i mig. The one number everybody at the table watches.
   const bank = el("div", "card metric");
-  bank.append(el("div", "cap", t("bank.title")));
   const held = banker();
   const value = el("div", "v");
-  if (held) {
-    value.style.fontSize = "19px";
-    value.textContent = iAmBanker() ? t("bank.you") : held.name;
+  if (mode === "blackjack") {
+    bank.append(el("div", "cap", t("bank.house")));
+    figure(value, fmt(state.house || 0));
+  } else if (held) {
+    bank.append(el("div", "cap", t("bank.holder", held.name)));
+    figure(value, fmt(held.stack));
   } else {
+    bank.append(el("div", "cap", t("bank.title")));
     value.style.fontSize = "15px";
     value.textContent = t("bank.none");
   }
@@ -1647,7 +1742,7 @@ function renderSeats() {
 
   const head = el("div", "rowsCap");
   head.append(el("span", "cap", t("player.atTable")),
-              el("span", "cap", mode === "poker" ? t("poker.betColumn") : fmt(seatedPlayers().length)));
+              el("span", "cap", mode === "poker" || bankGame() ? t("poker.betColumn") : fmt(seatedPlayers().length)));
   document.getElementById("tableRows").replaceChildren(head, ...rows);
 }
 
@@ -1657,7 +1752,9 @@ function seatRow(seat, who) {
   const name = el("span", "pname" + (who.id === me ? " self" : ""), who.name);
   row.append(dot, name);
   if (who.isHost) row.append(el("span", "ptag", t("host.role")));
-  if (bankGame() && state.banker === who.id) row.append(el("span", "ptag", t("bank.title")));
+  if (bankGame() && state.banker === who.id) {
+    row.append(el("span", "ptag", t(mode === "blackjack" ? "poker.button" : "bank.title")));
+  }
   if (mode === "poker") {
     if (state.button === seat) row.append(el("span", "ptag", t("poker.button")));
     if (who.folded) row.append(el("span", "ptag", t("poker.foldedTag")));
@@ -1670,6 +1767,19 @@ function seatRow(seat, who) {
     const bet = who.roundBet || 0;
     row.append(el("span", "pchips" + (bet > 0 ? " bet" : " nobet"), bet > 0 ? fmt(bet) : "\u2014"));
     if (who.folded) row.classList.add("dim");
+  } else if (bankGame()) {
+    // Against the bank, what matters is the chips each player has up, and
+    // once settled, what the hand came to: as in front of them on the felt.
+    const settled = (who.settled || []).reduce((sum, hand) => sum + hand.delta, 0);
+    if (who.id === state.banker) {
+      row.append(el("span", "pchips nobet", "\u2014"));
+    } else if (who.stake > 0) {
+      row.append(el("span", "pchips bet", (who.hands && who.hands.length > 1 ? who.hands : [who.stake]).map(fmt).join(" + ")));
+    } else if ((who.settled || []).length) {
+      row.append(el("span", "pchips " + (settled > 0 ? "gain" : settled < 0 ? "loss" : "nobet"), settled === 0 ? "\u00b10" : signed(settled)));
+    } else {
+      row.append(el("span", "pchips nobet", "\u2014"));
+    }
   } else {
     row.append(el("span", "pchips", fmt(who.stack)));
   }
@@ -1732,29 +1842,178 @@ function renderTableActions() {
   bar.replaceChildren(...nodes);
 }
 
+/**
+ * The bank's side of the hand, on the table itself, for whoever holds the bank
+ * and for the host: every stake still waiting with the ways it can end, the
+ * hands already settled with how they ended, and the two outcomes that apply
+ * to everybody at once. The app never sees the cards: this is somebody saying
+ * what happened.
+ */
+let bankShort = null;
+const OUTCOMES = [["win", "bank.win"], ["natural", "bank.natural"], ["push", "bank.push"],
+                  ["lose", "bank.lose"], ["surrender", "bank.surrender"]];
+
+function bankFunds() {
+  if (mode === "blackjack") return state.house || 0;
+  const held = banker();
+  return held ? held.stack : 0;
+}
+
+function payout(outcome, stake) {
+  const pays = state.config.naturalPays || { numerator: 3, denominator: 2 };
+  return { win: stake, lose: -stake, push: 0, surrender: -(stake - Math.floor(stake / 2)),
+           natural: Math.floor(stake * pays.numerator / pays.denominator) }[outcome];
+}
+
+function settleHand(who, outcome, hand) {
+  const stake = hand === null ? who.stake : who.hands[hand];
+  const need = payout(outcome, stake) - bankFunds();
+  if (need > 0) { bankShort = need; render(); return; }
+  bankShort = null;
+  hostCommand({ type: "settle", player: who.id, outcome: outcome, hand: hand });
+}
+
+function settleAll(outcome) {
+  const waiting = state.players.filter((p) => p.stake > 0 && p.id !== state.banker);
+  const need = waiting.reduce((sum, p) => sum + payout(outcome, p.stake), 0) - bankFunds();
+  if (need > 0) { bankShort = need; render(); return; }
+  bankShort = null;
+  hostCommand({ type: "settle_all", outcome: outcome });
+}
+
+function renderBankHands() {
+  const block = document.getElementById("bankHands");
+  const runs = bankGame() && (iAmHost() || iAmBanker()) && (mode === "blackjack" || !!state.banker);
+  block.hidden = !runs;
+  if (!runs) { block.replaceChildren(); return; }
+  const nodes = [];
+  const topUp = state.config.defaultBuyIn || 100;
+  if (bankShort !== null) {
+    const note = el("div", "note");
+    note.append(el("span", "bang"), el("span", "txt", t("bank.short", fmt(bankShort))));
+    nodes.push(note);
+    if (mode === "blackjack") {
+      const fund = el("button", "secondary", t("bank.fund", fmt(Math.max(topUp, bankShort))));
+      fund.onclick = () => { hostCommand({ type: "fund_house", amount: Math.max(topUp, bankShort) }); bankShort = null; };
+      nodes.push(fund);
+    } else if (iAmBanker()) {
+      const more = el("button", "secondary", t("bank.topUp", fmt(Math.max(topUp, bankShort))));
+      more.onclick = () => { act({ type: "rebuy", amount: Math.max(topUp, bankShort) }); bankShort = null; };
+      nodes.push(more);
+    } else {
+      const other = el("div", "s", t("bank.shortOther", banker() ? banker().name : ""));
+      other.style.color = "var(--text2)";
+      nodes.push(other);
+    }
+  } else if (mode === "blackjack" && (state.house || 0) === 0) {
+    const fund = el("button", "secondary", t("bank.fund", fmt(topUp)));
+    fund.onclick = () => hostCommand({ type: "fund_house", amount: topUp });
+    nodes.push(fund);
+  }
+
+  const seatOrder = (a, b) => (a.seat === null ? 99 : a.seat) - (b.seat === null ? 99 : b.seat);
+  const waiting = state.players.filter((p) => p.stake > 0 && p.id !== state.banker).sort(seatOrder);
+  const done = state.players.filter((p) => p.stake === 0 && (p.settled || []).length && p.id !== state.banker).sort(seatOrder);
+  if (waiting.length || done.length) nodes.push(el("div", "cap", t("bank.hands")));
+  const outcomes = OUTCOMES.filter(([outcome]) => outcome !== "surrender" || mode === "blackjack");
+  waiting.forEach((who) => {
+    const card = el("div", "handCard");
+    const hands = who.hands && who.hands.length ? who.hands : [who.stake];
+    hands.forEach((amount, index) => {
+      const line = el("div", "handLine");
+      line.append(el("span", "n", index === 0 ? who.name : ""),
+                  el("span", "num", (hands.length > 1 ? t("bank.hand", fmt(index + 1)) + " \u00b7 " : "") + fmt(amount)));
+      card.append(line);
+      const buttons = el("div", "handBtns " + (outcomes.length === 5 ? "five" : "four"));
+      outcomes.forEach(([outcome, key]) => {
+        const button = el("button", "rowBtn" + (outcome === "lose" || outcome === "surrender" ? " danger" : ""), t(key));
+        button.onclick = () => settleHand(who, outcome, hands.length > 1 ? index : null);
+        buttons.append(button);
+      });
+      card.append(buttons);
+    });
+    nodes.push(card);
+  });
+  // Settled hands stay where they were, with how they ended, until the player
+  // stakes again: nothing slides under a finger about to tap.
+  done.forEach((who) => {
+    const card = el("div", "handCard done");
+    const line = el("div", "handLine");
+    const names = { win: "bank.win", lose: "bank.lose", push: "bank.push", natural: "bank.natural", surrender: "bank.surrender" };
+    line.append(el("span", "n", who.name),
+                el("span", "num", who.settled.map((hand) => t(names[hand.outcome]) + " " + (hand.delta === 0 ? "\u00b10" : signed(hand.delta))).join(" \u00b7 ")));
+    card.append(line);
+    nodes.push(card);
+  });
+  if (waiting.length >= 2) {
+    const row = el("div", "row");
+    const bust = el("button", "secondary", t("bank.bust"));
+    bust.onclick = () => settleAll("win");
+    const sweep = el("button", "secondary danger", t("bank.sweep"));
+    sweep.onclick = () => settleAll("lose");
+    [bust, sweep].forEach((b) => { b.style.cssText = "height:52px;font-size:14px"; });
+    row.append(bust, sweep);
+    nodes.push(row);
+    const hint = el("div", "s", t("bank.restHint"));
+    hint.style.cssText = "color:var(--text2);font-size:13px";
+    nodes.push(hint);
+  }
+  block.replaceChildren(...nodes);
+}
+
 /** Stake against the bank, or hold it and wait for the others. */
 function bankActions(who) {
   if (iAmBanker()) {
     const note = el("div", "note");
-    note.append(el("span", "bang"), el("span", "txt", t("bank.youSub")));
+    note.append(el("span", "bang"), el("span", "txt", t(mode === "blackjack" ? "bank.dealing" : "bank.youSub")));
     return [note];
   }
   if (!state.banker) {
-    // Nothing can be staked until somebody banks, and anybody seated may.
+    // Nothing can be staked until somebody banks — or at blackjack, deals for
+    // the house — and anybody seated may.
     const take = el("button", "primary");
-    take.append(el("span", null, t("bank.take")));
+    take.append(el("span", null, t(mode === "blackjack" ? "bank.deal" : "bank.take")));
     take.onclick = () => act({ type: "take_bank" });
     return [take];
   }
-  const stake = el("button", "primary");
-  stake.append(el("span", null, t("bank.stake")));
-  stake.onclick = () => openStake();
-  const nodes = [stake];
+  const nodes = [];
   if (who.stake > 0) {
+    if (mode === "blackjack") {
+      // Doubling and splitting are the same chips again on a hand: one tap.
+      const hands = who.hands && who.hands.length ? who.hands : [who.stake];
+      const row = el("div", "row");
+      if (hands.length === 1) {
+        const double = action(t("bank.double"), () => act({ type: "double", hand: 0 }));
+        const split = action(t("bank.split"), () => act({ type: "split", hand: 0 }));
+        double.disabled = split.disabled = who.stack < hands[0];
+        row.append(double, split);
+      } else {
+        hands.forEach((amount, index) => {
+          const double = action(t("bank.doubleHand", fmt(index + 1)), () => act({ type: "double", hand: index }));
+          double.disabled = who.stack < amount;
+          row.append(double);
+        });
+      }
+      nodes.push(row);
+    } else {
+      const more = el("button", "primary");
+      more.append(el("span", null, t("bank.stake")));
+      more.onclick = () => openStake();
+      nodes.push(more);
+    }
     const row = el("div", "row");
     row.append(action(t("bank.cancel"), () => act({ type: "cancel_stake" }), "want"));
     nodes.push(row);
+    return nodes;
   }
+  // Most hands are staked like the last one: that is one tap.
+  const again = (who.lastStake || 0) > 0 && who.lastStake <= who.stack;
+  const stake = el("button", "primary");
+  stake.append(el("span", null, t(again ? "bank.stakeAgain" : "bank.stake")));
+  if (again) stake.append(el("span", "n", fmt(who.lastStake)));
+  stake.onclick = () => again ? act({ type: "stake", amount: who.lastStake }) : openStake();
+  nodes.push(stake);
+  if (again) nodes.push(action(t("sit.other"), () => openStake()));
   return nodes;
 }
 
@@ -2187,7 +2446,7 @@ function renderHands() {
   const held = banker();
   const bank = el("div", "hrow");
   const bankWho = el("div", "who");
-  bankWho.append(el("div", "n", t("bank.title")));
+  bankWho.append(el("div", "n", t(mode === "blackjack" ? "poker.button" : "bank.title")));
   bankWho.append(el("div", "s", held ? held.name : t("bank.none")));
   bank.append(bankWho);
   const pass = el("button", "rowBtn", t(held ? "bank.change" : "bank.assign"));
@@ -2199,32 +2458,7 @@ function renderHands() {
     return;
   }
 
-  const staked = state.players.filter((p) => p.stake > 0);
-  if (!staked.length) {
-    const note = el("div", "note");
-    note.append(el("span", "bang"), el("span", "txt", t("bank.noHands")));
-    rows.push(note);
-  }
-  staked.forEach((who) => {
-    const card = el("div", "handCard");
-    const head = el("div", "hrow");
-    const block = el("div", "who");
-    block.append(el("div", "n", who.name));
-    const line = el("div", "s");
-    line.append(el("span", "num", fmt(who.stake)));
-    block.append(line);
-    head.append(block);
-    card.append(head);
-    const buttons = el("div", "handBtns");
-    [["win", "bank.win"], ["natural", "bank.natural"],
-     ["push", "bank.push"], ["lose", "bank.lose"]].forEach(([outcome, key]) => {
-      const button = el("button", "rowBtn" + (outcome === "lose" ? " danger" : ""), t(key));
-      button.onclick = () => hostCommand({ type: "settle", player: who.id, outcome: outcome });
-      buttons.append(button);
-    });
-    card.append(buttons);
-    rows.push(card);
-  });
+  // The hands themselves are settled on the table, where the bank is.
   document.getElementById("handRows").replaceChildren(...rows);
 }
 
@@ -2343,6 +2577,18 @@ function renderGameSettings() {
         config: Object.assign({}, state.config, {
           naturalPays: { numerator: numerator, denominator: denominator }
         })
+      });
+      row.append(pill);
+    });
+    rows.push(row);
+  }
+  if (mode === "seven_half") {
+    rows.push(el("div", "cap", t("bank.naturalTakes")));
+    const row = el("div", "pills");
+    [[true, "common.yes"], [false, "common.no"]].forEach(([value, key]) => {
+      const pill = el("button", "pill" + (!!state.config.naturalTakesBank === value ? " on" : ""), t(key));
+      pill.onclick = () => hostCommand({
+        type: "set_config", config: Object.assign({}, state.config, { naturalTakesBank: value })
       });
       row.append(pill);
     });
@@ -2484,11 +2730,13 @@ function renderRules() {
   document.getElementById("rulesPlay").textContent = t("rules." + mode + ".play");
   document.getElementById("rulesCount").textContent = t("rules." + mode + ".count");
   document.getElementById("rulesPeople").textContent = t("rules." + mode + ".people");
-  renderHands();
+  renderHandRankings();
   const lines = [t("rules.buyIn", fmt(config.defaultBuyIn)), t("rules.seats", fmt(config.seatCount))];
   if (bankGame()) {
     const pays = config.naturalPays || { numerator: 3, denominator: 2 };
     lines.push(t("rules.natural", pays.numerator + ":" + pays.denominator));
+    if (mode === "seven_half" && config.naturalTakesBank) lines.push(t("rules.naturalTakes"));
+    if (mode === "blackjack") lines.push(t("rules.house", fmt(state.house || 0)));
   }
   if (mode === "poker") {
     lines.push(config.bigBlind > 0
@@ -2517,7 +2765,7 @@ const HANDS = [
  * the poker rules, because it is what gets looked up mid-hand, and a hotspot
  * has no internet to look it up on.
  */
-function renderHands() {
+function renderHandRankings() {
   const block = document.getElementById("rulesHands");
   block.hidden = mode !== "poker";
   if (block.hidden) return;

@@ -6,9 +6,11 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * 7½ and blackjack: everybody plays alone against one banker. The app never
- * sees a card, so what it has to get right is the money — the stake out of the
- * stack, and the payout out of the bank.
+ * 7½ and blackjack: everybody plays alone against one bank. The app never sees
+ * a card, so what it has to get right is the money — the stake out of the
+ * stack, and the payout out of the bank. These run at set i mig, where the
+ * bank is the banker's own stack; the house that banks blackjack is in
+ * [HouseTest].
  */
 class BankGameTest {
 
@@ -39,7 +41,7 @@ class BankGameTest {
     }
 
     @Test
-    fun `winning is paid by the bank, and a blackjack is paid three to two`() {
+    fun `winning is paid by the bank, and a natural at the table's ratio`() {
         val table = bankTable(naturalPays = Payout(3, 2))
         table.accept(PlaceStake(BRU, 30))
         table.accept(PlaceStake(CARME, 20))
@@ -100,7 +102,7 @@ class BankGameTest {
         table.accept(PlaceStake(BRU, 60))
 
         assertEquals(
-            RuleError.INSUFFICIENT_CHIPS,
+            RuleError.BANK_CANNOT_PAY,
             table.reject(SettleHand(ANNA, BRU, HandOutcome.WIN)),
         )
         // Losing is always payable: the chips are already on the table.

@@ -158,6 +158,8 @@ enum class RuleError {
     @SerialName("nothing_to_split") NOTHING_TO_SPLIT,
     @SerialName("not_enough_players") NOT_ENOUGH_PLAYERS,
     @SerialName("below_call") BELOW_CALL,
+    @SerialName("bank_cannot_pay") BANK_CANNOT_PAY,
+    @SerialName("no_such_hand") NO_SUCH_HAND,
 }
 
 sealed interface CommandResult {
@@ -182,10 +184,11 @@ data class PlaceStake(override val actor: PlayerId, val amount: Long) : TableCom
 data class CancelStake(override val actor: PlayerId) : TableCommand
 
 /**
- * Host only. Resolves one player's hand against the bank.
+ * The host or whoever holds the bank. Resolves one player's hand against it.
  *
- * A null amount settles the whole stake. Settling part of it is what a split
- * hand needs: two outcomes over one pile of chips.
+ * [hand] settles one of the hands a blackjack stake was split into. Without
+ * it, a null [amount] settles the whole stake, and an amount settles that part
+ * of it.
  */
 @Serializable
 @SerialName("settle")
@@ -194,7 +197,32 @@ data class SettleHand(
     val player: PlayerId,
     val outcome: HandOutcome,
     val amount: Long? = null,
+    val hand: Int? = null,
 ) : TableCommand
+
+/**
+ * The host or whoever holds the bank. Every hand still waiting ends the same
+ * way: the bank went bust and pays everybody left, or beat them all. Hands that
+ * ended otherwise are settled one by one first.
+ */
+@Serializable
+@SerialName("settle_all")
+data class SettleAll(override val actor: PlayerId, val outcome: HandOutcome) : TableCommand
+
+/** Blackjack: chips into the house, by the host or whoever deals for it. */
+@Serializable
+@SerialName("fund_house")
+data class FundHouse(override val actor: PlayerId, val amount: Long) : TableCommand
+
+/** Blackjack: the same chips again on one of the player's hands. */
+@Serializable
+@SerialName("double_stake")
+data class DoubleStake(override val actor: PlayerId, val hand: Int = 0) : TableCommand
+
+/** Blackjack: one hand split in two, the new one staked like the first. */
+@Serializable
+@SerialName("split_stake")
+data class SplitStake(override val actor: PlayerId, val hand: Int = 0) : TableCommand
 
 /** Host only. Poker: moves the button, posts the blinds, clears the last hand. */
 @Serializable

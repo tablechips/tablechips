@@ -49,6 +49,8 @@ fun errorText(code: String): String = stringResource(
         "nothing_to_split" -> R.string.error_nothing_to_split
         "not_enough_players" -> R.string.error_not_enough_players
         "below_call" -> R.string.error_below_call
+        "bank_cannot_pay" -> R.string.error_bank_cannot_pay
+        "no_such_hand" -> R.string.error_no_such_hand
         "table_closed" -> R.string.error_table_closed
         "seat_transferred" -> R.string.error_seat_transferred
         else -> R.string.error_no_table
@@ -124,6 +126,10 @@ fun logLine(entry: LogEntry, table: TableState): String {
         "log.hand_lost" -> stringResource(R.string.log_hand_lost, amount)
         "log.hand_push" -> stringResource(R.string.log_hand_push)
         "log.hand_natural" -> stringResource(R.string.log_hand_natural, amount)
+        "log.hand_surrendered" -> stringResource(R.string.log_hand_surrendered, amount)
+        "log.house_funded" -> stringResource(R.string.log_house_funded, amount)
+        "log.stake_doubled" -> stringResource(R.string.log_stake_doubled, amount)
+        "log.stake_split" -> stringResource(R.string.log_stake_split, amount)
         "log.hand_started" -> stringResource(R.string.log_hand_started, entry.args["seat"].orEmpty())
         "log.player_folded" -> stringResource(R.string.log_player_folded)
         "log.round_closed" -> stringResource(R.string.log_round_closed)
@@ -141,7 +147,9 @@ private fun potNameOf(pot: Pot): String = potName(pot)
 fun logDelta(entry: LogEntry): Long {
     val amount = entry.args["amount"]?.toLongOrNull() ?: return 0
     return when (entry.key) {
-        "log.bet", "log.stack_removed", "log.transfer", "log.stake_placed", "log.hand_lost" -> -amount
+        "log.bet", "log.stack_removed", "log.transfer", "log.stake_placed", "log.hand_lost",
+        "log.hand_surrendered", "log.stake_doubled", "log.stake_split",
+        -> -amount
         "log.rebuy", "log.pot_awarded", "log.stack_added", "log.stake_returned",
         "log.hand_won", "log.hand_natural",
         -> amount
