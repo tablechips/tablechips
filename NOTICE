@@ -13,10 +13,12 @@ Instrument Sans
   Copyright 2022 The Instrument Sans Project Authors
   SIL Open Font License 1.1 — third_party/fonts/OFL-InstrumentSans.txt
   Shipped as res/font/instrument_sans.ttf in the app and embedded, latin subset,
-  in the web client served by the host.
+  in the web client served by the host, and as woff2 in site/fonts/ for the
+  landing page.
 
 IBM Plex Mono
   Copyright 2017 IBM Corp.
   SIL Open Font License 1.1 — third_party/fonts/OFL-IBMPlexMono.txt
   Shipped as res/font/plex_mono_medium.ttf and res/font/plex_mono_semibold.ttf
-  in the app and embedded, latin subset, in the web client served by the host.
+  in the app and embedded, latin subset, in the web client served by the host,
+  and as woff2 in site/fonts/ for the landing page.

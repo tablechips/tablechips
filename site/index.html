@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TableChips — chips for a card table, without the chips</title>
+<meta name="description" content="One Android phone hosts, everyone else joins from a browser. No internet, no accounts, nothing to install for the guests. 7½, blackjack, poker and any other game. Free software.">
+<meta name="theme-color" content="#14110E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='11' fill='%2314110E'/%3E%3Ccircle cx='24' cy='24' r='11' fill='none' stroke='%23C69A4E' stroke-width='4'/%3E%3Cpath d='M24 17.64 30.36 24 24 30.36 17.64 24Z' fill='%23C69A4E'/%3E%3C/svg%3E">
+<!--
+  The landing page. Same rules as the web client the host serves: Refugi,
+  dark only, no framework, no build step, and nothing fetched from anywhere
+  but this folder — no fonts from a CDN, no analytics. A page that tracks its
+  visitors would contradict the first line of the README.
+-->
+<style>
+@font-face { font-family: "Instrument Sans"; src: url("fonts/InstrumentSans-var.woff2") format("woff2"); font-weight: 400 700; font-display: swap; }
+@font-face { font-family: "Plex Mono"; src: url("fonts/PlexMono-500.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Plex Mono"; src: url("fonts/PlexMono-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+
+:root {
+  --bg: #14110E; --surface: #1F1A16; --surfaceHigh: #2A231D;
+  --line: #3A312A; --lineStrong: #4A3E33; --lineAccent: #6B5A3E;
+  --text: #F2EAE0; --text2: #A99C8E;
+  --accent: #C69A4E; --accentHover: #D8AC5E; --onAccent: #14110E;
+  --gain: #86A96B; --loss: #CC5B42; --warn: #EBC15E;
+  /* The colours of a real box, darker than gain and loss: a 100 in loss
+     would read as money lost (docs/design-refugi.md). */
+  --chip1: #E6DCCB; --chip5: #9E4436; --chip25: #4F7D55; --chip50: #4D6F8F; --chip100: #8E7040;
+  --sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  --mono: "Plex Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); }
+body { font: 400 16px/1.5 var(--sans); -webkit-text-size-adjust: 100%; }
+/* The chips round the phone are turned, and their corners may poke past the edge. */
+main { overflow-x: clip; }
+a { color: var(--accent); }
+a:hover { color: var(--accentHover); }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 18px; }
+.cap {
+  font: 500 11px/1 var(--mono); letter-spacing: .10em; text-transform: uppercase;
+  color: var(--text2);
+}
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* Header */
+header.top { border-bottom: 1px solid var(--line); }
+header.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; }
+.brand { display: flex; align-items: center; gap: 9px; font: 700 18px/1 var(--sans); letter-spacing: -.01em; color: var(--text); text-decoration: none; }
+.brand svg { width: 28px; height: 28px; }
+.langs { display: flex; gap: 4px; }
+.langs button {
+  font: 500 12px/1 var(--mono); letter-spacing: .10em; text-transform: uppercase;
+  color: var(--text2); background: none; border: 1px solid transparent;
+  border-radius: 999px; padding: 9px 12px; min-height: 36px; cursor: pointer;
+}
+.langs button.on { color: var(--text); border-color: var(--lineStrong); }
+
+/* Hero */
+.hero { display: grid; grid-template-columns: 1.15fr .85fr; gap: 44px; align-items: center; padding-top: 64px; padding-bottom: 56px; }
+.hero h1 { font: 700 clamp(34px, 5.4vw, 54px)/1.08 var(--sans); letter-spacing: -.025em; margin: 14px 0 18px; }
+.hero h1 em { font-style: normal; color: var(--accent); }
+.hero p.lead { font-size: 18px; line-height: 1.55; color: var(--text2); margin: 0 0 28px; max-width: 34em; }
+.ctas { display: flex; flex-wrap: wrap; gap: 9px; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  min-height: 56px; padding: 0 22px; border-radius: 13px;
+  font: 600 16px/1.15 var(--sans); text-decoration: none;
+  border: 1px solid var(--lineStrong); background: var(--surface); color: var(--text);
+}
+.btn:hover { background: var(--surfaceHigh); color: var(--text); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--onAccent); }
+.btn.primary:hover { background: var(--accentHover); border-color: var(--accentHover); color: var(--onAccent); }
+.btn small { font: 500 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; opacity: .75; }
+.note { margin-top: 14px; font-size: 13px; color: var(--text2); }
+
+/*
+  A chip, as Refugi draws it: not a casino disc but a square tablet of
+  stamped wood. A dark groove, then a thin line of the denomination's colour,
+  a notch at the top, and the figure always in textPrimary so its contrast
+  never depends on the colour. --s scales the 66 px of the spec.
+*/
+.tile {
+  --s: 1; --c: var(--accent);
+  position: relative; flex: none; display: flex; align-items: center; justify-content: center;
+  width: calc(66px * var(--s)); height: calc(66px * var(--s)); border-radius: calc(10px * var(--s));
+  background: var(--surfaceHigh); border: 1px solid var(--lineStrong);
+  box-shadow: inset 0 0 0 calc(3px * var(--s)) var(--bg), inset 0 0 0 calc(4px * var(--s)) var(--c);
+  font: 600 calc(22px * var(--s))/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--text);
+}
+.tile::before {
+  content: ""; position: absolute; top: calc(6px * var(--s)); left: 50%;
+  width: calc(10px * var(--s)); height: calc(3px * var(--s)); margin-left: calc(-5px * var(--s));
+  background: var(--c); border-radius: 1px;
+}
+.tile.v1 { --c: var(--chip1); } .tile.v5 { --c: var(--chip5); } .tile.v25 { --c: var(--chip25); }
+.tile.v50 { --c: var(--chip50); } .tile.v100 { --c: var(--chip100); }
+
+/* The hero: the table screen, with the chips it replaces lying round it. */
+.stage { position: relative; justify-self: center; width: 100%; max-width: 432px; padding: 56px; }
+.stage .tile { position: absolute; z-index: 1; --s: 1.15; }
+.stage .t1 { top: 0; left: 0; transform: rotate(-11deg); }
+.stage .t2 { top: 6px; right: 2px; transform: rotate(9deg); --s: 1; }
+.stage .t3 { bottom: 4px; left: 6px; transform: rotate(7deg); --s: 1; }
+.stage .t4 { bottom: 0; right: 0; transform: rotate(-8deg); }
+.stage .t5 { top: 46%; left: -6px; transform: rotate(-4deg); --s: .85; }
+
+/* The phone: the table screen, drawn the way the app draws it. */
+.phone {
+  position: relative; width: 100%;
+  border: 1px solid var(--lineStrong); border-radius: 22px; background: var(--bg);
+  padding: 18px; display: flex; flex-direction: column; gap: 14px;
+}
+.phone .row { display: flex; justify-content: space-between; align-items: baseline; }
+.phone .stack { font: 600 64px/1 var(--mono); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.phone .pot { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; justify-content: space-between; align-items: center; }
+.phone .pot .num { font-weight: 600; font-size: 30px; }
+.phone .tocall { color: var(--accent); }
+.phone ul { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 14px; }
+.phone li { display: flex; justify-content: space-between; align-items: center; padding: 11px 14px; border-top: 1px solid var(--line); font-weight: 500; font-size: 15px; }
+.phone li:first-child { border-top: 0; }
+.phone li .who { display: flex; align-items: center; gap: 9px; }
+.phone li .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gain); }
+.phone li.turn { box-shadow: inset 3px 0 0 var(--accent); }
+.phone li .num { font-weight: 600; }
+.phone .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.phone .acts > span { display: flex; align-items: center; justify-content: center; min-height: 54px; border-radius: 12px; font-weight: 600; font-size: 15px; border: 1px solid var(--lineStrong); background: var(--surface); }
+.phone .acts > span.fill { grid-column: span 2; background: var(--accent); border-color: var(--accent); color: var(--onAccent); font-size: 17px; min-height: 60px; }
+.phone .acts > span.danger { border-color: #5A3B33; color: var(--loss); }
+/* The stack seen edge on, one column per denomination, as the web client draws it. */
+.chipRow { display: flex; gap: 8px; align-items: flex-end; }
+.chipCol { flex: 1; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.chipPile { height: 40px; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; }
+.chipPile > i { display: block; width: 34px; height: 4px; border-radius: 2px; }
+.chipPile > i.v1 { background: var(--chip1); } .chipPile > i.v5 { background: var(--chip5); }
+.chipPile > i.v25 { background: var(--chip25); } .chipPile > i.v50 { background: var(--chip50); }
+.chipPile > i.v100 { background: var(--chip100); }
+.chipPile > i.none { background: none; box-shadow: inset 0 0 0 1px var(--line); }
+.chipCol .cv { margin-top: 6px; font: 500 12px/1.2 var(--mono); font-variant-numeric: tabular-nums; }
+.chipCol .cc { font: 400 11px/1.2 var(--mono); color: var(--text2); font-variant-numeric: tabular-nums; }
+.chipCol.empty .cv, .chipCol.empty .cc { color: var(--line); }
+
+/* The box: five denominations, five of each. */
+.box { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 22px; }
+.box .item { display: flex; flex-direction: column; align-items: center; gap: 9px; }
+.box .tile { --s: 1.45; }
+.box .count { font: 500 14px/1 var(--mono); color: var(--text2); font-variant-numeric: tabular-nums; }
+.box .total { align-self: center; display: flex; flex-direction: column; gap: 7px; padding-left: 4px; }
+.box .total .num { font: 600 54px/1 var(--mono); letter-spacing: -.03em; }
+.boxText { color: var(--text2); max-width: 40em; margin: -12px 0 32px; font-size: 16px; }
+
+/* Sections */
+section { padding: 56px 0; border-top: 1px solid var(--line); }
+section h2 { font: 700 clamp(26px, 3.6vw, 34px)/1.15 var(--sans); letter-spacing: -.02em; margin: 12px 0 28px; max-width: 22em; }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; counter-reset: step; }
+.step { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 22px; }
+.step .n { font: 600 34px/1 var(--mono); color: var(--accent); }
+.step h3, .card h3 { font: 600 18px/1.25 var(--sans); margin: 14px 0 7px; }
+.step p, .card p { margin: 0; color: var(--text2); font-size: 15px; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.card { border: 1px solid var(--line); border-radius: 16px; padding: 22px; }
+.card h3 { margin-top: 0; }
+.games { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.game { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 22px; }
+.game .big { font: 600 34px/1 var(--mono); }
+.game h3 { font: 600 17px/1.25 var(--sans); margin: 14px 0 7px; }
+.game p { margin: 0; color: var(--text2); font-size: 14px; }
+
+/* FAQ */
+details { border-bottom: 1px solid var(--line); }
+details:first-of-type { border-top: 1px solid var(--line); }
+summary { cursor: pointer; list-style: none; padding: 18px 0; font: 600 17px/1.3 var(--sans); display: flex; justify-content: space-between; gap: 14px; min-height: 48px; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; font-family: var(--mono); color: var(--accent); }
+details[open] summary::after { content: "–"; }
+details p { margin: 0 0 18px; color: var(--text2); max-width: 44em; }
+
+footer { border-top: 1px solid var(--line); padding: 36px 0 48px; color: var(--text2); font-size: 14px; }
+footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 14px; }
+
+@media (max-width: 860px) {
+  .hero { grid-template-columns: 1fr; padding-top: 40px; padding-bottom: 40px; gap: 36px; }
+  .steps, .grid { grid-template-columns: 1fr; }
+  .games { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+  .games { grid-template-columns: 1fr; }
+  .stage { padding: 40px 30px; }
+  .stage .tile { --s: .85; }
+  .stage .t2, .stage .t3 { --s: .75; }
+  .stage .t5 { display: none; }
+  .box { gap: 12px; }
+  .box .tile { --s: .9; }
+  .box .total { width: 100%; padding: 6px 0 0; }
+  .btn { width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#">
+      <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="11" fill="none" stroke="#C69A4E" stroke-width="4"/><path d="M24 17.64 30.36 24 24 30.36 17.64 24Z" fill="#C69A4E"/></svg>
+      TableChips
+    </a>
+    <nav class="langs" aria-label="Language">
+      <button data-lang="ca">ca</button><button data-lang="es">es</button><button data-lang="en">en</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <div>
+      <span class="cap" data-i18n="hero.cap">Free software for Android</span>
+      <h1 data-i18n-html="hero.title">Chips for a card table, <em>without the chips.</em></h1>
+      <p class="lead" data-i18n="hero.lead">One phone hosts the table over its hotspot. Everyone else scans a code and plays from their browser — iPhone or Android, no internet, no account, nothing to install.</p>
+      <div class="ctas">
+        <!-- TODO: point at the F-Droid page once fdroiddata has merged it. -->
+        <a class="btn primary" href="https://github.com/tablechips/tablechips/releases" data-i18n="cta.get">Get it for Android</a>
+        <a class="btn" href="https://github.com/tablechips/tablechips" data-i18n="cta.source">Source code</a>
+      </div>
+      <p class="note" data-i18n="hero.note">Coming to F-Droid. No ads, no in-app purchases, no telemetry. GPLv3.</p>
+    </div>
+
+    <div class="stage" aria-hidden="true">
+      <span class="tile v100 t1">100</span>
+      <span class="tile v25 t2">25</span>
+      <span class="tile v5 t3">5</span>
+      <span class="tile v50 t4">50</span>
+      <span class="tile v1 t5">1</span>
+    <div class="phone">
+      <div class="row"><span class="cap" data-i18n="phone.stack">Your stack</span><span class="cap">Marta</span></div>
+      <div class="stack">1 250</div>
+      <div class="chipRow" data-chips="1250"></div>
+      <div class="pot">
+        <span class="cap" data-i18n="phone.pot">Pot</span>
+        <span class="num">340</span>
+      </div>
+      <ul>
+        <li class="turn"><span class="who"><span class="dot"></span>Pau</span><span class="num tocall">+ 40</span></li>
+        <li><span class="who"><span class="dot"></span>Carme</span><span class="num">980</span></li>
+        <li><span class="who"><span class="dot"></span>Joan</span><span class="num">1 610</span></li>
+        <li><span class="who"><span class="dot"></span>Lucía</span><span class="num">720</span></li>
+      </ul>
+      <div class="acts">
+        <span class="danger" data-i18n="phone.fold">Fold</span>
+        <span data-i18n="phone.amount">Amount…</span>
+        <span class="fill"><span data-i18n="phone.call">Call</span>&nbsp;<span class="num">40</span></span>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <section>
+    <div class="wrap">
+      <span class="cap" data-i18n="box.cap">The chips</span>
+      <h2 data-i18n="box.title">A real box of chips, on every phone at the table.</h2>
+      <p class="boxText" data-i18n="box.text">Five values in the colours of a real box. Everyone sees their stack the way they would hold it in their hand — up to five of each small chip, the rest in the big one — and the figure, big enough to read across the table.</p>
+      <div class="box">
+        <div class="item"><span class="tile v1">1</span><span class="count">× 5</span></div>
+        <div class="item"><span class="tile v5">5</span><span class="count">× 5</span></div>
+        <div class="item"><span class="tile v25">25</span><span class="count">× 5</span></div>
+        <div class="item"><span class="tile v50">50</span><span class="count">× 5</span></div>
+        <div class="item"><span class="tile v100">100</span><span class="count">× 5</span></div>
+        <div class="total"><span class="cap" data-i18n="box.buyIn">Default buy-in</span><span class="num">905</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <span class="cap" data-i18n="how.cap">How it works</span>
+      <h2 data-i18n="how.title">Three steps, and the deck stays real.</h2>
+      <div class="steps">
+        <div class="step"><div class="n">1</div><h3 data-i18n="how.1.t">Open the table</h3><p data-i18n="how.1.p">The host turns on the hotspot and opens a table in TableChips. Pick the game and the starting stack.</p></div>
+        <div class="step"><div class="n">2</div><h3 data-i18n="how.2.t">Everyone scans the code</h3><p data-i18n="how.2.p">The camera opens the browser, and you're seated. Anyone with the app gets the app instead.</p></div>
+        <div class="step"><div class="n">3</div><h3 data-i18n="how.3.t">Play with real cards</h3><p data-i18n="how.3.p">TableChips keeps the chips. It never deals: you shuffle, you deal, you play as you always have.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <span class="cap" data-i18n="why.cap">Why this one</span>
+      <h2 data-i18n="why.title">Every other chip app makes every guest install it. This one doesn't.</h2>
+      <div class="grid">
+        <div class="card"><h3 data-i18n="why.1.t">Guests install nothing</h3><p data-i18n="why.1.p">The host serves a web page. An iPhone and an Android at the same table both just open a browser.</p></div>
+        <div class="card"><h3 data-i18n="why.2.t">No internet, ever</h3><p data-i18n="why.2.p">Everything runs on the host's hotspot. It works in a mountain hut, a campsite or a village with no signal.</p></div>
+        <div class="card"><h3 data-i18n="why.3.t">Up to ten players</h3><p data-i18n="why.3.p">Each on their own device, each seeing their own stack in numbers big enough to read across the table.</p></div>
+        <div class="card"><h3 data-i18n="why.4.t">Unlimited undo</h3><p data-i18n="why.4.p">A full log of every move. A wrong tap is a tap away from fixed, and you can always type the amount.</p></div>
+        <div class="card"><h3 data-i18n="why.5.t">Built for a long night</h3><p data-i18n="why.5.p">Phones reconnect, seats are recoverable, and the table survives the host app being closed.</p></div>
+        <div class="card"><h3 data-i18n="why.6.t">Yours</h3><p data-i18n="why.6.p">Free software under GPLv3. No ads, no accounts, no in-app purchases, no telemetry. In Catalan, Spanish and English.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <span class="cap" data-i18n="games.cap">Games</span>
+      <h2 data-i18n="games.title">Not only poker.</h2>
+      <div class="games">
+        <div class="game"><div class="big">7½</div><h3 data-i18n="games.1.t">Set i mig</h3><p data-i18n="games.1.p">A bank, a stake each, and the bank settles from the table.</p></div>
+        <div class="game"><div class="big">21</div><h3 data-i18n="games.2.t">Blackjack</h3><p data-i18n="games.2.p">A house, hands of their own and payouts at the house ratio.</p></div>
+        <div class="game"><div class="big">♠</div><h3 data-i18n="games.3.t">Poker</h3><p data-i18n="games.3.p">A moving button, blinds, call amounts and side pots.</p></div>
+        <div class="game"><div class="big">∗</div><h3 data-i18n="games.4.t">Anything else</h3><p data-i18n="games.4.p">A manual mode for canari, muntet, truc or whatever your family plays.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <span class="cap" data-i18n="faq.cap">Questions</span>
+      <h2 data-i18n="faq.title">Before you ask.</h2>
+      <details><summary data-i18n="faq.1.q">Do I need internet?</summary><p data-i18n="faq.1.p">No. The host phone creates its own Wi-Fi with the hotspot and everyone connects to it. No data leaves the table.</p></details>
+      <details><summary data-i18n="faq.2.q">Can I play from an iPhone?</summary><p data-i18n="faq.2.p">Yes, as a guest: scan the code and play from Safari. Hosting the table needs an Android phone.</p></details>
+      <details><summary data-i18n="faq.3.q">Is this for gambling?</summary><p data-i18n="faq.3.p">TableChips counts chips. It has no money, no payments and no accounts: what a chip is worth is up to the people at the table.</p></details>
+      <details><summary data-i18n="faq.4.q">Does it deal the cards?</summary><p data-i18n="faq.4.p">No, on purpose. You play with a real deck; the app only keeps the score.</p></details>
+      <details><summary data-i18n="faq.5.q">Why isn't it on Google Play?</summary><p data-i18n="faq.5.p">It's free software and doesn't depend on Google services, so it lives on F-Droid and GitHub first.</p></details>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span data-i18n="foot.licence">TableChips is free software, licensed under the GPLv3.</span>
+    <a href="https://github.com/tablechips/tablechips" data-i18n="foot.source">Source code on GitHub</a>
+  </div>
+</footer>
+
+<script>
+/*
+  The English text lives in the markup, which is what search engines index.
+  Catalan and Spanish replace it when the reader prefers them, the same way
+  the web client picks a language.
+*/
+const DICT = {
+  ca: {
+    "hero.cap": "Programari lliure per a Android",
+    "hero.title": "Fitxes per a jugar a cartes, <em>sense fitxes.</em>",
+    "hero.lead": "Un mòbil obri la taula amb la seua zona wifi. La resta escaneja un codi i juga des del navegador — iPhone o Android, sense internet, sense comptes i sense instal·lar res.",
+    "cta.get": "Descarrega-la per a Android", "cta.source": "Codi font",
+    "hero.note": "Prompte a F-Droid. Sense anuncis, sense compres integrades, sense telemetria. GPLv3.",
+    "phone.stack": "La teua pila", "phone.pot": "Pot", "phone.fold": "Retirar-se", "phone.amount": "Import…", "phone.call": "Igualar",
+    "box.cap": "Les fitxes", "box.title": "Una capsa de fitxes de veritat, a cada mòbil de la taula.",
+    "box.text": "Cinc valors amb els colors d'una capsa de debò. Cadascú veu la seua pila com la tindria a la mà — fins a cinc de cada fitxa petita, la resta en la grossa — i la xifra, prou gran per a llegir-la des de l'altra punta de la taula.",
+    "box.buyIn": "Compra inicial",
+    "how.cap": "Com funciona", "how.title": "Tres passos, i la baralla continua sent de veritat.",
+    "how.1.t": "Obri la taula", "how.1.p": "L'amfitrió activa la zona wifi i obri una taula a TableChips. Tria el joc i la pila inicial.",
+    "how.2.t": "Tothom escaneja el codi", "how.2.p": "La càmera obri el navegador i ja estàs assegut. Qui tinga l'app, entra per l'app.",
+    "how.3.t": "Jugueu amb cartes de veritat", "how.3.p": "TableChips porta les fitxes. No repartix mai: barregeu, repartiu i jugueu com sempre.",
+    "why.cap": "Per què aquesta", "why.title": "Totes les altres demanen que cada convidat instal·le l'app. Aquesta no.",
+    "why.1.t": "Els convidats no instal·len res", "why.1.p": "L'amfitrió servix una pàgina web. Un iPhone i un Android a la mateixa taula només obrin el navegador.",
+    "why.2.t": "Mai no cal internet", "why.2.p": "Tot passa per la zona wifi de l'amfitrió. Funciona en un refugi, un càmping o un poble sense cobertura.",
+    "why.3.t": "Fins a deu jugadors", "why.3.p": "Cadascú amb el seu dispositiu, i la seua pila en xifres prou grans per a llegir-les de reüll.",
+    "why.4.t": "Desfer sense límit", "why.4.p": "Registre complet de cada moviment. Un toc equivocat es corregix amb un altre, i sempre es pot escriure l'import.",
+    "why.5.t": "Feta per a una nit llarga", "why.5.p": "Els mòbils es reconnecten, els seients es recuperen i la taula sobreviu a l'app de l'amfitrió tancada.",
+    "why.6.t": "Vostra", "why.6.p": "Programari lliure, GPLv3. Sense anuncis, comptes, compres integrades ni telemetria. En català, castellà i anglés.",
+    "games.cap": "Jocs", "games.title": "No només pòquer.",
+    "games.1.t": "Set i mig", "games.1.p": "Una banca, una aposta per cap, i la banca liquida des de la taula.",
+    "games.2.t": "Blackjack", "games.2.p": "Una casa, mans pròpies i pagaments a la proporció de la casa.",
+    "games.3.t": "Pòquer", "games.3.p": "Botó que es mou, cegues, imports per igualar i pots laterals.",
+    "games.4.t": "Qualsevol altre", "games.4.p": "Un mode manual per al canari, el muntet, el truc o el que jugueu a casa.",
+    "faq.cap": "Preguntes", "faq.title": "Abans que ho pregunteu.",
+    "faq.1.q": "Cal internet?", "faq.1.p": "No. El mòbil amfitrió crea la seua pròpia wifi amb la zona wifi i tothom s'hi connecta. Cap dada ix de la taula.",
+    "faq.2.q": "Puc jugar des d'un iPhone?", "faq.2.p": "Sí, com a convidat: escanegeu el codi i jugueu des de Safari. Per a obrir la taula cal un Android.",
+    "faq.3.q": "És per a apostar diners?", "faq.3.p": "TableChips compta fitxes. No hi ha diners, ni pagaments, ni comptes: el que valga una fitxa ho decidix la gent de la taula.",
+    "faq.4.q": "Repartix les cartes?", "faq.4.p": "No, a posta. Es juga amb una baralla de veritat; l'app només porta el compte.",
+    "faq.5.q": "Per què no és a Google Play?", "faq.5.p": "És programari lliure i no depén dels serveis de Google, així que viu primer a F-Droid i a GitHub.",
+    "foot.licence": "TableChips és programari lliure, amb llicència GPLv3.", "foot.source": "Codi font a GitHub",
+  },
+  es: {
+    "hero.cap": "Software libre para Android",
+    "hero.title": "Fichas para jugar a las cartas, <em>sin fichas.</em>",
+    "hero.lead": "Un móvil abre la mesa con su zona wifi. Los demás escanean un código y juegan desde el navegador — iPhone o Android, sin internet, sin cuentas y sin instalar nada.",
+    "cta.get": "Descárgala para Android", "cta.source": "Código fuente",
+    "hero.note": "Pronto en F-Droid. Sin anuncios, sin compras integradas, sin telemetría. GPLv3.",
+    "phone.stack": "Tu pila", "phone.pot": "Bote", "phone.fold": "Retirarse", "phone.amount": "Importe…", "phone.call": "Igualar",
+    "box.cap": "Las fichas", "box.title": "Una caja de fichas de verdad, en cada móvil de la mesa.",
+    "box.text": "Cinco valores con los colores de una caja de verdad. Cada uno ve su pila como la tendría en la mano — hasta cinco de cada ficha pequeña, el resto en la grande — y la cifra, lo bastante grande para leerla desde la otra punta de la mesa.",
+    "box.buyIn": "Compra inicial",
+    "how.cap": "Cómo funciona", "how.title": "Tres pasos, y la baraja sigue siendo de verdad.",
+    "how.1.t": "Abre la mesa", "how.1.p": "El anfitrión activa la zona wifi y abre una mesa en TableChips. Elige el juego y la pila inicial.",
+    "how.2.t": "Todos escanean el código", "how.2.p": "La cámara abre el navegador y ya estás sentado. Quien tenga la app, entra por la app.",
+    "how.3.t": "Jugad con cartas de verdad", "how.3.p": "TableChips lleva las fichas. Nunca reparte: barajad, repartid y jugad como siempre.",
+    "why.cap": "Por qué esta", "why.title": "Todas las demás piden que cada invitado instale la app. Esta no.",
+    "why.1.t": "Los invitados no instalan nada", "why.1.p": "El anfitrión sirve una página web. Un iPhone y un Android en la misma mesa solo abren el navegador.",
+    "why.2.t": "Nunca hace falta internet", "why.2.p": "Todo pasa por la zona wifi del anfitrión. Funciona en un refugio, un camping o un pueblo sin cobertura.",
+    "why.3.t": "Hasta diez jugadores", "why.3.p": "Cada uno con su dispositivo, y su pila en cifras lo bastante grandes para leerlas de reojo.",
+    "why.4.t": "Deshacer sin límite", "why.4.p": "Registro completo de cada movimiento. Un toque equivocado se corrige con otro, y siempre se puede escribir el importe.",
+    "why.5.t": "Hecha para una noche larga", "why.5.p": "Los móviles se reconectan, los puestos se recuperan y la mesa sobrevive a que se cierre la app del anfitrión.",
+    "why.6.t": "Vuestra", "why.6.p": "Software libre, GPLv3. Sin anuncios, cuentas, compras integradas ni telemetría. En catalán, castellano e inglés.",
+    "games.cap": "Juegos", "games.title": "No solo póquer.",
+    "games.1.t": "Siete y media", "games.1.p": "Una banca, una apuesta por cabeza, y la banca liquida desde la mesa.",
+    "games.2.t": "Blackjack", "games.2.p": "Una casa, manos propias y pagos a la proporción de la casa.",
+    "games.3.t": "Póquer", "games.3.p": "Botón que se mueve, ciegas, importes por igualar y botes laterales.",
+    "games.4.t": "Cualquier otro", "games.4.p": "Un modo manual para el julepe, el monte, el truc o lo que juguéis en casa.",
+    "faq.cap": "Preguntas", "faq.title": "Antes de que lo preguntéis.",
+    "faq.1.q": "¿Hace falta internet?", "faq.1.p": "No. El móvil anfitrión crea su propia wifi con la zona wifi y todos se conectan a ella. Ningún dato sale de la mesa.",
+    "faq.2.q": "¿Puedo jugar desde un iPhone?", "faq.2.p": "Sí, como invitado: escanead el código y jugad desde Safari. Para abrir la mesa hace falta un Android.",
+    "faq.3.q": "¿Es para apostar dinero?", "faq.3.p": "TableChips cuenta fichas. No hay dinero, ni pagos, ni cuentas: lo que valga una ficha lo decide la gente de la mesa.",
+    "faq.4.q": "¿Reparte las cartas?", "faq.4.p": "No, a propósito. Se juega con una baraja de verdad; la app solo lleva la cuenta.",
+    "faq.5.q": "¿Por qué no está en Google Play?", "faq.5.p": "Es software libre y no depende de los servicios de Google, así que vive primero en F-Droid y en GitHub.",
+    "foot.licence": "TableChips es software libre, con licencia GPLv3.", "foot.source": "Código fuente en GitHub",
+  },
+};
+
+// The same breakdown as `chipsIn` in :core and the web client, so the
+// landing draws a stack exactly the way the app would.
+const DENOMINATIONS = [100, 50, 25, 5, 1];
+const CHIPS_PER_DENOMINATION = 5;
+const MAX_EDGES = 7;
+
+function chipsIn(amount) {
+  const ascending = DENOMINATIONS.slice().sort((a, b) => a - b);
+  const counts = {};
+  let rest = Math.max(0, amount);
+  ascending.forEach((value, index) => {
+    const next = ascending[index + 1];
+    let count;
+    if (next === undefined) {
+      count = Math.floor(rest / value);
+    } else {
+      const group = next / value;
+      count = (rest % next) / value;
+      while (count + group <= CHIPS_PER_DENOMINATION && (count + group) * value <= rest) count += group;
+    }
+    counts[value] = count;
+    rest -= count * value;
+  });
+  return DENOMINATIONS.map((value) => ({ value: value, count: counts[value] }));
+}
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+document.querySelectorAll("[data-chips]").forEach(node => {
+  node.replaceChildren(...chipsIn(Number(node.dataset.chips)).map(({ value, count }) => {
+    const column = el("div", "chipCol" + (count === 0 ? " empty" : ""));
+    const pile = el("div", "chipPile");
+    if (count === 0) pile.append(el("i", "none"));
+    for (let i = 0; i < Math.min(count, MAX_EDGES); i++) pile.append(el("i", "v" + value));
+    column.append(pile, el("div", "cv", String(value)), el("div", "cc", "\u00D7" + count));
+    return column;
+  }));
+});
+
+const ENGLISH = {};
+document.querySelectorAll("[data-i18n]").forEach(el => { ENGLISH[el.dataset.i18n] = el.textContent; });
+document.querySelectorAll("[data-i18n-html]").forEach(el => { ENGLISH[el.dataset.i18nHtml] = el.innerHTML; });
+const TITLES = {
+  en: document.title,
+  ca: "TableChips — fitxes per a jugar a cartes, sense fitxes",
+  es: "TableChips — fichas para jugar a las cartas, sin fichas",
+};
+
+function stored() { try { return localStorage.getItem("lang"); } catch (e) { return null; } }
+function store(code) { try { localStorage.setItem("lang", code); } catch (e) {} }
+
+function pickLanguage() {
+  const fromUrl = new URLSearchParams(location.search).get("lang");
+  for (const tag of [fromUrl, stored(), ...(navigator.languages || [navigator.language])]) {
+    const code = (tag || "").slice(0, 2).toLowerCase();
+    if (code === "ca" || code === "es" || code === "en") return code;
+  }
+  return "en";
+}
+
+function apply(lang) {
+  const dict = DICT[lang] || ENGLISH;
+  document.documentElement.lang = lang;
+  document.title = TITLES[lang];
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    el.textContent = dict[el.dataset.i18n] ?? ENGLISH[el.dataset.i18n];
+  });
+  document.querySelectorAll("[data-i18n-html]").forEach(el => {
+    el.innerHTML = dict[el.dataset.i18nHtml] ?? ENGLISH[el.dataset.i18nHtml];
+  });
+  document.querySelectorAll(".langs button").forEach(b => b.classList.toggle("on", b.dataset.lang === lang));
+}
+
+document.querySelectorAll(".langs button").forEach(b => {
+  b.onclick = () => { store(b.dataset.lang); apply(b.dataset.lang); };
+});
+apply(pickLanguage());
+</script>
+</body>
+</html>
