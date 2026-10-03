@@ -1,6 +1,7 @@
 Categories:
   - Card Game
 License: GPL-3.0-only
+AuthorName: victormico
 WebSite: https://tablechips.github.io/tablechips/
 SourceCode: https://github.com/tablechips/tablechips
 IssueTracker: https://github.com/tablechips/tablechips/issues
@@ -15,7 +16,7 @@ Binaries: https://github.com/tablechips/tablechips/releases/download/v%v/tablech
 Builds:
   - versionName: 0.1.1
     versionCode: 101
-    commit: v0.1.1
+    commit: e4d532c47ca50ead0e192a831d3f65578c6201ba
     subdir: app
     gradle:
       - yes
