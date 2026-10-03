@@ -118,6 +118,9 @@ Nobody edits a version number by hand.
 - **The version lives in `version.txt`**, and nowhere else. The app's
   `versionName` is read from it and its `versionCode` derived from it:
   `MAJOR·10000 + MINOR·100 + PATCH`, so 0.1.0 is 100 and 1.2.3 is 10203.
+  `version-code.txt` carries that number as a literal for F-Droid, which
+  cannot compute it; `scripts/sync_version.py` writes it, the release workflow
+  keeps it current on the release PR, and the build stops if the two disagree.
 - **Commit messages decide the next version**, in
   [Conventional Commits](https://www.conventionalcommits.org/) form:
   `fix:` is a patch, `feat:` a minor, and `feat!:` or a `BREAKING CHANGE:`
@@ -186,8 +189,9 @@ Phases, as laid out in the plan:
       button, blinds, call amounts and side pots. Whose turn it is stays with
       the people at the table.
 - [ ] **F8 — Release.** Versions and signed APKs on GitHub releases are
-      automated (see Releasing); F-Droid metadata and reproducible builds are not
-      done yet.
+      automated (see Releasing), the release build is reproducible, and the
+      F-Droid listing and recipe are ready ([docs/fdroid](docs/fdroid/README.md)).
+      What is left is sending it.
 
 The acceptance criteria that need real devices and real people are not ticked
 off by a test suite:
