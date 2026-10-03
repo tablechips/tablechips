@@ -1,0 +1,101 @@
+name: Release
+
+# Automated releases with release-please, as in s7-opcua-bridge. On each push
+# to main it keeps a "release PR" up to date, whose version comes from the
+# Conventional Commit messages since the last release (fix: -> patch,
+# feat: -> minor, feat!/BREAKING CHANGE -> major; below 1.0 a breaking change
+# only bumps the minor). Merging that PR bumps version.txt, writes
+# CHANGELOG.md, tags vX.Y.Z and creates the GitHub release. The same job then
+# builds the signed APK and attaches it: one job, so no PAT is needed (a tag
+# pushed with GITHUB_TOKEN would not trigger a separate workflow).
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write # create releases and tags, upload the APK
+  pull-requests: write # maintain the release PR
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+
+      # Everything below runs only on the push that merges the release PR.
+      # For the root package release-please names its outputs without a
+      # path prefix.
+      - uses: actions/checkout@v4
+        if: ${{ steps.release.outputs.release_created }}
+
+      - uses: actions/setup-java@v4
+        if: ${{ steps.release.outputs.release_created }}
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: android-actions/setup-android@v3
+        if: ${{ steps.release.outputs.release_created }}
+
+      - uses: gradle/actions/setup-gradle@v4
+        if: ${{ steps.release.outputs.release_created }}
+
+      # A release without a signed APK is worse than no release: stop here,
+      # with the reason, rather than publish something nobody can install.
+      - name: Decode the signing key
+        if: ${{ steps.release.outputs.release_created }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.TABLECHIPS_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::TABLECHIPS_KEYSTORE_BASE64 is not set: see README, Releasing."
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+
+      - name: Build the signed APK
+        if: ${{ steps.release.outputs.release_created }}
+        env:
+          TABLECHIPS_KEYSTORE: ${{ runner.temp }}/release.jks
+          TABLECHIPS_KEYSTORE_PASSWORD: ${{ secrets.TABLECHIPS_KEYSTORE_PASSWORD }}
+          TABLECHIPS_KEY_ALIAS: ${{ secrets.TABLECHIPS_KEY_ALIAS }}
+          TABLECHIPS_KEY_PASSWORD: ${{ secrets.TABLECHIPS_KEY_PASSWORD }}
+        run: ./gradlew :app:assembleRelease
+
+      # The APK goes up with its checksum, and the release notes say which
+      # certificate signed it, so anybody can check a download is ours.
+      - name: Attach the APK to the release
+        if: ${{ steps.release.outputs.release_created }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.release.outputs.version }}
+          TAG: ${{ steps.release.outputs.tag_name }}
+        run: |
+          apk="tablechips-${VERSION}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$apk"
+          sha256sum "$apk" > "$apk.sha256"
+          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n 1)/apksigner"
+          cert="$("$apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+          if [ -z "$cert" ]; then
+            echo "::error::$apk is not signed."
+            exit 1
+          fi
+          gh release upload "$TAG" "$apk" "$apk.sha256"
+          {
+            gh release view "$TAG" --json body --jq .body
+            echo
+            echo "### Install"
+            echo
+            echo "Download \`$apk\` and open it on an Android phone (8.0 or newer)."
+            echo "Guests do not need it: they join the table from their browser."
+            echo
+            echo "SHA-256 of the APK: \`$(cut -d' ' -f1 "$apk.sha256")\`"
+            echo
+            echo "Signing certificate SHA-256: \`$cert\`"
+          } > notes.md
+          gh release edit "$TAG" --notes-file notes.md
