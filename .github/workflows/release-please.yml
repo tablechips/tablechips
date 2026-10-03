@@ -32,14 +32,16 @@ concurrency:
 jobs:
   release-please:
     if: ${{ github.event_name == 'push' }}
-    runs-on: ubuntu-latest
+    # Pinned rather than ubuntu-latest, which moves to Ubuntu 26 from 19
+    # October 2026: the machine a build runs on changes when we say so.
+    runs-on: ubuntu-24.04
     outputs:
       # For the root package release-please names its outputs without a
       # path prefix.
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
-      - uses: googleapis/release-please-action@v4
+      - uses: googleapis/release-please-action@v5
         id: release
 
   apk:
@@ -51,26 +53,32 @@ jobs:
         needs.release-please.outputs.release_created == 'true' ||
         github.event_name == 'workflow_dispatch'
       ) }}
-    runs-on: ubuntu-latest
+    # Pinned rather than ubuntu-latest, which moves to Ubuntu 26 from 19
+    # October 2026: the machine a build runs on changes when we say so.
+    runs-on: ubuntu-24.04
     env:
       TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || needs.release-please.outputs.tag_name }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ env.TAG }}
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "21"
 
       # The action's default list asks for "tools", which the SDK no longer
       # has: name the packages the build needs instead.
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
         with:
           packages: platform-tools platforms;android-36 build-tools;36.0.0
 
-      - uses: gradle/actions/setup-gradle@v4
+      # "basic" is the open-source cache on GitHub's own; the default,
+      # "enhanced", is a commercial caching service this project does not need.
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
 
       # A release without a signed APK is worse than no release: stop here,
       # with the reason, rather than publish something nobody can install.
