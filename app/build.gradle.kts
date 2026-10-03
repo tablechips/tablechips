@@ -55,6 +55,13 @@ android {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.findByName("release")
+            // AGP writes the git commit into the APK, or an error when it finds
+            // no repository: the one byte-level difference between two builds
+            // of the same source. Leaving it out is what makes the build
+            // reproducible, so F-Droid can check its build against ours.
+            vcsInfo {
+                include = false
+            }
         }
     }
 
