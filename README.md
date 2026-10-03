@@ -129,6 +129,10 @@ Nobody edits a version number by hand.
   `CHANGELOG.md` entry. Merging it tags `vX.Y.Z`, creates the GitHub release,
   and builds the signed APK and attaches it, with its SHA-256 and the signing
   certificate's fingerprint in the notes.
+- **A release whose APK step failed** can have it built again without a new
+  version: *Actions → Release → Run workflow*, with the release's tag
+  (`v0.1.0`). It replaces the APK, its checksum and the Install section of the
+  notes.
 - **Every pull request runs `./gradlew build`**, tests and an unsigned release
   APK included, so the release PR is never where a broken build turns up.
 
