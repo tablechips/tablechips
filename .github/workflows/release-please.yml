@@ -40,9 +40,39 @@ jobs:
       # path prefix.
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
+      prs_created: ${{ steps.release.outputs.prs_created }}
     steps:
       - uses: googleapis/release-please-action@v5
         id: release
+
+  # release-please writes version.txt and CHANGELOG.md on the release PR; F-Droid
+  # also needs the version code as a literal and a changelog per version code.
+  # Whenever the release PR changes, write those onto it as well, so the tag it
+  # turns into carries everything F-Droid reads. release-please rewrites its
+  # branch on every update, which is why this runs every time and not once.
+  release-pr:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.prs_created == 'true' }}
+    # Pinned rather than ubuntu-latest, which moves to Ubuntu 26 from 19
+    # October 2026: the machine a build runs on changes when we say so.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: release-please--branches--main
+
+      - name: Write the version code and the F-Droid changelog
+        run: |
+          python3 scripts/sync_version.py
+          git add version-code.txt fastlane/metadata/android/en-US/changelogs
+          if git diff --cached --quiet; then
+            echo "Already in step."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: version code and changelog for F-Droid"
+          git push origin HEAD:release-please--branches--main
 
   apk:
     needs: release-please

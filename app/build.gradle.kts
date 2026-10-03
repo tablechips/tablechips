@@ -19,6 +19,18 @@ val appVersionCode = appVersion.split(".").map { it.toInt() }.let { (major, mino
 }
 
 /*
+  F-Droid's update checker cannot run that formula: it reads the version code
+  as a literal from version-code.txt, which scripts/sync_version.py writes and
+  the release workflow keeps current on the release PR. A build where the two
+  disagree would announce one version to F-Droid and ship another, so it stops.
+*/
+rootProject.file("version-code.txt").readText().trim().let { written ->
+    require(written == appVersionCode.toString()) {
+        "version-code.txt says $written, version.txt $appVersion means $appVersionCode: run scripts/sync_version.py"
+    }
+}
+
+/*
   Release builds are signed only when a keystore is handed over through the
   environment: the release workflow decodes one from the repository's secrets.
   Anywhere else — a contributor's machine, F-Droid's build server, which signs
