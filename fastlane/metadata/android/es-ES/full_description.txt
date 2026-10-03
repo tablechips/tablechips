@@ -1,0 +1,24 @@
+<p>TableChips sustituye las fichas de una partida de cartas de verdad, jugada con una baraja de verdad. Un móvil abre la mesa con su zona wifi; los demás escanean un código y juegan desde el navegador, sea iPhone o Android. Nadie necesita internet, ni una cuenta, ni instalar nada.</p>
+
+<p>Lleva las fichas y nada más: nunca reparte cartas. Barajad, repartid y jugad como siempre, y la app lleva la cuenta.</p>
+
+<p><b>Juegos</b></p>
+<ul>
+<li><b>Siete y media</b> y <b>blackjack</b>, con banca: todos apuestan contra ella y la banca resuelve cada mano desde la mesa.</li>
+<li><b>Póquer</b>: botón que se mueve, ciegas, importes por igualar y botes laterales.</li>
+<li><b>Modo manual</b> para cualquier otro juego (julepe, monte, truc…): botes, apuestas y pagos a mano.</li>
+</ul>
+
+<p><b>Por qué esta</b></p>
+<ul>
+<li><b>Los invitados no instalan nada.</b> El anfitrión sirve una página web; un iPhone y un Android en la misma mesa solo abren el navegador. Quien tenga la app puede entrar por la app.</li>
+<li><b>Nunca hace falta internet.</b> Todo pasa por la zona wifi del anfitrión: funciona en un refugio, un camping o un pueblo sin cobertura.</li>
+<li><b>Hasta diez jugadores</b>, cada uno con su dispositivo y su pila en cifras lo bastante grandes para leerlas desde la otra punta de la mesa.</li>
+<li><b>Deshacer sin límite</b> y registro completo de cada movimiento. Siempre se puede escribir el importe.</li>
+<li><b>Hecha para una noche larga:</b> los móviles se reconectan, los puestos se recuperan y la mesa sobrevive a que se cierre la app del anfitrión.</li>
+<li><b>Catalán, castellano e inglés</b> desde la primera pantalla.</li>
+</ul>
+
+<p>TableChips cuenta fichas. No hay dinero, ni pagos, ni cuentas: lo que valga una ficha lo deciden los de la mesa.</p>
+
+<p>Software libre con licencia GPLv3. Sin anuncios, sin compras integradas, sin rastreo.</p>

@@ -1,0 +1,1 @@
+Chips for a card table. One phone hosts; guests join from a browser, offline.

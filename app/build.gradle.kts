@@ -19,6 +19,18 @@ val appVersionCode = appVersion.split(".").map { it.toInt() }.let { (major, mino
 }
 
 /*
+  F-Droid's update checker cannot run that formula: it reads the version code
+  as a literal from version-code.txt, which scripts/sync_version.py writes and
+  the release workflow keeps current on the release PR. A build where the two
+  disagree would announce one version to F-Droid and ship another, so it stops.
+*/
+rootProject.file("version-code.txt").readText().trim().let { written ->
+    require(written == appVersionCode.toString()) {
+        "version-code.txt says $written, version.txt $appVersion means $appVersionCode: run scripts/sync_version.py"
+    }
+}
+
+/*
   Release builds are signed only when a keystore is handed over through the
   environment: the release workflow decodes one from the repository's secrets.
   Anywhere else — a contributor's machine, F-Droid's build server, which signs
@@ -55,6 +67,13 @@ android {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.findByName("release")
+            // AGP writes the git commit into the APK, or an error when it finds
+            // no repository: the one byte-level difference between two builds
+            // of the same source. Leaving it out is what makes the build
+            // reproducible, so F-Droid can check its build against ours.
+            vcsInfo {
+                include = false
+            }
         }
     }
 

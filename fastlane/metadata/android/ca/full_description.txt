@@ -1,0 +1,24 @@
+<p>TableChips substituïx les fitxes d'una partida de cartes de veritat, jugada amb una baralla de veritat. Un mòbil obri la taula amb la seua zona wifi; la resta escaneja un codi i juga des del navegador, siga iPhone o Android. Ningú no necessita internet, ni un compte, ni instal·lar res.</p>
+
+<p>Porta les fitxes i res més: no repartix cartes mai. Barregeu, repartiu i jugueu com sempre, i l'app porta el compte.</p>
+
+<p><b>Jocs</b></p>
+<ul>
+<li><b>Set i mig</b> i <b>blackjack</b>, amb banca: tothom aposta contra ella i la banca resol cada mà des de la taula.</li>
+<li><b>Pòquer</b>: botó que es mou, cegues, imports per igualar i pots laterals.</li>
+<li><b>Mode manual</b> per a qualsevol altre joc (canari, muntet, truc…): pots, apostes i pagaments a mà.</li>
+</ul>
+
+<p><b>Per què aquesta</b></p>
+<ul>
+<li><b>Els convidats no instal·len res.</b> L'amfitrió servix una pàgina web; un iPhone i un Android a la mateixa taula només obrin el navegador. Qui tinga l'app hi pot entrar per l'app.</li>
+<li><b>Mai no cal internet.</b> Tot passa per la zona wifi de l'amfitrió: funciona en un refugi, un càmping o un poble sense cobertura.</li>
+<li><b>Fins a deu jugadors</b>, cadascú amb el seu dispositiu i la seua pila en xifres prou grans per a llegir-les des de l'altra punta de la taula.</li>
+<li><b>Desfer sense límit</b> i registre complet de cada moviment. Sempre es pot escriure l'import.</li>
+<li><b>Feta per a una nit llarga:</b> els mòbils es reconnecten, els seients es recuperen i la taula sobreviu a l'app de l'amfitrió tancada.</li>
+<li><b>Català, castellà i anglés</b> des de la primera pantalla.</li>
+</ul>
+
+<p>TableChips compta fitxes. No hi ha diners, ni pagaments, ni comptes: el que valga una fitxa ho decidix la gent de la taula.</p>
+
+<p>Programari lliure amb llicència GPLv3. Sense anuncis, sense compres integrades, sense rastreig.</p>
