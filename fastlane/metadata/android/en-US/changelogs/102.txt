@@ -1,0 +1,4 @@
+Performance improvements:
+
+- R8 a la release (13 MB → 3,3 MB), i la icona a les fitxes ca/es
+- shrink the release APK with R8, from 13 MB to 3.3 MB
