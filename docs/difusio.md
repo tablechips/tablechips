@@ -101,26 +101,38 @@ contradiria la primera línia del README.
 
 ### On viu
 
-Recomanació: **`tablechips.github.io`**, a partir d'un repositori
-`tablechips/tablechips.github.io` dins de l'organització (o activant GitHub
-Pages en aquest repositori sobre la carpeta `site/`, i aleshores l'adreça és
-`tablechips.github.io/tablechips`). Gratis, sense servidor i amb HTTPS.
+**De moment, a GitHub Pages:** `tablechips.github.io/tablechips`. El
+desplegament és `.github/workflows/pages.yml`, que publica la carpeta `site/`
+cada vegada que canvia a `main`. Cal fer una sola cosa a mà: *Settings →
+Pages → Source: GitHub Actions*.
 
-Un domini propi (`tablechips.app`, `.cat`…) costa poc i queda millor als
-títols, però **no és urgent**: es pot afegir després amb un `CNAME` sense
-trencar cap enllaç.
+**El domini propi, més endavant.** Quan es compre, n'hi ha prou amb un fitxer
+`site/CNAME` i el registre DNS; l'adreça de GitHub continua redirigint. Opcions,
+per ordre:
+
+- **`tablechips.app`**: neutre, internacional, diu el que és.
+- **`tablechips.cat`**: per a la primera onada, la catalana; demana contingut
+  en català i la landing ja en té. Pot redirigir a l'altre.
+- **`.bet` no.** Diu «apostes» abans que ningú llija la FAQ que diu que no ho
+  és, i els filtres DNS, de control parental i d'escoles i empreses solen
+  bloquejar la categoria sencera. Reddit i les xarxes tracten els enllaços
+  d'apostes amb més sospita.
 
 ### Què hi ha
 
-1. **Capçalera:** la frase, el vídeo o una maqueta de la pantalla de taula, i
-   dos botons: F-Droid i GitHub.
-2. **Com funciona, en tres passos:** l'amfitrió obri la taula → els altres
+1. **Capçalera:** la frase, i la pantalla de taula amb les fitxes de fusta
+   escampades al voltant. **Les fitxes són el detall clau**: és el que
+   l'app substituïx, i s'han de veure abans de llegir res.
+2. **La capsa:** les cinc fitxes de Refugi (1, 5, 25, 50, 100) i la compra
+   inicial, cinc de cada, 905. La pila del mòbil es dibuixa amb el mateix
+   `chipsIn` que l'app i el client web.
+3. **Com funciona, en tres passos:** l'amfitrió obri la taula → els altres
    escanegen el codi → jugueu.
-3. **Per què aquesta:** els diferenciadors del README, en targetes curtes.
-4. **Jocs:** set i mig, blackjack, pòquer, mode manual (canari, muntet, truc…).
-5. **FAQ:** cal internet? cal iPhone? és per apostar diners? quants jugadors?
+4. **Per què aquesta:** els diferenciadors del README, en targetes curtes.
+5. **Jocs:** set i mig, blackjack, pòquer, mode manual (canari, muntet, truc…).
+6. **FAQ:** cal internet? cal iPhone? és per apostar diners? quants jugadors?
    per què no és a Google Play?
-6. **Peu:** GPLv3, codi font, idiomes.
+7. **Peu:** GPLv3, codi font, idiomes.
 
 Trilingüe amb el mateix sistema que el client web: el text anglés és al codi
 (és el que indexen els cercadors) i el navegador tria català o castellà si
@@ -354,7 +366,7 @@ Aquest és el canal que més s'assembla a l'ús de veritat:
 | Quan | Què |
 |---|---|
 | **Octubre, setmanes 1–2** | Tancar F8: metadades fastlane, release signada a GitHub, *merge request* a `fdroiddata`, petició a IzzyOnDroid. |
-| **Octubre, setmanes 3–4** | Nits de joc reals (F3–F7). Captures, vídeo, foto. Landing publicada. |
+| **Octubre, setmanes 3–4** | Nits de joc reals (F3–F7). Captures, vídeo, foto. Landing publicada a GitHub Pages. |
 | **Novembre, setmana 1** | Llançament discret: amics, Mastodon, fòrum d'F-Droid. Corregir el que surta. |
 | **Novembre, setmana 2** | Ona 1 (Reddit local) + Softcatalà. |
 | **Novembre, setmana 3** | Ona 2 (FOSS). AlternativeTo. |

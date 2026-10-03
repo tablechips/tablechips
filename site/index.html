@@ -24,6 +24,9 @@
   --text: #F2EAE0; --text2: #A99C8E;
   --accent: #C69A4E; --accentHover: #D8AC5E; --onAccent: #14110E;
   --gain: #86A96B; --loss: #CC5B42; --warn: #EBC15E;
+  /* The colours of a real box, darker than gain and loss: a 100 in loss
+     would read as money lost (docs/design-refugi.md). */
+  --chip1: #E6DCCB; --chip5: #9E4436; --chip25: #4F7D55; --chip50: #4D6F8F; --chip100: #8E7040;
   --sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
   --mono: "Plex Mono", ui-monospace, monospace;
   color-scheme: dark;
@@ -31,6 +34,8 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--text); }
 body { font: 400 16px/1.5 var(--sans); -webkit-text-size-adjust: 100%; }
+/* The chips round the phone are turned, and their corners may poke past the edge. */
+main { overflow-x: clip; }
 a { color: var(--accent); }
 a:hover { color: var(--accentHover); }
 .wrap { max-width: 1040px; margin: 0 auto; padding: 0 18px; }
@@ -54,7 +59,7 @@ header.top .wrap { display: flex; align-items: center; justify-content: space-be
 .langs button.on { color: var(--text); border-color: var(--lineStrong); }
 
 /* Hero */
-.hero { display: grid; grid-template-columns: 1.15fr .85fr; gap: 44px; align-items: center; padding: 64px 0 56px; }
+.hero { display: grid; grid-template-columns: 1.15fr .85fr; gap: 44px; align-items: center; padding-top: 64px; padding-bottom: 56px; }
 .hero h1 { font: 700 clamp(34px, 5.4vw, 54px)/1.08 var(--sans); letter-spacing: -.025em; margin: 14px 0 18px; }
 .hero h1 em { font-style: normal; color: var(--accent); }
 .hero p.lead { font-size: 18px; line-height: 1.55; color: var(--text2); margin: 0 0 28px; max-width: 34em; }
@@ -71,9 +76,40 @@ header.top .wrap { display: flex; align-items: center; justify-content: space-be
 .btn small { font: 500 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; opacity: .75; }
 .note { margin-top: 14px; font-size: 13px; color: var(--text2); }
 
+/*
+  A chip, as Refugi draws it: not a casino disc but a square tablet of
+  stamped wood. A dark groove, then a thin line of the denomination's colour,
+  a notch at the top, and the figure always in textPrimary so its contrast
+  never depends on the colour. --s scales the 66 px of the spec.
+*/
+.tile {
+  --s: 1; --c: var(--accent);
+  position: relative; flex: none; display: flex; align-items: center; justify-content: center;
+  width: calc(66px * var(--s)); height: calc(66px * var(--s)); border-radius: calc(10px * var(--s));
+  background: var(--surfaceHigh); border: 1px solid var(--lineStrong);
+  box-shadow: inset 0 0 0 calc(3px * var(--s)) var(--bg), inset 0 0 0 calc(4px * var(--s)) var(--c);
+  font: 600 calc(22px * var(--s))/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--text);
+}
+.tile::before {
+  content: ""; position: absolute; top: calc(6px * var(--s)); left: 50%;
+  width: calc(10px * var(--s)); height: calc(3px * var(--s)); margin-left: calc(-5px * var(--s));
+  background: var(--c); border-radius: 1px;
+}
+.tile.v1 { --c: var(--chip1); } .tile.v5 { --c: var(--chip5); } .tile.v25 { --c: var(--chip25); }
+.tile.v50 { --c: var(--chip50); } .tile.v100 { --c: var(--chip100); }
+
+/* The hero: the table screen, with the chips it replaces lying round it. */
+.stage { position: relative; justify-self: center; width: 100%; max-width: 432px; padding: 56px; }
+.stage .tile { position: absolute; z-index: 1; --s: 1.15; }
+.stage .t1 { top: 0; left: 0; transform: rotate(-11deg); }
+.stage .t2 { top: 6px; right: 2px; transform: rotate(9deg); --s: 1; }
+.stage .t3 { bottom: 4px; left: 6px; transform: rotate(7deg); --s: 1; }
+.stage .t4 { bottom: 0; right: 0; transform: rotate(-8deg); }
+.stage .t5 { top: 46%; left: -6px; transform: rotate(-4deg); --s: .85; }
+
 /* The phone: the table screen, drawn the way the app draws it. */
 .phone {
-  justify-self: center; width: 100%; max-width: 320px;
+  position: relative; width: 100%;
   border: 1px solid var(--lineStrong); border-radius: 22px; background: var(--bg);
   padding: 18px; display: flex; flex-direction: column; gap: 14px;
 }
@@ -93,6 +129,27 @@ header.top .wrap { display: flex; align-items: center; justify-content: space-be
 .phone .acts > span { display: flex; align-items: center; justify-content: center; min-height: 54px; border-radius: 12px; font-weight: 600; font-size: 15px; border: 1px solid var(--lineStrong); background: var(--surface); }
 .phone .acts > span.fill { grid-column: span 2; background: var(--accent); border-color: var(--accent); color: var(--onAccent); font-size: 17px; min-height: 60px; }
 .phone .acts > span.danger { border-color: #5A3B33; color: var(--loss); }
+/* The stack seen edge on, one column per denomination, as the web client draws it. */
+.chipRow { display: flex; gap: 8px; align-items: flex-end; }
+.chipCol { flex: 1; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.chipPile { height: 40px; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; }
+.chipPile > i { display: block; width: 34px; height: 4px; border-radius: 2px; }
+.chipPile > i.v1 { background: var(--chip1); } .chipPile > i.v5 { background: var(--chip5); }
+.chipPile > i.v25 { background: var(--chip25); } .chipPile > i.v50 { background: var(--chip50); }
+.chipPile > i.v100 { background: var(--chip100); }
+.chipPile > i.none { background: none; box-shadow: inset 0 0 0 1px var(--line); }
+.chipCol .cv { margin-top: 6px; font: 500 12px/1.2 var(--mono); font-variant-numeric: tabular-nums; }
+.chipCol .cc { font: 400 11px/1.2 var(--mono); color: var(--text2); font-variant-numeric: tabular-nums; }
+.chipCol.empty .cv, .chipCol.empty .cc { color: var(--line); }
+
+/* The box: five denominations, five of each. */
+.box { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 22px; }
+.box .item { display: flex; flex-direction: column; align-items: center; gap: 9px; }
+.box .tile { --s: 1.45; }
+.box .count { font: 500 14px/1 var(--mono); color: var(--text2); font-variant-numeric: tabular-nums; }
+.box .total { align-self: center; display: flex; flex-direction: column; gap: 7px; padding-left: 4px; }
+.box .total .num { font: 600 54px/1 var(--mono); letter-spacing: -.03em; }
+.boxText { color: var(--text2); max-width: 40em; margin: -12px 0 32px; font-size: 16px; }
 
 /* Sections */
 section { padding: 56px 0; border-top: 1px solid var(--line); }
@@ -124,12 +181,19 @@ footer { border-top: 1px solid var(--line); padding: 36px 0 48px; color: var(--t
 footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 14px; }
 
 @media (max-width: 860px) {
-  .hero { grid-template-columns: 1fr; padding: 40px 0; gap: 36px; }
+  .hero { grid-template-columns: 1fr; padding-top: 40px; padding-bottom: 40px; gap: 36px; }
   .steps, .grid { grid-template-columns: 1fr; }
   .games { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 480px) {
   .games { grid-template-columns: 1fr; }
+  .stage { padding: 40px 30px; }
+  .stage .tile { --s: .85; }
+  .stage .t2, .stage .t3 { --s: .75; }
+  .stage .t5 { display: none; }
+  .box { gap: 12px; }
+  .box .tile { --s: .9; }
+  .box .total { width: 100%; padding: 6px 0 0; }
   .btn { width: 100%; }
 }
 </style>
@@ -162,9 +226,16 @@ footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; g
       <p class="note" data-i18n="hero.note">Coming to F-Droid. No ads, no in-app purchases, no telemetry. GPLv3.</p>
     </div>
 
-    <div class="phone" aria-hidden="true">
+    <div class="stage" aria-hidden="true">
+      <span class="tile v100 t1">100</span>
+      <span class="tile v25 t2">25</span>
+      <span class="tile v5 t3">5</span>
+      <span class="tile v50 t4">50</span>
+      <span class="tile v1 t5">1</span>
+    <div class="phone">
       <div class="row"><span class="cap" data-i18n="phone.stack">Your stack</span><span class="cap">Marta</span></div>
-      <div class="stack">1 250</div>
+      <div class="stack">1 250</div>
+      <div class="chipRow" data-chips="1250"></div>
       <div class="pot">
         <span class="cap" data-i18n="phone.pot">Pot</span>
         <span class="num">340</span>
@@ -172,7 +243,7 @@ footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; g
       <ul>
         <li class="turn"><span class="who"><span class="dot"></span>Pau</span><span class="num tocall">+ 40</span></li>
         <li><span class="who"><span class="dot"></span>Carme</span><span class="num">980</span></li>
-        <li><span class="who"><span class="dot"></span>Joan</span><span class="num">1 610</span></li>
+        <li><span class="who"><span class="dot"></span>Joan</span><span class="num">1 610</span></li>
         <li><span class="who"><span class="dot"></span>Lucía</span><span class="num">720</span></li>
       </ul>
       <div class="acts">
@@ -181,7 +252,24 @@ footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; g
         <span class="fill"><span data-i18n="phone.call">Call</span>&nbsp;<span class="num">40</span></span>
       </div>
     </div>
+    </div>
   </div>
+
+  <section>
+    <div class="wrap">
+      <span class="cap" data-i18n="box.cap">The chips</span>
+      <h2 data-i18n="box.title">A real box of chips, on every phone at the table.</h2>
+      <p class="boxText" data-i18n="box.text">Five values in the colours of a real box. Everyone sees their stack the way they would hold it in their hand — up to five of each small chip, the rest in the big one — and the figure, big enough to read across the table.</p>
+      <div class="box">
+        <div class="item"><span class="tile v1">1</span><span class="count">× 5</span></div>
+        <div class="item"><span class="tile v5">5</span><span class="count">× 5</span></div>
+        <div class="item"><span class="tile v25">25</span><span class="count">× 5</span></div>
+        <div class="item"><span class="tile v50">50</span><span class="count">× 5</span></div>
+        <div class="item"><span class="tile v100">100</span><span class="count">× 5</span></div>
+        <div class="total"><span class="cap" data-i18n="box.buyIn">Default buy-in</span><span class="num">905</span></div>
+      </div>
+    </div>
+  </section>
 
   <section>
     <div class="wrap">
@@ -257,6 +345,9 @@ const DICT = {
     "cta.get": "Descarrega-la per a Android", "cta.source": "Codi font",
     "hero.note": "Prompte a F-Droid. Sense anuncis, sense compres integrades, sense telemetria. GPLv3.",
     "phone.stack": "La teua pila", "phone.pot": "Pot", "phone.fold": "Retirar-se", "phone.amount": "Import…", "phone.call": "Igualar",
+    "box.cap": "Les fitxes", "box.title": "Una capsa de fitxes de veritat, a cada mòbil de la taula.",
+    "box.text": "Cinc valors amb els colors d'una capsa de debò. Cadascú veu la seua pila com la tindria a la mà — fins a cinc de cada fitxa petita, la resta en la grossa — i la xifra, prou gran per a llegir-la des de l'altra punta de la taula.",
+    "box.buyIn": "Compra inicial",
     "how.cap": "Com funciona", "how.title": "Tres passos, i la baralla continua sent de veritat.",
     "how.1.t": "Obri la taula", "how.1.p": "L'amfitrió activa la zona wifi i obri una taula a TableChips. Tria el joc i la pila inicial.",
     "how.2.t": "Tothom escaneja el codi", "how.2.p": "La càmera obri el navegador i ja estàs assegut. Qui tinga l'app, entra per l'app.",
@@ -288,6 +379,9 @@ const DICT = {
     "cta.get": "Descárgala para Android", "cta.source": "Código fuente",
     "hero.note": "Pronto en F-Droid. Sin anuncios, sin compras integradas, sin telemetría. GPLv3.",
     "phone.stack": "Tu pila", "phone.pot": "Bote", "phone.fold": "Retirarse", "phone.amount": "Importe…", "phone.call": "Igualar",
+    "box.cap": "Las fichas", "box.title": "Una caja de fichas de verdad, en cada móvil de la mesa.",
+    "box.text": "Cinco valores con los colores de una caja de verdad. Cada uno ve su pila como la tendría en la mano — hasta cinco de cada ficha pequeña, el resto en la grande — y la cifra, lo bastante grande para leerla desde la otra punta de la mesa.",
+    "box.buyIn": "Compra inicial",
     "how.cap": "Cómo funciona", "how.title": "Tres pasos, y la baraja sigue siendo de verdad.",
     "how.1.t": "Abre la mesa", "how.1.p": "El anfitrión activa la zona wifi y abre una mesa en TableChips. Elige el juego y la pila inicial.",
     "how.2.t": "Todos escanean el código", "how.2.p": "La cámara abre el navegador y ya estás sentado. Quien tenga la app, entra por la app.",
@@ -313,6 +407,50 @@ const DICT = {
     "foot.licence": "TableChips es software libre, con licencia GPLv3.", "foot.source": "Código fuente en GitHub",
   },
 };
+
+// The same breakdown as `chipsIn` in :core and the web client, so the
+// landing draws a stack exactly the way the app would.
+const DENOMINATIONS = [100, 50, 25, 5, 1];
+const CHIPS_PER_DENOMINATION = 5;
+const MAX_EDGES = 7;
+
+function chipsIn(amount) {
+  const ascending = DENOMINATIONS.slice().sort((a, b) => a - b);
+  const counts = {};
+  let rest = Math.max(0, amount);
+  ascending.forEach((value, index) => {
+    const next = ascending[index + 1];
+    let count;
+    if (next === undefined) {
+      count = Math.floor(rest / value);
+    } else {
+      const group = next / value;
+      count = (rest % next) / value;
+      while (count + group <= CHIPS_PER_DENOMINATION && (count + group) * value <= rest) count += group;
+    }
+    counts[value] = count;
+    rest -= count * value;
+  });
+  return DENOMINATIONS.map((value) => ({ value: value, count: counts[value] }));
+}
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+document.querySelectorAll("[data-chips]").forEach(node => {
+  node.replaceChildren(...chipsIn(Number(node.dataset.chips)).map(({ value, count }) => {
+    const column = el("div", "chipCol" + (count === 0 ? " empty" : ""));
+    const pile = el("div", "chipPile");
+    if (count === 0) pile.append(el("i", "none"));
+    for (let i = 0; i < Math.min(count, MAX_EDGES); i++) pile.append(el("i", "v" + value));
+    column.append(pile, el("div", "cv", String(value)), el("div", "cc", "\u00D7" + count));
+    return column;
+  }));
+});
 
 const ENGLISH = {};
 document.querySelectorAll("[data-i18n]").forEach(el => { ENGLISH[el.dataset.i18n] = el.textContent; });
