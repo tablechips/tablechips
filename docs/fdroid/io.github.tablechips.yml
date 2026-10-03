@@ -14,9 +14,9 @@ Repo: https://github.com/tablechips/tablechips.git
 Binaries: https://github.com/tablechips/tablechips/releases/download/v%v/tablechips-%v.apk
 
 Builds:
-  - versionName: 0.1.1
-    versionCode: 101
-    commit: e4d532c47ca50ead0e192a831d3f65578c6201ba
+  - versionName: 0.1.2
+    versionCode: 102
+    commit: 1e2896e4eb3c48dc05aceec5a1241eddf0f3a6df
     subdir: app
     gradle:
       - yes
@@ -26,5 +26,5 @@ AllowedAPKSigningKeys: c71dcf6f766d80f8601b566bf58e7dd9bab8a9ad3e5f20e3097684a19
 AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v[0-9]+\.[0-9]+\.[0-9]+$
 UpdateCheckData: version-code.txt|(\d+)|version.txt|(.+)
-CurrentVersion: 0.1.1
-CurrentVersionCode: 101
+CurrentVersion: 0.1.2
+CurrentVersionCode: 102
