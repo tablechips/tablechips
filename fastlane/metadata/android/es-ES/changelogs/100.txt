@@ -1,0 +1,6 @@
+La primera versión.
+
+- Un móvil hace de anfitrión con su zona wifi; los demás entran por el navegador o por la app.
+- Siete y media y blackjack con banca, póquer con ciegas y botes laterales, y un modo manual para el resto.
+- Hasta diez jugadores, deshacer sin límite, registro completo y una mesa que sobrevive a la app cerrada.
+- Catalán, castellano e inglés.

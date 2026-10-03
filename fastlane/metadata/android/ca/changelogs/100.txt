@@ -1,0 +1,6 @@
+La primera versió.
+
+- Un mòbil fa d'amfitrió amb la seua zona wifi; la resta entra pel navegador o per l'app.
+- Set i mig i blackjack amb banca, pòquer amb cegues i pots laterals, i un mode manual per a la resta.
+- Fins a deu jugadors, desfer sense límit, registre complet i una taula que sobreviu a l'app tancada.
+- Català, castellà i anglés.

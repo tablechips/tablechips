@@ -1,0 +1,6 @@
+The first release.
+
+- One phone hosts over its hotspot; everyone else joins from a browser or the app.
+- 7½ and blackjack with a bank, poker with blinds and side pots, a manual mode for anything else.
+- Up to ten players, unlimited undo, a full log, and a table that survives the host app being closed.
+- Catalan, Spanish and English.

@@ -1,0 +1,24 @@
+<p>TableChips replaces the chips at a real card game, played with a real deck. One phone hosts the table over its own hotspot; everybody else scans a code and plays from their browser, iPhone or Android. Nobody needs the internet, an account or to install anything.</p>
+
+<p>It keeps the chips and nothing else: it never deals cards. You shuffle, you deal, you play as you always have, and the app counts.</p>
+
+<p><b>Games</b></p>
+<ul>
+<li><b>7½ (set i mig)</b> and <b>blackjack</b>, with a bank: everybody stakes against it and the bank settles each hand from the table.</li>
+<li><b>Poker</b>: a moving button, blinds, call amounts and side pots.</li>
+<li><b>Manual mode</b> for any other game: pots, bets and payouts by hand.</li>
+</ul>
+
+<p><b>Why this one</b></p>
+<ul>
+<li><b>Guests install nothing.</b> The host serves a web page; an iPhone and an Android at the same table both just open a browser. Anyone with the app can join through it instead.</li>
+<li><b>No internet, ever.</b> Everything runs on the host's hotspot: it works in a mountain hut, a campsite or a village without signal.</li>
+<li><b>Up to ten players</b>, each on their own device, each with their stack in figures big enough to read across the table.</li>
+<li><b>Unlimited undo</b> and a full log of every move. You can always type the amount.</li>
+<li><b>Built for a long night:</b> phones reconnect, seats can be recovered, and the table survives the host app being closed.</li>
+<li><b>Catalan, Spanish and English</b> from the first screen.</li>
+</ul>
+
+<p>TableChips counts chips. It has no money, no payments and no accounts: what a chip is worth is up to the people at the table.</p>
+
+<p>Free software under the GPLv3. No ads, no in-app purchases, no tracking.</p>
