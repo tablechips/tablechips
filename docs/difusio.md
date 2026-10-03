@@ -17,7 +17,8 @@ comunitat per a mesos. Per tant, el llançament públic **espera** a tres coses:
    d'F-Droid, compilacions reproduïbles) és un requisit, no un detall. Mentre
    F-Droid no l'haja acceptada, cal com a mínim:
    - un APK signat a **GitHub Releases** (amb el canvi de versió i
-     l'empremta del certificat al text de la release);
+     l'empremta del certificat al text de la release). Ja està automatitzat
+     amb release-please: vegeu «Releasing» al README;
    - la petició a **IzzyOnDroid**, que llegeix directament les releases de
      GitHub i sol ser més ràpid que el repositori principal;
    - el *merge request* a `fdroiddata` amb el fitxer de metadades complet fet

@@ -6,6 +6,7 @@ local.properties
 .DS_Store
 captures/
 *.keystore
+*.jks
 !debug.keystore
 
 # Built apks handed over for testing, never committed.

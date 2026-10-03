@@ -109,6 +109,51 @@ still builds and tests `:core` and `:server`.
 `compileSdk` is 36 because API 37 has no published platform yet; move both it
 and `targetSdk` up when it ships.
 
+## Releasing
+
+Releases are cut by [release-please](https://github.com/googleapis/release-please),
+the same way as in [s7-opcua-bridge](https://github.com/victormico/s7-opcua-bridge).
+Nobody edits a version number by hand.
+
+- **The version lives in `version.txt`**, and nowhere else. The app's
+  `versionName` is read from it and its `versionCode` derived from it:
+  `MAJOR·10000 + MINOR·100 + PATCH`, so 0.1.0 is 100 and 1.2.3 is 10203.
+- **Commit messages decide the next version**, in
+  [Conventional Commits](https://www.conventionalcommits.org/) form:
+  `fix:` is a patch, `feat:` a minor, and `feat!:` or a `BREAKING CHANGE:`
+  footer a major — a minor while the app is below 1.0. `docs:`, `build:`,
+  `ci:`, `test:`, `refactor:` and `chore:` release nothing on their own. A
+  scope is welcome: `feat(web): …`, `fix(core): …`. The text after the colon
+  keeps the house style; it is the line that ends up in the changelog.
+- **Every push to `main` updates a release PR** with the next version and its
+  `CHANGELOG.md` entry. Merging it tags `vX.Y.Z`, creates the GitHub release,
+  and builds the signed APK and attaches it, with its SHA-256 and the signing
+  certificate's fingerprint in the notes.
+- **Every pull request runs `./gradlew build`**, tests and an unsigned release
+  APK included, so the release PR is never where a broken build turns up.
+
+The signing key is the second irreversible decision after the app id: Android
+only installs an update signed with the same key as the version already on the
+phone. It lives in four repository secrets, never in the repository:
+
+| Secret | What |
+|---|---|
+| `TABLECHIPS_KEYSTORE_BASE64` | The keystore, as `base64 -w0 release.jks` |
+| `TABLECHIPS_KEYSTORE_PASSWORD` | The keystore's password |
+| `TABLECHIPS_KEY_ALIAS` | The key's alias |
+| `TABLECHIPS_KEY_PASSWORD` | The key's password |
+
+To make one, once, and keep a copy somewhere safe outside GitHub:
+
+```sh
+keytool -genkeypair -keystore release.jks -alias tablechips \
+        -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=TableChips"
+```
+
+Without those secrets a release build is simply unsigned — which is what
+F-Droid wants, since it signs with its own key — and the release workflow
+stops with an error instead of publishing an APK nobody could install.
+
 ## Where the project is
 
 Phases, as laid out in the plan:
@@ -136,7 +181,9 @@ Phases, as laid out in the plan:
       and a payout out of the bank, at a house ratio — and poker with a moving
       button, blinds, call amounts and side pots. Whose turn it is stays with
       the people at the table.
-- [ ] **F8 — Release.** F-Droid metadata, reproducible builds.
+- [ ] **F8 — Release.** Versions and signed APKs on GitHub releases are
+      automated (see Releasing); F-Droid metadata and reproducible builds are not
+      done yet.
 
 The acceptance criteria that need real devices and real people are not ticked
 off by a test suite:
