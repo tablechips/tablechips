@@ -39,8 +39,12 @@ jobs:
           distribution: temurin
           java-version: "21"
 
+      # The action's default list asks for "tools", which the SDK no longer
+      # has: name the packages the build needs instead.
       - uses: android-actions/setup-android@v3
         if: ${{ steps.release.outputs.release_created }}
+        with:
+          packages: platform-tools platforms;android-36 build-tools;36.0.0
 
       - uses: gradle/actions/setup-gradle@v4
         if: ${{ steps.release.outputs.release_created }}
