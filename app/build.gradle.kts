@@ -5,6 +5,27 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+/*
+  The version lives in version.txt at the root, and only there: release-please
+  bumps it from the commit messages when it cuts a release (see README,
+  "Releasing"). The version code is derived from it, so the two can never
+  disagree: MAJOR·10000 + MINOR·100 + PATCH, which keeps it rising as long as
+  minor and patch stay under a hundred.
+*/
+val appVersion = rootProject.file("version.txt").readText().trim()
+val appVersionCode = appVersion.split(".").map { it.toInt() }.let { (major, minor, patch) ->
+    require(minor < 100 && patch < 100) { "version.txt: $appVersion does not fit the version code scheme" }
+    (major * 10000 + minor * 100 + patch).coerceAtLeast(1)
+}
+
+/*
+  Release builds are signed only when a keystore is handed over through the
+  environment: the release workflow decodes one from the repository's secrets.
+  Anywhere else — a contributor's machine, F-Droid's build server, which signs
+  with its own key — a release build comes out unsigned, and that is fine.
+*/
+val releaseKeystore: String? = System.getenv("TABLECHIPS_KEYSTORE")
+
 android {
     namespace = "io.github.tablechips.app"
     compileSdk = 36
@@ -14,14 +35,26 @@ android {
         applicationId = "io.github.tablechips"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = appVersionCode
+        versionName = appVersion
+    }
+
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storePassword = System.getenv("TABLECHIPS_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("TABLECHIPS_KEY_ALIAS")
+                keyPassword = System.getenv("TABLECHIPS_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 
@@ -53,6 +86,13 @@ android {
         unitTests {
             isIncludeAndroidResources = true
         }
+    }
+
+    // The dependency block AGP writes into the APK is encrypted with Google's
+    // key: nobody else can read it, and F-Droid rejects APKs that carry it.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
     }
 
     packaging {
