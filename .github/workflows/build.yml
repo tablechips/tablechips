@@ -1,0 +1,30 @@
+name: Build
+
+# Every pull request builds and tests everything — the rules, the server, the
+# app's screens rendered on the JVM, and an unsigned release APK — so the
+# release PR is never the first place a broken build shows up.
+on:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - run: ./gradlew build
+
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: tablechips-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
