@@ -114,7 +114,7 @@ una unitat diferent, o en un registre paral·lel. La primera opció manté l'und
 i l'auditoria gratis i és la que recomano.
 
 *Verificat:* `TableState` no té cap noció de punts. Seguiment a
-[#6](https://github.com/victormico/tablechips/issues/6), que afegeix una
+[#6](https://github.com/tablechips/tablechips/issues/6), que afegeix una
 condició que aquí faltava: la taula no pot crear fitxes, així que la
 conversió ha de ser un seguit de transferències entre jugadors que **sumi
 zero**, no un pagament des del no-res.
@@ -141,7 +141,7 @@ pendent n'escriu dos), però `undo` en treu un. Prova feta: un jugador amb 30
 apostats s'aixeca, l'amfitrió desfà una vegada, i el jugador torna a estar
 assegut **sense** l'aposta. Cap fitxa es perd, però un «Desfer» tira enrere
 mig moviment. Seguiment a
-[#5](https://github.com/victormico/tablechips/issues/5), amb un matís: el grup
+[#5](https://github.com/tablechips/tablechips/issues/5), amb un matís: el grup
 hauria de ser el que l'amfitrió ha tocat, no la ronda sencera.
 
 **Pot → pot.** Necessari si el pot acumulat del canari es reparteix en capes, o
@@ -221,11 +221,11 @@ provadors.
    no necessita estructura pròpia.
 3. **L'únic buit funcional és la liquidació a tant el punt**, que bloqueja cinc
    jocs, entre ells els dos de més abast de mercat
-   ([#6](https://github.com/victormico/tablechips/issues/6)).
+   ([#6](https://github.com/tablechips/tablechips/issues/6)).
 4. **La transacció atòmica de grup és la mancança més urgent**, perquè afecta
    una promesa central del producte (undo íntegre) i encarir-la és qüestió de
    temps. La verificació ha confirmat que el problema ja existeix avui
-   ([#5](https://github.com/victormico/tablechips/issues/5)).
+   ([#5](https://github.com/tablechips/tablechips/issues/5)).
 5. La xifra correcta d'abast és **una trentena de jocs**, no una cinquantena.
    Comptant variants regionals s'hi arriba, però la llista defensable és
    aquesta.
@@ -240,7 +240,7 @@ calia, provant-lo:
 | El pot és de la mà o de la taula? | **De la taula.** Cap regla el buida; en manual un pot s'acumula sol. `start_hand` del pòquer fon els pots en un conservant-ne les fitxes. |
 | El rol de banca és reutilitzable? | **Sí**: estat de taula i ordre pròpia, compartits pels dos jocs de banca. **No** hi ha regla de traspàs: només l'amfitrió el mou. |
 | `split_pots` cobreix pot → pot? | **No**: calcula capes a partir de les aportacions, només en pòquer. Pot → pot no existeix, i avui no bloqueja cap joc. |
-| Hi ha agrupació atòmica? | **No**, i ja té conseqüències: una ordre pot escriure dos esdeveniments i l'undo en desfà un ([#5](https://github.com/victormico/tablechips/issues/5)). |
+| Hi ha agrupació atòmica? | **No**, i ja té conseqüències: una ordre pot escriure dos esdeveniments i l'undo en desfà un ([#5](https://github.com/tablechips/tablechips/issues/5)). |
 
 La revisió també va trobar un error a la fase 7, ja corregit: el nucli
 acceptava donar un pot lateral a qui no hi havia arribat. Les pantalles

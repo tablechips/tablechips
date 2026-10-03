@@ -6,12 +6,12 @@ plugins {
 }
 
 android {
-    namespace = "io.github.victormico.tablechips.app"
+    namespace = "io.github.tablechips.app"
     compileSdk = 36
 
     defaultConfig {
         // The only irreversible decision of the project: see README.
-        applicationId = "io.github.victormico.tablechips"
+        applicationId = "io.github.tablechips"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
