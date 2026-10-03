@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/tablechips/tablechips/compare/v0.1.0...v0.1.1) (2026-10-03)
+
+
+### Documentation
+
+* the F-Droid recipe, and how to send it ([e967885](https://github.com/tablechips/tablechips/commit/e9678854ab5f7b06a2356242bdaacfab0c7c69b1))
+
 ## 0.1.0 (2026-10-03)
 
 
