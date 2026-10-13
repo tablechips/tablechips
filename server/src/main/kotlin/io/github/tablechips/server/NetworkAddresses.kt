@@ -23,6 +23,7 @@ fun localIpv4Addresses(
     interfaces
         .asSequence()
         .filter { runCatching { it.isUp && !it.isLoopback }.getOrDefault(false) }
+        .filterNot { isMobileDataInterface(it.name) }
         .flatMap { networkInterface ->
             networkInterface.inetAddresses.asSequence()
                 .filterIsInstance<Inet4Address>()
@@ -33,6 +34,28 @@ fun localIpv4Addresses(
         .distinct()
         .sortedWith(compareBy({ -hotspotRank(it.interfaceName) }, { it.interfaceName }, { it.address }))
         .toList()
+
+/**
+ * Mobile data and the carrier's own virtual links carry an address nobody at
+ * the table can reach. Offering it makes the host read out a dead URL; leaving
+ * it out lets the screen say there is no network instead.
+ */
+internal fun isMobileDataInterface(interfaceName: String): Boolean {
+    val name = interfaceName.lowercase()
+    return mobileDataPrefixes.any { name.startsWith(it) }
+}
+
+private val mobileDataPrefixes = listOf(
+    "rmnet", // Qualcomm
+    "rev_rmnet",
+    "v4-rmnet", // 464XLAT on top of rmnet
+    "clat",
+    "ccmni", // MediaTek
+    "seth_lte", // Unisoc
+    "pdp",
+    "wwan",
+    "vgate", // OnePlus/Oppo carrier gateway
+)
 
 /**
  * How likely an interface is to be the one guests are attached to. Names are a

@@ -2,6 +2,7 @@ package io.github.tablechips.server
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class NetworkAddressesTest {
@@ -16,6 +17,14 @@ class NetworkAddressesTest {
         assertTrue(ordered.indexOf("wlan0") < ordered.indexOf("rndis0"))
         assertTrue(ordered.indexOf("rndis0") < ordered.indexOf("eth0"))
         assertEquals(0, hotspotRank("docker0"))
+    }
+
+    @Test
+    fun `mobile data interfaces are never offered`() {
+        listOf("rmnet_data0", "rmnet_data5", "vgate0", "ccmni1", "v4-rmnet_data0", "wwan0")
+            .forEach { assertTrue(isMobileDataInterface(it), it) }
+        listOf("ap0", "swlan0", "wlan0", "wlan1", "rndis0", "bt-pan", "eth0")
+            .forEach { assertFalse(isMobileDataInterface(it), it) }
     }
 
     @Test
