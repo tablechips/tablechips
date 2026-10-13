@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.3](https://github.com/tablechips/tablechips/compare/v0.1.2...v0.1.3) (2026-10-13)
+
+
+### Bug Fixes
+
+* leave mobile data out of the host addresses ([9d984d0](https://github.com/tablechips/tablechips/commit/9d984d0a7f258e88d3465ed2670e28e36608f520))
+* leave mobile data out of the host addresses ([d46cda0](https://github.com/tablechips/tablechips/commit/d46cda0e8a6baf1c677750642a72f8e635170ae9))
+
 ## [0.1.2](https://github.com/tablechips/tablechips/compare/v0.1.1...v0.1.2) (2026-10-03)
 
 

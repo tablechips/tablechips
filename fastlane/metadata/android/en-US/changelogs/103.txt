@@ -1,0 +1,4 @@
+Bug fixes:
+
+- leave mobile data out of the host addresses
+- leave mobile data out of the host addresses
