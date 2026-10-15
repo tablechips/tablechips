@@ -166,6 +166,9 @@ private sealed interface Screen {
 /** How long the table screen keeps offering the last move back. */
 private const val UNDO_WINDOW_MILLIS = 30_000L
 
+/** How often the address screen looks for a hotspot that has just come up. */
+private const val ADDRESS_REFRESH_MILLIS = 2_000L
+
 @Composable
 fun App(
     prefs: Prefs,
@@ -210,6 +213,15 @@ fun App(
     LaunchedEffect(hostStatus.running, hostStatus.port, name) {
         if (hostStatus.running && name.isNotBlank()) {
             Session.connect(TableConnection.webSocketUrl("127.0.0.1", hostStatus.port), name)
+        }
+    }
+    // Turning the hotspot on from quick settings does not pause the activity, so
+    // onResume alone misses it. While the address screen is open, look again.
+    val showingAddresses = screen == Screen.Connection && hostStatus.running
+    LaunchedEffect(showingAddresses) {
+        while (showingAddresses) {
+            HostController.refreshAddresses()
+            delay(ADDRESS_REFRESH_MILLIS)
         }
     }
     LaunchedEffect(state.table != null) {
