@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.4](https://github.com/tablechips/tablechips/compare/v0.1.3...v0.1.4) (2026-10-15)
+
+
+### Bug Fixes
+
+* show the hotspot address as soon as it comes up ([62369b0](https://github.com/tablechips/tablechips/commit/62369b0882ef0f93ded2e3297a22930eab19de98))
+* show the hotspot address as soon as it comes up ([b2cb2f9](https://github.com/tablechips/tablechips/commit/b2cb2f9d96213825a983a8e56cc0235fd8e03169))
+
 ## [0.1.3](https://github.com/tablechips/tablechips/compare/v0.1.2...v0.1.3) (2026-10-13)
 
 
