@@ -1,0 +1,4 @@
+Bug fixes:
+
+- show the hotspot address as soon as it comes up
+- show the hotspot address as soon as it comes up
