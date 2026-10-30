@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.5](https://github.com/tablechips/tablechips/compare/v0.1.4...v0.1.5) (2026-10-30)
+
+
+### Bug Fixes
+
+* dim disabled buttons so they don't look pressable ([ada7cb6](https://github.com/tablechips/tablechips/commit/ada7cb66fba5dd7a06b554dde8bda312fc6fc713))
+* dim the other disabled controls too ([2495cee](https://github.com/tablechips/tablechips/commit/2495ceec7b9d0566aa51243aff5dd761695e4c06))
+* dim the primary button while it is disabled ([948aa66](https://github.com/tablechips/tablechips/commit/948aa6672fc69981835fd178ad4ab49d3c126144))
+
 ## [0.1.4](https://github.com/tablechips/tablechips/compare/v0.1.3...v0.1.4) (2026-10-15)
 
 
