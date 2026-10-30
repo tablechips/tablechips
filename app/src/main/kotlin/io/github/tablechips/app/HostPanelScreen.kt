@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -154,7 +155,9 @@ fun HostPanelScreen(
                             if (tying) tied = if (picked) tied - player.id else tied + player.id
                             else onAward(player, pendingSplit)
                         },
-                        modifier = Modifier.fillMaxWidth().height(58.dp).padding(bottom = 7.dp),
+                        // An empty pot has nothing to give: the rows stay, dimmed.
+                        modifier = Modifier.fillMaxWidth().height(58.dp).padding(bottom = 7.dp)
+                            .alpha(if (amount > 0) 1f else .4f),
                         enabled = amount > 0,
                         fill = if (picked) Refugi.surface else Refugi.surfaceHigh,
                         border = if (picked) Refugi.accent else Refugi.lineAccent,

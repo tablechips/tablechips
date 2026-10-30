@@ -101,7 +101,9 @@ fun PrimaryButton(
 ) {
     ClickableSurface(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth().height(height),
+        // A disabled primary must not look like one waiting to be pressed: the
+        // design dims disabled actions to 40 %, as the secondary ones already are.
+        modifier = modifier.fillMaxWidth().height(height).alpha(if (enabled) 1f else .4f),
         enabled = enabled,
         fill = Refugi.accent,
         pressedFill = Refugi.accentHover,
@@ -169,8 +171,8 @@ fun SecondaryButton(
             )
         } else {
             Column {
-                TcText(label, Type.primary, color = Refugi.text)
-                TcText(subtitle, Type.body, color = Refugi.text2)
+                TcText(label, Type.primary, color = if (enabled) Refugi.text else Refugi.line)
+                TcText(subtitle, Type.body, color = if (enabled) Refugi.text2 else Refugi.line)
             }
         }
     }
