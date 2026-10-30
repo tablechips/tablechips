@@ -13,19 +13,19 @@ Una primera impressió a Reddit només es té una vegada. Un fil que diu «no
 funciona amb el meu Xiaomi» als deu minuts enterra el projecte en aquella
 comunitat per a mesos. Per tant, el llançament públic **espera** a tres coses:
 
-1. **Que es puga instal·lar sense compilar.** La fase F8 del README (metadades
+1. **Que es puga instal·lar sense compilar.** La fase F8 de docs/development.md (metadades
    d'F-Droid, compilacions reproduïbles) és un requisit, no un detall. Mentre
    F-Droid no l'haja acceptada, cal com a mínim:
    - un APK signat a **GitHub Releases** (amb el canvi de versió i
      l'empremta del certificat al text de la release). Ja està automatitzat
-     amb release-please: vegeu «Releasing» al README;
+     amb release-please: vegeu «Releasing» a docs/development.md;
    - la petició a **IzzyOnDroid**, que llegeix directament les releases de
      GitHub i sol ser més ràpid que el repositori principal;
    - el *merge request* a `fdroiddata` amb el fitxer de metadades complet fet
      per nosaltres, no una entrada a la cua de sol·licituds: la documentació
      d'F-Droid diu que és el camí ràpid, i un cop fusionat tarda un o dos dies
      a aparéixer.
-2. **Que s'haja jugat de veritat.** Els criteris F3–F7 del README que només
+2. **Que s'haja jugat de veritat.** Els criteris F3–F7 de docs/development.md que només
    poden validar persones: una nit de cada joc, amb un iPhone a la taula i
    mòbils de dos fabricants diferents. Cada cosa que es trenque ací és un
    comentari negatiu que no es llegirà a Reddit.
@@ -87,7 +87,7 @@ Frases, de més curta a més llarga:
 - Res que sone a apostes amb diners. TableChips porta el compte de fitxes;
   el que valguen les fitxes és cosa de la taula. Ho repetim a les FAQ, perquè
   és el primer que retrauran els moderadors i el primer motiu de *ban*.
-- «Repartix cartes». No ho fa i és una decisió (README, «No card dealing»).
+- «Repartix cartes». No ho fa i és una decisió (docs/development.md, «No card dealing»).
 - Comparacions amb noms de la competència als títols. Al cos, si cal, amb
   fets: «les altres demanen que tothom instal·le l'app».
 
