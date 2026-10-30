@@ -1,0 +1,5 @@
+Bug fixes:
+
+- dim disabled buttons so they don't look pressable
+- dim the other disabled controls too
+- dim the primary button while it is disabled
