@@ -7,7 +7,7 @@ plugins {
 
 /*
   The version lives in version.txt at the root, and only there: release-please
-  bumps it from the commit messages when it cuts a release (see README,
+  bumps it from the commit messages when it cuts a release (see docs/development.md,
   "Releasing"). The version code is derived from it, so the two can never
   disagree: MAJOR·10000 + MINOR·100 + PATCH, which keeps it rising as long as
   minor and patch stay under a hundred.
@@ -43,7 +43,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        // The only irreversible decision of the project: see README.
+        // The only irreversible decision of the project: see docs/development.md.
         applicationId = "io.github.tablechips"
         minSdk = 26
         targetSdk = 36

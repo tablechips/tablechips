@@ -117,7 +117,7 @@ jobs:
           KEYSTORE_BASE64: ${{ secrets.TABLECHIPS_KEYSTORE_BASE64 }}
         run: |
           if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "::error::TABLECHIPS_KEYSTORE_BASE64 is not set: see README, Releasing."
+            echo "::error::TABLECHIPS_KEYSTORE_BASE64 is not set: see docs/development.md, Releasing."
             exit 1
           fi
           echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
